@@ -1,0 +1,80 @@
+#include "rhi.h"
+
+namespace rhi {
+
+static auto s_regTypes = TypeInfo::AddInitializer("rhi", [] {
+    TypeInfo::Register<Rhi>().Name("Rhi")
+        .Base<utl::Any>();
+});
+
+
+bool Rhi::Init(Settings const &settings)
+{
+    _settings = settings;
+    if (!InitTypes())
+        return false;
+    return true;
+}
+
+void Rhi::Done()
+{
+}
+
+bool Rhi::InitTypes()
+{
+    bool res = true;
+    TypeInfo::Get<RhiOwned>()->ForDerivedTypes([&](TypeInfo const *derived) {
+        if (derived->GetMetadata(RhiOwned::s_rhiTagType))
+            return Enum::Continue;
+        TypeInfo const *toCreate = GetDerivedTypeWithTag(derived);
+        ASSERT(toCreate);
+        res = res && toCreate;
+        return Enum::Continue;
+    });
+
+    return res;
+}
+
+std::shared_ptr<RhiOwned> Rhi::Create(TypeInfo const *type, std::string name)
+{
+    TypeInfo const *toCreate = GetDerivedTypeWithTag(type);
+    ASSERT(toCreate);
+    if (!toCreate)
+        return std::shared_ptr<RhiOwned>();
+    auto obj = std::shared_ptr<RhiOwned>(toCreate->ConstructAs<RhiOwned>(nullptr, true));
+    obj->InitRhi(this, name);
+    return obj;
+}
+
+std::shared_ptr<Submission> Rhi::Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name)
+{
+    auto sub = Create<Submission>(name);
+    sub->_passes = std::move(passes);
+    return sub;
+}
+
+TypeInfo const *Rhi::GetDerivedTypeWithTag(TypeInfo const *base)
+{
+    {
+        std::shared_lock rlock(_rwLock);
+        auto it = _derivedTypes.find(base);
+        if (it != _derivedTypes.end())
+            return it->second;
+    }
+    TypeInfo const *rhiType = GetTypeInfo();
+    TypeInfo const *foundType = nullptr;
+    base->ForDerivedTypes([&](TypeInfo const *derived) {
+        auto *tagType = derived->GetMetadata<TypeInfo const *>(RhiOwned::s_rhiTagType);
+        if (!tagType || *tagType != rhiType)
+            return Enum::Continue;
+        foundType = derived;
+        return Enum::Stop;
+    });
+    {
+        std::unique_lock wlock(_rwLock);
+        _derivedTypes.insert({ base, foundType });
+    }
+    return foundType;
+}
+
+}
