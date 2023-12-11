@@ -10,4 +10,15 @@ static auto s_regTypes = TypeInfo::AddInitializer("texture_vk", [] {
 });
 
 
+TextureVk::~TextureVk()
+{
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
+}
+
+bool TextureVk::Init(ResourceDescriptor const &desc)
+{
+	return false;
+}
+
 }

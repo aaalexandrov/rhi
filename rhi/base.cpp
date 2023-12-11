@@ -4,6 +4,9 @@
 namespace rhi {
 
 static auto s_regTypes = TypeInfo::AddInitializer("type_info", [] {
+	TypeInfo::Register<WindowData>().Name("WindowData")
+		.Base<utl::Any>();
+
 	TypeInfo::Register<RhiOwned>().Name("RhiOwned")
 		.Base<utl::Any>();
 });

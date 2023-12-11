@@ -5,6 +5,9 @@ set(dir_SOURCES
 	dbg.h
 	dbg.cpp
 
+	enumutl.h
+	enumutl.cpp
+
 	geom.h
 	geom.cpp
 

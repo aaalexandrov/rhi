@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base_vk.h"
-#include "../resource.h"
+#include "../pipeline.h"
 
 namespace rhi {
 

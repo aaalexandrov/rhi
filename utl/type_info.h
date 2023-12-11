@@ -249,19 +249,12 @@ inline void *Cast(TypeInfo const *dstType, TypeInfo const *valType, void *val) {
 
 template <typename T> 
 T *Cast(TypeInfo const *valType, void *val) {
-	return Cast(TypeInfo::Get<T>(), valType, val);
+	return (T*)Cast(TypeInfo::Get<T>(), valType, val);
 }
 
 template <typename T>
 T *Cast(Any *any) {
 	return any ? Cast<T>(any->GetTypeInfo(), any) : nullptr;
-}
-
-template <typename T, typename Ptr>
-auto Cast(Ptr const &p) {
-	using newPtr = specialization_of<Ptr>::template base_type<T>;
-	T *t = Cast<T>(p.get());
-	return t ? t->shared_from_this() : newPtr();
 }
 
 template <typename T>

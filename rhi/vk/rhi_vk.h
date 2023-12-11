@@ -25,26 +25,57 @@ struct HostAllocationTrackerVk {
 	static VKAPI_ATTR void VKAPI_CALL InternalFreeNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
 };
 
+#if defined(_WIN32)
+struct WindowDataWin32 : public WindowData {
+	HINSTANCE _hinstance = nullptr;
+	HWND _hwnd = nullptr;
+	WindowDataWin32(HINSTANCE hinstance, HWND hwnd) : _hinstance(hinstance), _hwnd(hwnd) {}
+};
+#elif defined(__linux__)
+struct WindowDataXlib : public WindowData {
+	Display *_display = nullptr;     /**< The X11 display */
+	Window _window = 0;              /**< The X11 window */
+	WindowDataXlib(Display *display, Window window) : _display(display), _window(window) {}
+	VisualID GetVisualId() const {
+		XWindowAttributes winAttr;
+		XGetWindowAttributes(_display, _window, &winAttr);
+		return XVisualIDFromVisual(winAttr.visual);
+	}
+};
+#endif
 
 struct RhiVk : public Rhi {
 
+	~RhiVk() override;
+
 	bool Init(Settings const &settings) override;
-	void Done() override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RhiVk>(); }
 
 	vk::AllocationCallbacks *AllocCallbacks() { return _allocTracker ? &_allocTracker->_allocCallbacks : nullptr; }
 
 	bool InitInstance();
-	bool InitPhysicalDevice();
+	bool InitDevice();
+	bool InitVma();
+
+	std::span<uint32_t> GetQueueFamilyIndices(ResourceUsage usage);
 
 	// The host allocation tracker's callbacks will be called during destruction of Vulkan objects
 	// so the tracker has to appear before all those variables in the class, so it gets desroyed after them
 	std::unique_ptr<HostAllocationTrackerVk> _allocTracker;
 	vk::DebugReportCallbackEXT _debugReportCallback;
 
+	struct QueueData {
+		vk::Queue _queue;
+		uint32_t _family = ~0;
+	};
+
 	vk::Instance _instance;
 	vk::DispatchLoaderDynamic _dynamicDispatch;
+	vk::PhysicalDevice _physDevice;
+	vk::Device _device;
+	QueueData _universalQueue;
+	VmaAllocator _vma = {};
 };
 
 }

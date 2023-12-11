@@ -8,16 +8,16 @@ static auto s_regTypes = TypeInfo::AddInitializer("rhi", [] {
 });
 
 
+Rhi::~Rhi()
+{
+}
+
 bool Rhi::Init(Settings const &settings)
 {
     _settings = settings;
     if (!InitTypes())
         return false;
     return true;
-}
-
-void Rhi::Done()
-{
 }
 
 bool Rhi::InitTypes()

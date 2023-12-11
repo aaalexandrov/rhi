@@ -1,4 +1,7 @@
 set(dir_SOURCES
+	base_vk.h
+	base_vk.cpp
+
 	buffer_vk.h
 	buffer_vk.cpp
 

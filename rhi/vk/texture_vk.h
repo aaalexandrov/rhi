@@ -6,11 +6,14 @@
 namespace rhi {
 
 struct TextureVk : public Texture {
+	~TextureVk() override;
 
+	bool Init(ResourceDescriptor const &desc) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<TextureVk>(); }
 
 	vk::Image _image;
+	VmaAllocation _vmaAlloc = {};
 };
 
 }

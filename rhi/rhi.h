@@ -12,10 +12,12 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 		char const *_appName = nullptr;
 		glm::uvec3 _appVersion{ 0 };
 		bool _enableValidation = false;
+		std::shared_ptr<WindowData> _window;
 	};
 
+	virtual ~Rhi();
+
 	virtual bool Init(Settings const &settings);
-	virtual void Done();
 
 	bool InitTypes();
 

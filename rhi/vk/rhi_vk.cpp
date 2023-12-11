@@ -1,10 +1,19 @@
 #include "rhi_vk.h"
 #include "utl/mathutl.h"
 #include "utl/mem.h"
+#include "vma/vk_mem_alloc.h"
 
 namespace rhi {
 
 static auto s_regTypes = TypeInfo::AddInitializer("rhi_vk", [] {
+#if defined(_WIN32)
+    TypeInfo::Register<WindowDataWin32>().Name("WindowDataWin32")
+        .Base<WindowData>();
+#elif defined(__linux__)
+    TypeInfo::Register<WindowDataXlib>().Name("WindowDataXlib")
+        .Base<WindowData>();
+#endif
+
     TypeInfo::Register<RhiVk>().Name("RhiVk")
         .Base<Rhi>();
 });
@@ -90,6 +99,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
 }
 
 
+RhiVk::~RhiVk()
+{
+    vmaDestroyAllocator(_vma);
+    _device.destroy();
+    _instance.destroyDebugReportCallbackEXT(_debugReportCallback, AllocCallbacks(), _dynamicDispatch);
+    _instance.destroy(AllocCallbacks());
+}
 
 bool RhiVk::Init(Settings const &settings)
 {
@@ -97,6 +113,12 @@ bool RhiVk::Init(Settings const &settings)
         return false;
 
     if (!InitInstance())
+        return false;
+
+    if (!InitDevice())
+        return false;
+
+    if (!InitVma())
         return false;
 
     return true;
@@ -155,13 +177,108 @@ bool RhiVk::InitInstance()
     return true;
 }
 
-void RhiVk::Done()
-{
-    if (_debugReportCallback)
-        _instance.destroyDebugReportCallbackEXT(_debugReportCallback, AllocCallbacks(), _dynamicDispatch);
-    _instance.destroy(AllocCallbacks());
+struct DeviceCreateData {
+    vk::PhysicalDevice _physDevice;
+    int32_t _universalQueueFamily = -1;
+    std::vector<char const *> _layerNames, _extNames;
+};
 
-    Rhi::Done();
+DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDev, Rhi::Settings const &settings) 
+{
+    auto queueFamilyCanPresent = [](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
+#if defined(_WIN32)
+        return physDev.getWin32PresentationSupportKHR(queueFamily);
+#elif defined(__linux__)
+        auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get());
+        ASSERT(winDataXlib);
+        return winDataXlib && physDev.getXlibPresentationSupportKHR(q, winDataXlib->_display, winDataXlib->GetVisualId());
+#endif
+    };
+
+    DeviceCreateData devCreateData;
+
+    std::vector<char const *> extNames = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    auto devExts = physDev.enumerateDeviceExtensionProperties();
+    if (devExts.result != vk::Result::eSuccess)
+        return devCreateData;
+    for (auto &name : extNames) {
+        auto it = std::find_if(devExts.value.begin(), devExts.value.end(), [&](vk::ExtensionProperties const &ext) {
+            return strcmp(ext.extensionName, name) == 0;
+        });
+        if (it == devExts.value.end())
+            return devCreateData;
+    }
+
+    std::vector<vk::QueueFamilyProperties2> queueFamilies = physDev.getQueueFamilyProperties2();
+    vk::QueueFlags universalFlags = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer;
+    for (int32_t q = 0; q < queueFamilies.size(); ++q) {
+        if ((queueFamilies[q].queueFamilyProperties.queueFlags & universalFlags) != universalFlags ||
+            !queueFamilyCanPresent(physDev, q))
+            continue;
+        devCreateData._physDevice = physDev;
+        devCreateData._universalQueueFamily = q;
+        devCreateData._extNames = std::move(extNames);
+        break;
+    }
+    return devCreateData;
+}
+
+bool RhiVk::InitDevice()
+{
+    auto physicalDevices = _instance.enumeratePhysicalDevices().value;
+    for (auto &physDev : physicalDevices) {
+        DeviceCreateData devCreateData = CheckPhysicalDeviceSuitability(physDev, _settings);
+        if (!devCreateData._physDevice)
+            continue;
+        _physDevice = devCreateData._physDevice;
+
+        std::array<float, 1> queuePriorities{ 1.0f };
+        std::array<vk::DeviceQueueCreateInfo, 1> queueCreateInfo{ 
+            vk::DeviceQueueCreateInfo {
+                vk::DeviceQueueCreateFlags(),
+                (uint32_t)devCreateData._universalQueueFamily,
+                1,
+                queuePriorities.data(),
+            }
+        };
+        vk::PhysicalDeviceFeatures features;
+        vk::DeviceCreateInfo devInfo{
+            vk::DeviceCreateFlags(),
+            queueCreateInfo,
+            devCreateData._layerNames,
+            devCreateData._extNames,
+            &features,
+        };
+        if (_physDevice.createDevice(&devInfo, AllocCallbacks(), &_device) != vk::Result::eSuccess)
+            return false;
+
+        _universalQueue._family = devCreateData._universalQueueFamily;
+        _universalQueue._queue = _device.getQueue(devCreateData._universalQueueFamily, 0);
+        ASSERT(_universalQueue._queue);
+        if (!_universalQueue._queue)
+            return false;
+
+        return true;
+    }
+    return false;
+}
+
+bool RhiVk::InitVma()
+{
+    VmaAllocatorCreateInfo vmaInfo{
+        .physicalDevice = _physDevice,
+        .device = _device,
+        .instance = _instance,
+    };
+    if ((vk::Result)vmaCreateAllocator(&vmaInfo, &_vma) != vk::Result::eSuccess)
+        return false;
+    return true;
+}
+
+std::span<uint32_t> RhiVk::GetQueueFamilyIndices(ResourceUsage usage)
+{
+    static std::array<uint32_t, 1> s_theQueue { { _universalQueue._family, } };
+    return s_theQueue;
 }
 
 
