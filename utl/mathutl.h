@@ -231,6 +231,39 @@ Vec VecFromMask(int mask)
 	return res;
 }
 
+template <typename Vec>
+uint8_t VecMinElemIndex(Vec v)
+{
+	uint8_t minInd = 0;
+	for (int d = 1; d < Vec::length(); ++d)
+		if (v[minInd] > v[d])
+			minInd = d;
+	return minInd;
+}
+
+template <typename Vec>
+auto VecMinElem(Vec v)
+{
+	return v[VecMinElemIndex(v)];
+}
+
+template <typename Vec>
+uint8_t VecMaxElemIndex(Vec v)
+{
+	uint8_t maxInd = 0;
+	for (int d = 1; d < Vec::length(); ++d)
+		if (v[maxInd] < v[d])
+			maxInd = d;
+	return maxInd;
+}
+
+template <typename Vec>
+auto VecMaxElem(Vec v)
+{
+	return v[VecMaxElemIndex(v)];
+}
+
+
 template <typename VecType>
 struct Rotation {};
 

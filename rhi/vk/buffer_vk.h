@@ -10,7 +10,7 @@ struct BufferVk : public Buffer {
 
 	bool Init(ResourceDescriptor const &desc) override;
 
-	std::span<uint8_t> Map(size_t offset = 0, size_t size = ~0ull) override;
+	std::span<uint8_t> Map() override;
 	bool Unmap() override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<BufferVk>(); }

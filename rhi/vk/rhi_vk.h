@@ -60,6 +60,8 @@ struct RhiVk : public Rhi {
 
 	std::span<uint32_t> GetQueueFamilyIndices(ResourceUsage usage);
 
+	VmaAllocationCreateInfo GetVmaAllocCreateInfo(Resource *resource);
+
 	// The host allocation tracker's callbacks will be called during destruction of Vulkan objects
 	// so the tracker has to appear before all those variables in the class, so it gets desroyed after them
 	std::unique_ptr<HostAllocationTrackerVk> _allocTracker;

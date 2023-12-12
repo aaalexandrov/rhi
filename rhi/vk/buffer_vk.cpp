@@ -50,35 +50,22 @@ bool BufferVk::Init(ResourceDescriptor const &desc)
 		GetBufferUsage(_descriptor._usage),
 		vk::SharingMode::eExclusive,
 		(uint32_t)queueFamilies.size(),
-		queueFamilies.data()
+		queueFamilies.data(),
 	};
-	VmaAllocationCreateInfo allocInfo{
-		.usage = VMA_MEMORY_USAGE_AUTO,
-	};
-	if (_descriptor._usage.cpuAccess) {
-		allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-		if (_descriptor._usage.copyDst)
-			allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-	}
-	if (rhi->_settings._enableValidation) {
-		allocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-		allocInfo.pUserData = (void*)_name.c_str();
-	}
+	VmaAllocationCreateInfo allocInfo = rhi->GetVmaAllocCreateInfo(this);
 	if ((vk::Result)vmaCreateBuffer(rhi->_vma, (VkBufferCreateInfo*)&bufInfo, &allocInfo, (VkBuffer*)&_buffer, &_vmaAlloc, nullptr) != vk::Result::eSuccess)
 		return false;
 
 	return true;
 }
 
-std::span<uint8_t> BufferVk::Map(size_t offset, size_t size)
+std::span<uint8_t> BufferVk::Map()
 {
-	if (offset + size >= GetSize())
-		return std::span<uint8_t>();
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
 	void *mapped = nullptr;
 	if ((vk::Result)vmaMapMemory(rhi->_vma, _vmaAlloc, &mapped) != vk::Result::eSuccess)
 		return std::span<uint8_t>();
-	return std::span((uint8_t *)mapped, std::min(size, GetSize() - offset));
+	return std::span((uint8_t *)mapped, GetSize());
 }
 
 bool BufferVk::Unmap()

@@ -1,5 +1,7 @@
 #include "resource.h"
 #include "rhi.h"
+#include "utl/mathutl.h"
+#include <bit>
 
 
 namespace rhi {
@@ -13,13 +15,21 @@ static auto s_regTypes = TypeInfo::AddInitializer("resource", [] {
 	TypeInfo::Register<Texture>().Name("Texture")
 		.Base<Resource>();
 	TypeInfo::Register<Sampler>().Name("Sampler")
-		.Base<Resource>();
+		.Base<RhiOwned>();
 	TypeInfo::Register<Swapchain>().Name("Swapchain")
-		.Base<Resource>();
+		.Base<RhiOwned>();
 });
 
 
-bool Buffer::Init(ResourceDescriptor const &desc)
+uint8_t ResourceDescriptor::GetMaxMipLevels(glm::uvec3 dims)
+{
+	uint32_t maxDim = utl::VecMaxElem(dims);
+	auto numBits = std::bit_width(maxDim);
+	ASSERT(maxDim > numBits == 1);
+	return numBits;
+}
+
+bool Resource::Init(ResourceDescriptor const &desc)
 {
 	_descriptor = desc;
 	return true;
@@ -27,7 +37,8 @@ bool Buffer::Init(ResourceDescriptor const &desc)
 
 bool Texture::Init(ResourceDescriptor const &desc)
 {
-	_descriptor = desc;
+	if (!Resource::Init(desc))
+		return false;
 	ASSERT(_descriptor._dimensions[0] > 0);
 	ASSERT(_descriptor._dimensions[1] == 0);
 	ASSERT(_descriptor._dimensions[2] == 0);

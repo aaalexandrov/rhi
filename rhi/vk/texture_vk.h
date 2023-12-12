@@ -12,6 +12,8 @@ struct TextureVk : public Texture {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<TextureVk>(); }
 
+	vk::ImageLayout GetInitialLayout() const;
+
 	vk::Image _image;
 	VmaAllocation _vmaAlloc = {};
 };

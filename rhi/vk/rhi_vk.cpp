@@ -281,5 +281,23 @@ std::span<uint32_t> RhiVk::GetQueueFamilyIndices(ResourceUsage usage)
     return s_theQueue;
 }
 
+VmaAllocationCreateInfo RhiVk::GetVmaAllocCreateInfo(Resource *resource)
+{
+    VmaAllocationCreateInfo allocInfo{
+        .usage = VMA_MEMORY_USAGE_AUTO,
+    };
+    if (resource->_descriptor._usage.cpuAccess) {
+        allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        if (resource->_descriptor._usage.copyDst)
+            allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    }
+    if (_settings._enableValidation) {
+        allocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+        allocInfo.pUserData = const_cast<char*>(resource->_name.c_str());
+    }
+
+    return allocInfo;
+}
+
 
 }

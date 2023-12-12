@@ -1,5 +1,6 @@
 #include "swapchain_vk.h"
 #include "rhi_vk.h"
+#include "utl/mathutl.h"
 
 namespace rhi {
 
@@ -102,6 +103,41 @@ uint32_t SwapchainVk::GetSupportedPresentModeMask() const
 
 bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfaceFormat)
 {
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	vk::PhysicalDeviceSurfaceInfo2KHR surfInfo{
+		_surface,
+	};
+	vk::SurfaceCapabilities2KHR surfCaps;
+	if ((vk::Result)rhi->_physDevice.getSurfaceCapabilities2KHR(&surfInfo, &surfCaps) != vk::Result::eSuccess)
+		return false;
+	vk::Extent2D swapchainSize = surfCaps.surfaceCapabilities.currentExtent;
+	if (swapchainSize.width < surfCaps.surfaceCapabilities.minImageExtent.width ||
+		swapchainSize.width > surfCaps.surfaceCapabilities.maxImageExtent.width ||
+		swapchainSize.height < surfCaps.surfaceCapabilities.minImageExtent.height ||
+		swapchainSize.height > surfCaps.surfaceCapabilities.maxImageExtent.height) {
+
+		swapchainSize.width = size.x;
+		swapchainSize.height = size.y;
+	}
+	swapchainSize.width = utl::Clamp(surfCaps.surfaceCapabilities.minImageExtent.width, surfCaps.surfaceCapabilities.maxImageExtent.width, swapchainSize.width);
+	swapchainSize.height = utl::Clamp(surfCaps.surfaceCapabilities.minImageExtent.height, surfCaps.surfaceCapabilities.maxImageExtent.height, swapchainSize.height);
+	uint32_t imgCount = utl::Clamp(surfCaps.surfaceCapabilities.minImageCount, surfCaps.surfaceCapabilities.maxImageCount, _descriptor._dimensions[2]);
+
+	vk::SwapchainKHR swapchain;
+	vk::SwapchainCreateInfoKHR chainInfo{
+		vk::SwapchainCreateFlagsKHR(),
+		_surface,
+		imgCount,
+		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
+
+	};
+	if ((vk::Result)rhi->_device.createSwapchainKHR(&chainInfo, rhi->AllocCallbacks(), &swapchain) != vk::Result::eSuccess)
+		return false;
+
+	rhi->_device.destroySwapchainKHR(_swapchain);
+	_swapchain = swapchain;
+
+
 	return false;
 }
 

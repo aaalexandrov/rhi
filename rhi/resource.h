@@ -18,6 +18,7 @@ union ResourceUsage {
 		uint32_t cpuAccess : 1;
 		uint32_t read : 1;
 		uint32_t write : 1;
+		uint32_t cube : 1;
 	};
 	uint32_t _flags = 0;
 };
@@ -63,9 +64,15 @@ struct ResourceDescriptor {
 	ResourceUsage _usage;
 	Format _format = Format::Invalid;
 	glm::uvec4 _dimensions{ 0 };
+	uint8_t _mipLevels = 1;
+
+	void SetMaxMipLevels() { _mipLevels = GetMaxMipLevels(_dimensions); }
+	static uint8_t GetMaxMipLevels(glm::uvec3 dims);
 };
 
-struct SwapchainDescriptor : public ResourceDescriptor {
+struct SwapchainDescriptor {
+	Format _format = Format::Invalid;
+	glm::uvec4 _dimensions{ 0 };
 	std::shared_ptr<WindowData> _window;
 	PresentMode _presentMode = PresentMode::Fifo;
 };
@@ -73,31 +80,29 @@ struct SwapchainDescriptor : public ResourceDescriptor {
 struct Resource : public RhiOwned {
 	ResourceDescriptor _descriptor;
 
+	virtual bool Init(ResourceDescriptor const &desc);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Resource>(); }
 };
 
 struct Buffer : public Resource {
-	ResourceDescriptor _descriptor;
-
-	virtual bool Init(ResourceDescriptor const &desc);
 
 	size_t GetSize() const { return _descriptor._dimensions[0]; }
 
-	virtual std::span<uint8_t> Map(size_t offset = 0, size_t size = ~0ull) = 0;
+	virtual std::span<uint8_t> Map() = 0;
 	virtual bool Unmap() = 0;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Buffer>(); }
 };
 
 struct Texture : public Resource {
-	ResourceDescriptor _descriptor;
 
-	virtual bool Init(ResourceDescriptor const &desc);
+	bool Init(ResourceDescriptor const &desc) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Texture>(); }
 };
 
-struct Sampler : public Resource {
+struct Sampler : public RhiOwned {
 	SamplerDescriptor _descriptor;
 
 	virtual bool Init(SamplerDescriptor const &desc);
@@ -105,7 +110,7 @@ struct Sampler : public Resource {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Sampler>(); }
 };
 
-struct Swapchain : public Resource {
+struct Swapchain : public RhiOwned {
 	SwapchainDescriptor _descriptor;
 
 	virtual bool Init(SwapchainDescriptor const &desc);

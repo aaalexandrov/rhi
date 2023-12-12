@@ -20,7 +20,10 @@ enum class Format : int32_t {
 	D24S8,
 	S8,
 
-	Count
+	Count,
+
+	DepthStencilFirst = D32,
+	DepthStencilLast = S8,
 };
 
 enum class PresentMode : int8_t {
