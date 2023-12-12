@@ -71,10 +71,11 @@ struct ResourceDescriptor {
 };
 
 struct SwapchainDescriptor {
+	ResourceUsage _usage{.rt = 1, .present = 1};
 	Format _format = Format::Invalid;
 	glm::uvec4 _dimensions{ 0 };
-	std::shared_ptr<WindowData> _window;
 	PresentMode _presentMode = PresentMode::Fifo;
+	std::shared_ptr<WindowData> _window;
 };
 
 struct Resource : public RhiOwned {

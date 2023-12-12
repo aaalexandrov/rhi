@@ -62,10 +62,13 @@ TypeInfo const *Rhi::GetDerivedTypeWithTag(TypeInfo const *base)
             return it->second;
     }
     TypeInfo const *rhiType = GetTypeInfo();
-    TypeInfo const *foundType = nullptr;
+    auto typeHasTag = [=](TypeInfo const *type) {
+        auto *tagType = type->GetMetadata<TypeInfo const *>(RhiOwned::s_rhiTagType);
+        return tagType && *tagType == rhiType;
+    };
+    TypeInfo const *foundType = typeHasTag(base) ? base : nullptr;
     base->ForDerivedTypes([&](TypeInfo const *derived) {
-        auto *tagType = derived->GetMetadata<TypeInfo const *>(RhiOwned::s_rhiTagType);
-        if (!tagType || *tagType != rhiType)
+        if (!typeHasTag(derived))
             return Enum::Continue;
         foundType = derived;
         return Enum::Stop;

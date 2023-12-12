@@ -30,6 +30,8 @@ struct WindowDataWin32 : public WindowData {
 	HINSTANCE _hinstance = nullptr;
 	HWND _hwnd = nullptr;
 	WindowDataWin32(HINSTANCE hinstance, HWND hwnd) : _hinstance(hinstance), _hwnd(hwnd) {}
+
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataWin32>(); }
 };
 #elif defined(__linux__)
 struct WindowDataXlib : public WindowData {
@@ -41,6 +43,8 @@ struct WindowDataXlib : public WindowData {
 		XGetWindowAttributes(_display, _window, &winAttr);
 		return XVisualIDFromVisual(winAttr.visual);
 	}
+
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataXlib>(); }
 };
 #endif
 

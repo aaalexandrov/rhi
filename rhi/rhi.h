@@ -24,7 +24,7 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 	std::shared_ptr<RhiOwned> Create(TypeInfo const *type, std::string name = "");
 	template <typename R>
 	std::shared_ptr<R> Create(std::string name = "") {
-		return std::static_pointer_cast<R>(Create(TypeInfo::Get<R>()));
+		return std::static_pointer_cast<R>(Create(TypeInfo::Get<R>(), name));
 	}
 
 	std::shared_ptr<Submission> Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name = "");

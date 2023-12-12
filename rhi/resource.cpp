@@ -39,10 +39,10 @@ bool Texture::Init(ResourceDescriptor const &desc)
 {
 	if (!Resource::Init(desc))
 		return false;
+	_descriptor._dimensions = glm::max(_descriptor._dimensions, glm::uvec4(1));
 	ASSERT(_descriptor._dimensions[0] > 0);
-	ASSERT(_descriptor._dimensions[1] == 0);
-	ASSERT(_descriptor._dimensions[2] == 0);
-	ASSERT(_descriptor._dimensions[3] == 0);
+	if (_descriptor._mipLevels == 0)
+		_descriptor.SetMaxMipLevels();
 
 	return true;
 }
@@ -56,11 +56,12 @@ bool Sampler::Init(SamplerDescriptor const &desc)
 bool Swapchain::Init(SwapchainDescriptor const &desc)
 {
 	_descriptor = desc;
-	if (!_descriptor._window || any(lessThanEqual(glm::uvec3(_descriptor._dimensions), glm::uvec3(0)))) {
+	_descriptor._dimensions[3] = std::max(_descriptor._dimensions[3], 1u);
+	_descriptor._dimensions = glm::max(_descriptor._dimensions, glm::uvec4(1));
+	if (!_descriptor._window) {
 		ASSERT(0);
 		return false;
 	}
-	ASSERT(_descriptor._dimensions[3] == 0);
 
 	return true;
 }

@@ -12,8 +12,10 @@ static auto s_regTypes = TypeInfo::AddInitializer("texture_vk", [] {
 
 TextureVk::~TextureVk()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
-	vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
+	if (_vmaAlloc) {
+		auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+		vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
+	}
 }
 
 vk::ImageCreateFlags GetImageCreateFlags(ResourceDescriptor const &desc)
@@ -39,19 +41,19 @@ vk::Extent3D GetExtent3D(glm::vec3 dim)
 	return vk::Extent3D(dim[0], dim[1], dim[2]);
 }
 
-vk::ImageUsageFlags GetImageUsage(ResourceDescriptor desc)
+vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
 {
 	vk::ImageUsageFlags imgUsage;
-	if (desc._usage.copySrc)
+	if (usage.copySrc)
 		imgUsage |= vk::ImageUsageFlagBits::eTransferSrc;
-	if (desc._usage.copyDst)
+	if (usage.copyDst)
 		imgUsage |= vk::ImageUsageFlagBits::eTransferDst;
-	if (desc._usage.srv)
+	if (usage.srv)
 		imgUsage |= vk::ImageUsageFlagBits::eSampled;
-	if (desc._usage.uav)
+	if (usage.uav)
 		imgUsage |= vk::ImageUsageFlagBits::eStorage;
-	if (desc._usage.rt)
-		imgUsage |= (Format::DepthStencilFirst <= desc._format && desc._format <= Format::DepthStencilLast) 
+	if (usage.rt)
+		imgUsage |= (Format::DepthStencilFirst <= imgFormat && imgFormat <= Format::DepthStencilLast) 
 			? vk::ImageUsageFlagBits::eDepthStencilAttachment 
 			: vk::ImageUsageFlagBits::eColorAttachment;
 	return imgUsage;
@@ -68,6 +70,8 @@ vk::ImageLayout TextureVk::GetInitialLayout() const
 
 bool TextureVk::Init(ResourceDescriptor const &desc)
 {
+	if (!Texture::Init(desc))
+		return false;
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock()); 
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
 	vk::ImageCreateInfo imgInfo{
@@ -79,7 +83,7 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 		_descriptor._dimensions[3],
 		vk::SampleCountFlagBits::e1,
 		_descriptor._usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal,
-		GetImageUsage(_descriptor),
+		GetImageUsage(_descriptor._usage, _descriptor._format),
 		vk::SharingMode::eExclusive,
 		(uint32_t)queueFamilies.size(),
 		queueFamilies.data(),
@@ -89,6 +93,16 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 	if ((vk::Result)vmaCreateImage(rhi->_vma, (VkImageCreateInfo *)&imgInfo, &allocInfo, (VkImage *)&_image, &_vmaAlloc, nullptr) != vk::Result::eSuccess)
 		return false;
 
+	return true;
+}
+
+bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
+{
+	if (!Texture::Init(desc))
+		return false;
+	ASSERT(!_vmaAlloc);
+	_image = image;
+	_owner = owner->weak_from_this();
 	return true;
 }
 

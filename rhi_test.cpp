@@ -50,7 +50,7 @@ int main()
 	bool res = device->Init(deviceSettings);
 	ASSERT(res);
 
-	auto buf = device->Create<rhi::Buffer>("Test1");
+	auto buf = device->Create<rhi::Buffer>("Buf1");
 	rhi::ResourceDescriptor bufDesc{
 		._usage = { .copySrc = 1, .cpuAccess = 1, },
 		._dimensions = glm::uvec4(256, 0, 0, 0),
@@ -58,7 +58,32 @@ int main()
 	res = buf->Init(bufDesc);
 	ASSERT(res);
 
+	auto img = device->Create<rhi::Texture>("Tex1");
+	rhi::ResourceDescriptor imgDesc{
+		._usage = { .srv = 1, .copyDst = 1, },
+		._format = rhi::Format::R8G8B8A8,
+		._dimensions = glm::uvec4(256, 256, 0, 0),
+	};
+	res = img->Init(imgDesc);
+	ASSERT(res);
+
+	img = nullptr;
 	buf = nullptr;
+
+	int w, h;
+	SDL_GetWindowSize(window, &w, &h);
+	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
+	rhi::SwapchainDescriptor chainDesc{
+		._usage{.rt = 1},
+		._format = rhi::Format::B8G8R8A8_srgb,
+		._dimensions = glm::uvec4(w, h, 0, 0),
+		._presentMode = rhi::PresentMode::Fifo,
+		._window = deviceSettings._window,
+	};
+	res = swapchain->Init(chainDesc);
+	ASSERT(res);
+	res = swapchain->Update(chainDesc._dimensions);
+	ASSERT(res);
 
 	for (bool running = true; running; ) {
 		SDL_Event event;
