@@ -18,4 +18,24 @@ static auto s_regTypes = TypeInfo::AddInitializer("pass", [] {
 });
 
 
+void GraphicsPass::AddRenderTargets(std::span<TargetData> rts)
+{
+	_renderTargets.insert(_renderTargets.end(), rts.begin(), rts.end());
+}
+
+void GraphicsPass::EnumResources(ResourceEnum enumFn)
+{
+	for (auto &target : _renderTargets) {
+		ResourceUsage usage{ target._texture->_descriptor._usage & ResourceUsage{.rt=1, .ds=1} | ResourceUsage{.write=1} };
+		ASSERT(bool(usage & ResourceUsage{ .rt = 1, .ds = 1 }));
+		enumFn(target._texture.get(), usage);
+	}
+}
+
+void PresentPass::EnumResources(ResourceEnum enumFn)
+{
+	ASSERT(bool(_swapchainTexture->_descriptor._usage & ResourceUsage{ .present=1 }));
+	enumFn(_swapchainTexture.get(), ResourceUsage{.present=1, .read=1});
+}
+
 }

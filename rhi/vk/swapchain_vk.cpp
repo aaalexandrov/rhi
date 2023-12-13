@@ -75,7 +75,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 	}
 	ASSERT(surfModes & (1 << (uint32_t)_descriptor._presentMode));
 
-	return true;
+	return Update(_descriptor._dimensions);
 }
 
 std::vector<Format> SwapchainVk::GetSupportedSurfaceFormats() const
@@ -110,11 +110,7 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 	if ((vk::Result)rhi->_physDevice.getSurfaceCapabilitiesKHR(_surface, &surfCaps) != vk::Result::eSuccess)
 		return false;
 	vk::Extent2D swapchainSize = surfCaps.currentExtent;
-	if (swapchainSize.width < surfCaps.minImageExtent.width ||
-		swapchainSize.width > surfCaps.maxImageExtent.width ||
-		swapchainSize.height < surfCaps.minImageExtent.height ||
-		swapchainSize.height > surfCaps.maxImageExtent.height) {
-
+	if (surfCaps.currentExtent.width == ~0u) {
 		swapchainSize.width = size.x;
 		swapchainSize.height = size.y;
 	}
@@ -145,8 +141,14 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 		nullptr
 	};
 	_images.clear();
-	if ((vk::Result)rhi->_device.createSwapchainKHR(&chainInfo, rhi->AllocCallbacks(), &_swapchain) != vk::Result::eSuccess)
+	auto swapchain = rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks());
+	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
+	_swapchain = swapchain.value;
+	if (swapchain.result != vk::Result::eSuccess) {
+		_descriptor._dimensions[0] = 0;
+		_descriptor._dimensions[1] = 0;
 		return false;
+	}
 
 	_descriptor._dimensions[0] = swapchainSize.width;
 	_descriptor._dimensions[1] = swapchainSize.height;
@@ -174,7 +176,14 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 
 std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 {
-	return std::shared_ptr<Texture>();
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	uint32_t imgIndex = ~0ull;
+	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphore, nullptr, &imgIndex);
+	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+		return std::shared_ptr<Texture>();
+	ASSERT(imgIndex < _images.size());
+	_images[imgIndex]->_state = ResourceUsage{ .present = 1, .write = 1 };
+	return _images[imgIndex];
 }
 
 }

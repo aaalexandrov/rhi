@@ -53,9 +53,9 @@ vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
 	if (usage.uav)
 		imgUsage |= vk::ImageUsageFlagBits::eStorage;
 	if (usage.rt)
-		imgUsage |= (Format::DepthStencilFirst <= imgFormat && imgFormat <= Format::DepthStencilLast) 
-			? vk::ImageUsageFlagBits::eDepthStencilAttachment 
-			: vk::ImageUsageFlagBits::eColorAttachment;
+		imgUsage |= vk::ImageUsageFlagBits::eColorAttachment;
+	if (usage.ds)
+		imgUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	return imgUsage;
 }
 

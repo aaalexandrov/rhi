@@ -5,50 +5,6 @@
 
 namespace rhi {
 
-union ResourceUsage {
-	struct {
-		uint32_t vb : 1;
-		uint32_t ib : 1;
-		uint32_t srv : 1;
-		uint32_t uav : 1;
-		uint32_t rt : 1;
-		uint32_t present : 1;
-		uint32_t copySrc : 1;
-		uint32_t copyDst : 1;
-		uint32_t cpuAccess : 1;
-		uint32_t read : 1;
-		uint32_t write : 1;
-		uint32_t cube : 1;
-	};
-	uint32_t _flags = 0;
-};
-
-enum class Filter : int8_t {
-	Nearest,
-	Linear,
-};
-
-enum class MipMapMode : int8_t {
-	Nearest,
-	Linear,
-};
-
-enum class AddressMode : int8_t {
-	Repeat,
-	MirroredRepeat,
-	ClampToEdge,
-};
-
-enum class CompareOp : int8_t {
-	Never,
-	Less,
-	Equal,
-	LessOrEqual,
-	Greater,
-	NotEqual,
-	GreaterOrEqual,
-	Always,
-};
 
 struct SamplerDescriptor {
 	Filter _minFilter = Filter::Linear, _magFilter = Filter::Linear;
@@ -80,6 +36,7 @@ struct SwapchainDescriptor {
 
 struct Resource : public RhiOwned {
 	ResourceDescriptor _descriptor;
+	ResourceUsage _state{};
 
 	virtual bool Init(ResourceDescriptor const &desc);
 
@@ -101,6 +58,8 @@ struct Texture : public Resource {
 	bool Init(ResourceDescriptor const &desc) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Texture>(); }
+
+	std::weak_ptr<RhiOwned> _owner;
 };
 
 struct Sampler : public RhiOwned {

@@ -11,7 +11,7 @@ namespace utl {
 #define STRINGIFY(A) STRINGIFY1(A)
 
 #if defined(NDEBUG)
-#	define ASSERT(expression) ((void)expression)
+#	define ASSERT(expression) (void)sizeof(expression)
 #else
 #	define ASSERT(expression) (void) ((!!(expression)) || (utl::AssertFailed(#expression, __FILE__, (unsigned)__LINE__), 0))
 #endif

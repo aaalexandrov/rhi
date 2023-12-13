@@ -67,6 +67,12 @@ int main()
 	res = img->Init(imgDesc);
 	ASSERT(res);
 
+	auto samp = device->Create<rhi::Sampler>("Samp1");
+	rhi::SamplerDescriptor sampDesc;
+	res = samp->Init(sampDesc);
+	ASSERT(res);
+
+	samp = nullptr;
 	img = nullptr;
 	buf = nullptr;
 

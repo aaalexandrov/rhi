@@ -17,7 +17,6 @@ struct TextureVk : public Texture {
 
 	vk::Image _image;
 	VmaAllocation _vmaAlloc = {};
-	std::weak_ptr<RhiOwned> _owner;
 };
 
 vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat);

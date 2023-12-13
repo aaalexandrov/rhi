@@ -45,5 +45,32 @@ static inline utl::ValueRemapper<vk::PresentModeKHR, PresentMode> s_vk2PresentMo
 		{vk::PresentModeKHR::eFifoRelaxed, PresentMode::FifoRelaxed },
 	} };
 
+static inline utl::ValueRemapper<vk::Filter, Filter> s_vk2Filter{ {
+		{ vk::Filter::eNearest , Filter::Nearest },
+		{ vk::Filter::eLinear  , Filter::Linear  },
+		{ vk::Filter::eCubicIMG, Filter::Cubic   },
+	} };
+
+static inline utl::ValueRemapper<vk::SamplerMipmapMode, MipMapMode>s_vk2MipMapMode{ {
+		{ vk::SamplerMipmapMode::eNearest, MipMapMode::Nearest },
+		{ vk::SamplerMipmapMode::eLinear , MipMapMode::Linear  },
+	} };
+
+static inline utl::ValueRemapper<vk::SamplerAddressMode, AddressMode> s_vk2AddressMode{ {
+		{ vk::SamplerAddressMode::eRepeat        , AddressMode::Repeat         },
+		{ vk::SamplerAddressMode::eClampToEdge   , AddressMode::ClampToEdge    },
+		{ vk::SamplerAddressMode::eMirroredRepeat, AddressMode::MirroredRepeat },
+	} };
+
+static inline utl::ValueRemapper<vk::CompareOp, CompareOp> s_vk2CompareOp{ {
+		{ vk::CompareOp::eNever         , CompareOp::Never          },
+		{ vk::CompareOp::eLess          , CompareOp::Less           },
+		{ vk::CompareOp::eEqual         , CompareOp::Equal          },
+		{ vk::CompareOp::eLessOrEqual   , CompareOp::LessOrEqual    },
+		{ vk::CompareOp::eGreater       , CompareOp::Greater        },
+		{ vk::CompareOp::eNotEqual      , CompareOp::NotEqual       },
+		{ vk::CompareOp::eGreaterOrEqual, CompareOp::GreaterOrEqual },
+		{ vk::CompareOp::eAlways        , CompareOp::Always         },
+	} };
 
 }
