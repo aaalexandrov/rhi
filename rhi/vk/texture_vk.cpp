@@ -10,14 +10,6 @@ static auto s_regTypes = TypeInfo::AddInitializer("texture_vk", [] {
 });
 
 
-TextureVk::~TextureVk()
-{
-	if (_vmaAlloc) {
-		auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
-		vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
-	}
-}
-
 vk::ImageCreateFlags GetImageCreateFlags(ResourceDescriptor const &desc)
 {
 	vk::ImageCreateFlags flags = {};
@@ -26,19 +18,43 @@ vk::ImageCreateFlags GetImageCreateFlags(ResourceDescriptor const &desc)
 	return flags;
 }
 
+vk::ImageAspectFlags GetImageAspect(Format fmt)
+{
+	vk::ImageAspectFlags flags;
+	if (IsDepth(fmt))
+		flags |= vk::ImageAspectFlagBits::eDepth;
+	if (IsStencil(fmt))
+		flags |= vk::ImageAspectFlagBits::eStencil;
+	if (!flags)
+		flags = vk::ImageAspectFlagBits::eColor;
+	return flags;
+}
+
 vk::ImageType GetImageType(glm::uvec4 dims)
 {
-	ASSERT(dims[0] > 0);
-	if (dims[1] == 0)
+	ASSERT(dims.x > 0);
+	if (dims.y == 0)
 		return vk::ImageType::e1D;
-	if (dims[2] == 0)
+	if (dims.z == 0)
 		return vk::ImageType::e2D;
 	return vk::ImageType::e3D;
 }
 
-vk::Extent3D GetExtent3D(glm::vec3 dim)
+vk::ImageViewType GetImageViewType(ResourceDescriptor const &desc)
 {
-	return vk::Extent3D(dim[0], dim[1], dim[2]);
+	auto imgType = GetImageType(desc._dimensions);
+	bool isArray = desc._dimensions[4] > 0;
+	switch (imgType) {
+		case vk::ImageType::e1D:
+			return isArray ? vk::ImageViewType::e1DArray : vk::ImageViewType::e1D;
+		case vk::ImageType::e2D:
+			if (desc._usage.cube)
+				return isArray ? vk::ImageViewType::eCubeArray : vk::ImageViewType::eCube;
+			return isArray ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
+		default:
+			ASSERT(imgType == vk::ImageType::e3D);
+			return vk::ImageViewType::e3D;
+	}
 }
 
 vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
@@ -57,6 +73,40 @@ vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
 	if (usage.ds)
 		imgUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	return imgUsage;
+}
+
+vk::ImageLayout GetImageLayout(ResourceUsage usage)
+{
+	static constexpr ResourceUsage opMask{ .srv = 1, .uav = 1, .rt = 1, .ds = 1, .present = 1, .copySrc = 1, .copyDst = 1 };
+	static constexpr ResourceUsage rwMask{ .read = 1, .write = 1 };
+	ASSERT(std::popcount((usage & opMask)._flags) == 1);
+	ASSERT(std::popcount((usage & rwMask)._flags) == 1);
+	ASSERT((usage & ~(opMask | rwMask)) == 0);
+	if (usage.srv)
+		return vk::ImageLayout::eShaderReadOnlyOptimal;
+	if (usage.rt)
+		return vk::ImageLayout::eColorAttachmentOptimal;
+	if (usage.ds)
+		return usage.write ? vk::ImageLayout::eDepthStencilAttachmentOptimal : vk::ImageLayout::eDepthStencilReadOnlyOptimal;
+	if (usage.uav)
+		return vk::ImageLayout::eGeneral;
+	if (usage.copySrc)
+		return vk::ImageLayout::eTransferSrcOptimal;
+	if (usage.copyDst)
+		return vk::ImageLayout::eTransferSrcOptimal;
+	if (usage.present)
+		return vk::ImageLayout::ePresentSrcKHR;
+	ASSERT(0);
+	return vk::ImageLayout::eGeneral;
+}
+
+TextureVk::~TextureVk()
+{
+	if (_vmaAlloc) {
+		auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+		rhi->_device.destroyImageView(_view, rhi->AllocCallbacks());
+		vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
+	}
 }
 
 vk::ImageLayout TextureVk::GetInitialLayout() const
@@ -103,6 +153,29 @@ bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
 	ASSERT(!_vmaAlloc);
 	_image = image;
 	_owner = owner->weak_from_this();
+	return true;
+}
+
+bool TextureVk::InitView()
+{
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	vk::ImageViewCreateInfo viewInfo{
+		vk::ImageViewCreateFlags(),
+		_image,
+		GetImageViewType(_descriptor),
+		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
+		vk::ComponentMapping{vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity},
+		vk::ImageSubresourceRange{
+			GetImageAspect(_descriptor._format),
+			0,
+			_descriptor._mipLevels,
+			0,
+			_descriptor._dimensions[4]
+		},
+	};
+	if (rhi->_device.createImageView(&viewInfo, rhi->AllocCallbacks(), &_view) != vk::Result::eSuccess)
+		return false;
+
 	return true;
 }
 

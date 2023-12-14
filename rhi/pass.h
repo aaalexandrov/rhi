@@ -22,10 +22,10 @@ struct Pass : public RhiOwned {
 struct GraphicsPass : public Pass {
 	struct TargetData {
 		std::shared_ptr<Texture> _texture;
-		glm::vec4 _clearValue{ 0 };
+		glm::vec4 _clearValue{ -1 };
 	};
 
-	void AddRenderTargets(std::span<TargetData> rts);
+	virtual bool Init(std::span<TargetData> rts);
 
 	void EnumResources(ResourceEnum enumFn) override;
 

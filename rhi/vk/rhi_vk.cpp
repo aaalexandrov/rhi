@@ -299,5 +299,4 @@ VmaAllocationCreateInfo RhiVk::GetVmaAllocCreateInfo(Resource *resource)
     return allocInfo;
 }
 
-
 }

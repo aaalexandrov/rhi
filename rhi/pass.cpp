@@ -18,9 +18,10 @@ static auto s_regTypes = TypeInfo::AddInitializer("pass", [] {
 });
 
 
-void GraphicsPass::AddRenderTargets(std::span<TargetData> rts)
+bool GraphicsPass::Init(std::span<TargetData> rts)
 {
 	_renderTargets.insert(_renderTargets.end(), rts.begin(), rts.end());
+	return true;
 }
 
 void GraphicsPass::EnumResources(ResourceEnum enumFn)

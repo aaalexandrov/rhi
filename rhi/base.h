@@ -26,6 +26,8 @@ union ResourceUsage {
 	friend inline ResourceUsage operator&(ResourceUsage u0, ResourceUsage u1) { return ResourceUsage{ ._flags = u0._flags & u1._flags }; }
 	friend inline ResourceUsage operator|(ResourceUsage u0, ResourceUsage u1) { return ResourceUsage{ ._flags = u0._flags | u1._flags }; }
 	ResourceUsage operator~() { return ResourceUsage{ ._flags = ~_flags }; }
+	ResourceUsage &operator|=(ResourceUsage u) { _flags |= u._flags; return *this; }
+	ResourceUsage &operator&=(ResourceUsage u) { _flags &= u._flags; return *this; }
 
 	operator bool() { return _flags; }
 	bool operator!() { return !_flags; }
@@ -49,9 +51,26 @@ enum class Format : int32_t {
 
 	Count,
 
-	DepthStencilFirst = D32,
-	DepthStencilLast = S8,
+	DepthFirst = D32,
+	DepthLast = D24S8,
+	StencilFirst = D32S8,
+	StencilLast = S8,
+
+	DepthStencilFirst = DepthFirst,
+	DepthStencilLast = StencilLast,
 };
+
+inline bool IsDepth(Format fmt) {
+	return Format::DepthFirst <= fmt && fmt <= Format::DepthLast;
+}
+
+inline bool IsStencil(Format fmt) {
+	return Format::StencilFirst <= fmt && fmt <= Format::StencilLast;
+}
+
+inline bool IsDepthStencil(Format fmt) {
+	return Format::DepthStencilFirst <= fmt && fmt <= Format::DepthStencilLast;
+}
 
 enum class PresentMode : int8_t {
 	Invalid = -1,
@@ -102,7 +121,7 @@ struct RhiOwned : public std::enable_shared_from_this<RhiOwned>, public utl::Any
 	RhiOwned();
 	virtual ~RhiOwned();
 
-	void InitRhi(Rhi *rhi, std::string name);
+	virtual bool InitRhi(Rhi *rhi, std::string name);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RhiOwned>(); }
 

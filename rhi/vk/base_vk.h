@@ -73,4 +73,40 @@ static inline utl::ValueRemapper<vk::CompareOp, CompareOp> s_vk2CompareOp{ {
 		{ vk::CompareOp::eAlways        , CompareOp::Always         },
 	} };
 
+vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage);
+
+static inline vk::AccessFlags s_accessReadFlags = 
+	vk::AccessFlagBits::eIndirectCommandRead | 
+	vk::AccessFlagBits::eIndexRead | 
+	vk::AccessFlagBits::eVertexAttributeRead | 
+	vk::AccessFlagBits::eUniformRead | 
+	vk::AccessFlagBits::eInputAttachmentRead | 
+	vk::AccessFlagBits::eShaderRead | 
+	vk::AccessFlagBits::eColorAttachmentRead | 
+	vk::AccessFlagBits::eDepthStencilAttachmentRead | 
+	vk::AccessFlagBits::eTransferRead | 
+	vk::AccessFlagBits::eHostRead | 
+	vk::AccessFlagBits::eMemoryRead;
+
+static inline vk::AccessFlags s_accessWriteFlags =
+	vk::AccessFlagBits::eShaderWrite |
+	vk::AccessFlagBits::eColorAttachmentWrite |
+	vk::AccessFlagBits::eDepthStencilAttachmentWrite |
+	vk::AccessFlagBits::eTransferWrite |
+	vk::AccessFlagBits::eHostWrite |
+	vk::AccessFlagBits::eMemoryWrite;
+
+vk::AccessFlags GetAllAccess(ResourceUsage usage);
+inline vk::AccessFlags GetReadAccess(ResourceUsage usage) { 
+	return GetAllAccess(usage) & s_accessReadFlags; 
+}
+inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) { 
+	return GetAllAccess(usage) & s_accessWriteFlags; 
+}
+
+inline vk::Extent3D GetExtent3D(glm::vec3 dim) {
+	return vk::Extent3D(dim[0], dim[1], dim[2]);
+}
+
+
 }

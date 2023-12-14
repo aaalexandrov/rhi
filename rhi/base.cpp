@@ -20,12 +20,13 @@ RhiOwned::~RhiOwned()
 {
 }
 
-void RhiOwned::InitRhi(Rhi *rhi, std::string name)
+bool RhiOwned::InitRhi(Rhi *rhi, std::string name)
 {
 	ASSERT(_rhi.expired());
 	ASSERT(_name.empty());
 	_rhi = rhi->weak_from_this();
 	_name = name;
+	return true;
 }
 
 }

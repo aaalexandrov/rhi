@@ -42,7 +42,8 @@ std::shared_ptr<RhiOwned> Rhi::Create(TypeInfo const *type, std::string name)
     if (!toCreate)
         return std::shared_ptr<RhiOwned>();
     auto obj = std::shared_ptr<RhiOwned>(toCreate->ConstructAs<RhiOwned>(nullptr, true));
-    obj->InitRhi(this, name);
+    if (!obj->InitRhi(this, name))
+        obj = nullptr;
     return obj;
 }
 

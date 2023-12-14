@@ -8,4 +8,10 @@ static auto s_regTypes = TypeInfo::AddInitializer("submit", [] {
 });
 
 
+bool Submission::Init(std::vector<std::shared_ptr<Pass>> &&passes)
+{
+	_passes = std::move(passes);
+	return true;
+}
+
 }
