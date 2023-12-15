@@ -124,13 +124,14 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 		return false;
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock()); 
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
+	auto dimNatural = glm::max(_descriptor._dimensions, glm::uvec4(1));
 	vk::ImageCreateInfo imgInfo{
 		GetImageCreateFlags(_descriptor),
 		GetImageType(_descriptor._dimensions),
 		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
-		GetExtent3D(_descriptor._dimensions),
+		GetExtent3D(dimNatural),
 		_descriptor._mipLevels,
-		_descriptor._dimensions[3],
+		dimNatural[3],
 		vk::SampleCountFlagBits::e1,
 		_descriptor._usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal,
 		GetImageUsage(_descriptor._usage, _descriptor._format),

@@ -5,6 +5,7 @@
 #include "SDL2/SDL_syswm.h"
 
 #include "rhi/vk/rhi_vk.h"
+#include "rhi/pass.h"
 
 int main()
 {
@@ -16,7 +17,7 @@ int main()
 		return -1;
 	}
 
-	SDL_Window *window = SDL_CreateWindow("Testing", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN);
+	SDL_Window *window = SDL_CreateWindow("Testing", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window) {
 		std::cout << "Failed to create window\n";
 		return -1;
@@ -50,45 +51,46 @@ int main()
 	bool res = device->Init(deviceSettings);
 	ASSERT(res);
 
-	auto buf = device->Create<rhi::Buffer>("Buf1");
-	rhi::ResourceDescriptor bufDesc{
-		._usage = { .copySrc = 1, .cpuAccess = 1, },
-		._dimensions = glm::uvec4(256, 0, 0, 0),
+	//auto buf = device->Create<rhi::Buffer>("Buf1");
+	//rhi::ResourceDescriptor bufDesc{
+	//	._usage = { .copySrc = 1, .cpuAccess = 1, },
+	//	._dimensions = glm::uvec4(256, 0, 0, 0),
+	//};
+	//res = buf->Init(bufDesc);
+	//ASSERT(res);
+
+	//auto img = device->Create<rhi::Texture>("Tex1");
+	//rhi::ResourceDescriptor imgDesc{
+	//	._usage = { .srv = 1, .copyDst = 1, },
+	//	._format = rhi::Format::R8G8B8A8,
+	//	._dimensions = glm::uvec4(256, 256, 0, 0),
+	//};
+	//res = img->Init(imgDesc);
+	//ASSERT(res);
+
+	//auto samp = device->Create<rhi::Sampler>("Samp1");
+	//rhi::SamplerDescriptor sampDesc;
+	//res = samp->Init(sampDesc);
+	//ASSERT(res);
+
+	//samp = nullptr;
+	//img = nullptr;
+	//buf = nullptr;
+
+	auto getWindowSize = [](SDL_Window *win) {
+		int w, h;
+		SDL_GetWindowSize(win, &w, &h);
+		return glm::uvec2(w, h);
 	};
-	res = buf->Init(bufDesc);
-	ASSERT(res);
-
-	auto img = device->Create<rhi::Texture>("Tex1");
-	rhi::ResourceDescriptor imgDesc{
-		._usage = { .srv = 1, .copyDst = 1, },
-		._format = rhi::Format::R8G8B8A8,
-		._dimensions = glm::uvec4(256, 256, 0, 0),
-	};
-	res = img->Init(imgDesc);
-	ASSERT(res);
-
-	auto samp = device->Create<rhi::Sampler>("Samp1");
-	rhi::SamplerDescriptor sampDesc;
-	res = samp->Init(sampDesc);
-	ASSERT(res);
-
-	samp = nullptr;
-	img = nullptr;
-	buf = nullptr;
-
-	int w, h;
-	SDL_GetWindowSize(window, &w, &h);
 	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
 	rhi::SwapchainDescriptor chainDesc{
 		._usage{.rt = 1},
 		._format = rhi::Format::B8G8R8A8_srgb,
-		._dimensions = glm::uvec4(w, h, 0, 0),
+		._dimensions = glm::uvec4(getWindowSize(window), 0, 0),
 		._presentMode = rhi::PresentMode::Fifo,
 		._window = deviceSettings._window,
 	};
 	res = swapchain->Init(chainDesc);
-	ASSERT(res);
-	res = swapchain->Update(chainDesc._dimensions);
 	ASSERT(res);
 
 	for (bool running = true; running; ) {
@@ -97,6 +99,36 @@ int main()
 			if (event.type == SDL_QUIT) {
 				running = false;
 			}
+
+			glm::uvec2 winSize = getWindowSize(window);
+			if (winSize != glm::uvec2(swapchain->_descriptor._dimensions)) {
+				res = swapchain->Update(winSize);
+			}
+
+			std::vector<std::shared_ptr<rhi::Pass>> passes;
+			std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
+				{
+					swapchain->AcquireNextImage(),
+					glm::vec4(0, 0, 1 ,1),
+				},
+			};
+			ASSERT(renderTargets[0]._texture);
+			auto renderPass = device->Create<rhi::GraphicsPass>("Render");
+			res = renderPass->Init(renderTargets);
+			ASSERT(res);
+			passes.push_back(renderPass);
+
+			auto presentPass = device->Create<rhi::PresentPass>("Present");
+			presentPass->SetSwapchainTexture(renderTargets[0]._texture);
+			passes.push_back(presentPass);
+
+			auto submission = device->Submit(std::move(passes));
+			res = submission->Prepare();
+			ASSERT(res);
+			res = submission->Execute();
+			ASSERT(res);
+			res = submission->WaitUntilFinished();
+			ASSERT(res);
 		}
 	}
 

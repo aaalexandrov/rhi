@@ -99,10 +99,50 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
 }
 
 
+
+bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
+{
+    ASSERT(!_rhi);
+    _rhi = rhi;
+    vk::SemaphoreTypeCreateInfo semType{
+        vk::SemaphoreType::eTimeline,
+        0,
+    };
+    vk::SemaphoreCreateInfo semInfo{
+        vk::SemaphoreCreateFlags(),
+        &semType,
+    };
+    if (_rhi->_device.createSemaphore(&semInfo, _rhi->AllocCallbacks(), &_semaphore) != vk::Result::eSuccess)
+        return false;
+
+    return true;
+}
+
+void TimelineSemaphoreVk::Done()
+{
+    if (_rhi) {
+        _rhi->_device.destroySemaphore(_semaphore);
+        _semaphore = nullptr;
+        _rhi = nullptr;
+    }
+}
+
+uint64_t TimelineSemaphoreVk::GetCurrentCounter()
+{
+    auto result = _rhi->_device.getSemaphoreCounterValue(_semaphore);
+    return result.result != vk::Result::eSuccess ? result.value : ~0ull;
+}
+
+bool TimelineSemaphoreVk::WaitCounter(uint64_t counter, uint64_t timeout)
+{
+    return false;
+}
+
 RhiVk::~RhiVk()
 {
     vmaDestroyAllocator(_vma);
-    _device.destroy();
+    _timelineSemaphore.Done();
+    _device.destroy(AllocCallbacks());
     _instance.destroyDebugReportCallbackEXT(_debugReportCallback, AllocCallbacks(), _dynamicDispatch);
     _instance.destroy(AllocCallbacks());
 }
@@ -116,6 +156,9 @@ bool RhiVk::Init(Settings const &settings)
         return false;
 
     if (!InitDevice())
+        return false;
+
+    if (!_timelineSemaphore.Init(this, 1))
         return false;
 
     if (!InitVma())
@@ -241,6 +284,8 @@ bool RhiVk::InitDevice()
                 queuePriorities.data(),
             }
         };
+        vk::PhysicalDeviceVulkan12Features features12;
+        features12.setTimelineSemaphore(true);
         vk::PhysicalDeviceFeatures features;
         vk::DeviceCreateInfo devInfo{
             vk::DeviceCreateFlags(),
@@ -248,6 +293,7 @@ bool RhiVk::InitDevice()
             devCreateData._layerNames,
             devCreateData._extNames,
             &features,
+            &features12
         };
         if (_physDevice.createDevice(&devInfo, AllocCallbacks(), &_device) != vk::Result::eSuccess)
             return false;
@@ -298,5 +344,13 @@ VmaAllocationCreateInfo RhiVk::GetVmaAllocCreateInfo(Resource *resource)
 
     return allocInfo;
 }
+
+bool RhiVk::WaitIdle()
+{
+    if (_device.waitIdle() != vk::Result::eSuccess)
+        return false;
+    return true;
+}
+
 
 }

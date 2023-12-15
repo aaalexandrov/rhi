@@ -104,9 +104,20 @@ inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) {
 	return GetAllAccess(usage) & s_accessWriteFlags; 
 }
 
-inline vk::Extent3D GetExtent3D(glm::vec3 dim) {
-	return vk::Extent3D(dim[0], dim[1], dim[2]);
+inline vk::Extent2D GetExtent2D(glm::uvec2 dim) {
+	return vk::Extent2D(dim.x, dim.y);
 }
 
+inline vk::Offset2D GetOffset2D(glm::ivec2 v) {
+	return vk::Offset2D(v.x, v.y);
+}
+
+inline vk::Extent3D GetExtent3D(glm::uvec3 dim) {
+	return vk::Extent3D(dim.x, dim.y, dim.z);
+}
+
+inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
+	return vk::Offset3D(v.x, v.y, v.z);
+}
 
 }

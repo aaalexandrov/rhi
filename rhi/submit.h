@@ -8,8 +8,8 @@ struct Pass;
 struct Submission : public RhiOwned {
 	virtual bool Init(std::vector<std::shared_ptr<Pass>> &&passes);
 
-	virtual bool Prepare() = 0;
-	virtual bool Execute() = 0;
+	virtual bool Prepare();
+	virtual bool Execute();
 
 	virtual bool IsFinishedExecuting() = 0;
 	virtual bool WaitUntilFinished() = 0;

@@ -81,8 +81,11 @@ struct Swapchain : public RhiOwned {
 	virtual bool Update(glm::uvec2 size, PresentMode presentMode = PresentMode::Invalid, Format surfaceFormat = Format::Invalid) = 0;
 
 	virtual std::shared_ptr<Texture> AcquireNextImage() = 0;
+	int32_t GetTextureIndex(Texture *tex) const;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Swapchain>(); }
+
+	std::vector<std::shared_ptr<Texture>> _images;
 };
 
 }

@@ -258,6 +258,11 @@ T *Cast(Any *any) {
 }
 
 template <typename T>
+std::shared_ptr<T> Cast(std::shared_ptr<Any> const &anyShared) {
+	return anyShared && anyShared->GetTypeInfo()->IsKindOf<T>() ? std::static_pointer_cast<T>(anyShared) : std::shared_ptr<T>();
+}
+
+template <typename T>
 struct TypeInitializer {
 	TypeInfo *_type;
 

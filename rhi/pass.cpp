@@ -1,5 +1,6 @@
 #include "pass.h"
 #include "rhi.h"
+#include "resource.h"
 
 namespace rhi {
 
@@ -31,6 +32,21 @@ void GraphicsPass::EnumResources(ResourceEnum enumFn)
 		ASSERT(bool(usage & ResourceUsage{ .rt = 1, .ds = 1 }));
 		enumFn(target._texture.get(), usage);
 	}
+}
+
+void PresentPass::SetSwapchainTexture(std::shared_ptr<Texture> tex)
+{
+	ASSERT(!_swapchainTexture);
+	ASSERT(!_swapchain);
+	_swapchainTexture = tex;
+	_swapchain = GetSwapchain();
+}
+
+std::shared_ptr<Swapchain> PresentPass::GetSwapchain()
+{
+	if (!_swapchainTexture)
+		return nullptr;
+	return Cast<Swapchain>(_swapchainTexture->_owner.lock());
 }
 
 void PresentPass::EnumResources(ResourceEnum enumFn)

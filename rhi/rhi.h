@@ -29,6 +29,8 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 
 	std::shared_ptr<Submission> Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name = "");
 
+	virtual bool WaitIdle() = 0;
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Rhi>(); }
 
 	TypeInfo const *GetDerivedTypeWithTag(TypeInfo const *base);

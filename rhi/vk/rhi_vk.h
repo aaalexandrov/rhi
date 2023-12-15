@@ -48,11 +48,28 @@ struct HostAllocationTrackerVk {
 	static VKAPI_ATTR void VKAPI_CALL InternalFreeNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
 };
 
+struct TimelineSemaphoreVk {
+	~TimelineSemaphoreVk() {
+		Done();
+	}
+	bool Init(RhiVk *rhi, uint64_t initValue = 0);
+	void Done();
+
+	uint64_t GetCurrentCounter();
+	bool WaitCounter(uint64_t counter, uint64_t timeout = std::numeric_limits<uint64_t>::max());
+
+	RhiVk *_rhi = nullptr;
+	vk::Semaphore _semaphore;
+	std::atomic<uint64_t> _value;
+};
+
 struct RhiVk : public Rhi {
 
 	~RhiVk() override;
 
 	bool Init(Settings const &settings) override;
+
+	bool WaitIdle() override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RhiVk>(); }
 
@@ -82,6 +99,7 @@ struct RhiVk : public Rhi {
 	vk::Device _device;
 	QueueData _universalQueue;
 	VmaAllocator _vma = {};
+	TimelineSemaphoreVk _timelineSemaphore;
 };
 
 }

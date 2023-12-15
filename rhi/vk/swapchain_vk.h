@@ -22,7 +22,6 @@ struct SwapchainVk : public Swapchain {
 	vk::SurfaceKHR _surface;
 	vk::SwapchainKHR _swapchain;
 	vk::Semaphore _acquireSemaphore;
-	std::vector<std::shared_ptr<TextureVk>> _images;
 };
 
 }

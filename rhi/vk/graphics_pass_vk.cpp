@@ -1,6 +1,7 @@
 #include "graphics_pass_vk.h"
 #include "rhi_vk.h"
 #include "texture_vk.h"
+#include "submit_vk.h"
 
 namespace rhi {
 
@@ -181,11 +182,43 @@ glm::uvec4 GraphicsPassVk::GetMinTargetSize()
 
 bool GraphicsPassVk::Prepare(Submission *sub)
 {
+	vk::CommandBuffer cmds = _recorder.AllocCmdBuffer(vk::CommandBufferLevel::ePrimary, _name + std::to_string(_recorder._cmdBuffers.size()));
+	vk::CommandBufferBeginInfo cmdBegin{
+		vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+	};
+	if (cmds.begin(cmdBegin) != vk::Result::eSuccess)
+		return false;
+
+	std::vector<vk::ClearValue> clearValues;
+	for (auto &rt : _renderTargets) {
+		if (rt._texture->_descriptor._usage.ds) {
+			clearValues.emplace_back(vk::ClearColorValue(rt._clearValue[0], rt._clearValue[1], rt._clearValue[2], rt._clearValue[3]));
+		} else {
+			clearValues.emplace_back(vk::ClearDepthStencilValue(rt._clearValue[0], (uint32_t)rt._clearValue[1]));
+		}
+	}
+	vk::RenderPassBeginInfo passInfo{
+		_renderPass,
+		_framebuffer,
+		vk::Rect2D(vk::Offset2D(0, 0), GetExtent2D(GetMinTargetSize())),
+		clearValues,
+	};
+	cmds.beginRenderPass(passInfo, vk::SubpassContents::eInline);
+
+	cmds.endRenderPass();
+	if (cmds.end() != vk::Result::eSuccess)
+		return false;
+
 	return true;
 }
 
 bool GraphicsPassVk::Execute(Submission *sub)
 {
+	auto *subVk = static_cast<SubmissionVk *>(sub);
+
+	if (!subVk->ExecuteCommands(_recorder._cmdBuffers, vk::PipelineStageFlagBits::eColorAttachmentOutput))
+		return false;
+
 	return true;
 }
 

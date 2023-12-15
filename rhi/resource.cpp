@@ -39,7 +39,6 @@ bool Texture::Init(ResourceDescriptor const &desc)
 {
 	if (!Resource::Init(desc))
 		return false;
-	_descriptor._dimensions = glm::max(_descriptor._dimensions, glm::uvec4(1));
 	ASSERT(_descriptor._dimensions[0] > 0);
 	if (_descriptor._mipLevels == 0)
 		_descriptor.SetMaxMipLevels();
@@ -64,6 +63,15 @@ bool Swapchain::Init(SwapchainDescriptor const &desc)
 	}
 
 	return true;
+}
+
+int32_t Swapchain::GetTextureIndex(Texture *tex) const
+{
+	for (int32_t i = 0; i < _images.size(); ++i) {
+		if (_images[i].get() == tex)
+			return i;
+	}
+	return -1;
 }
 
 }

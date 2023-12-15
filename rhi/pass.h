@@ -42,14 +42,17 @@ struct CopyPass : public Pass {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPass>(); }
 };
 
+struct Swapchain;
 struct PresentPass : public Pass {
 
 	void SetSwapchainTexture(std::shared_ptr<Texture> tex);
+	std::shared_ptr<Swapchain> GetSwapchain();
 
 	void EnumResources(ResourceEnum enumFn) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<PresentPass>(); }
 	std::shared_ptr<Texture> _swapchainTexture;
+	std::shared_ptr<Swapchain> _swapchain;
 };
 
 }
