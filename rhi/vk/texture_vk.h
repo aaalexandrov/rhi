@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct TextureVk : public Texture {
+struct TextureVk : public Texture, public ResourceVk {
 	~TextureVk() override;
 
 	bool Init(ResourceDescriptor const &desc) override;
@@ -13,7 +13,8 @@ struct TextureVk : public Texture {
 
 	bool InitView();
 
-	bool RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage);
+	ResourceTransitionVk GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage) override;
+	ResourceStateVk GetState(ResourceUsage usage);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<TextureVk>(); }
 

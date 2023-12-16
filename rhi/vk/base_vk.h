@@ -40,6 +40,72 @@ struct CmdRecorderVk {
 	vk::CommandPool _cmdPool;
 };
 
+struct TimelineSemaphoreVk {
+	~TimelineSemaphoreVk() {
+		Done();
+	}
+	bool Init(RhiVk *rhi, uint64_t initValue = 0);
+	void Done();
+
+	uint64_t GetCurrentCounter();
+	bool WaitCounter(uint64_t counter, uint64_t timeout = std::numeric_limits<uint64_t>::max());
+
+	RhiVk *_rhi = nullptr;
+	vk::Semaphore _semaphore;
+	std::atomic<uint64_t> _value;
+};
+
+struct SemaphoreReferenceVk {
+	vk::Semaphore _semaphore;
+	uint64_t _counter = ~0ull;
+};
+
+struct ResourceStateVk {
+	vk::AccessFlagBits _access;
+	vk::PipelineStageFlags _stages;
+	vk::ImageLayout _layout;
+	SemaphoreReferenceVk _semaphore;
+};
+
+struct ResourceTransitionVk {
+	ResourceStateVk _srcState, _dstState;
+};
+
+struct ResourceVk {
+	virtual ResourceTransitionVk GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage) = 0;
+};
+
+vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage);
+
+static inline vk::AccessFlags s_accessReadFlags = 
+	vk::AccessFlagBits::eIndirectCommandRead | 
+	vk::AccessFlagBits::eIndexRead | 
+	vk::AccessFlagBits::eVertexAttributeRead | 
+	vk::AccessFlagBits::eUniformRead | 
+	vk::AccessFlagBits::eInputAttachmentRead | 
+	vk::AccessFlagBits::eShaderRead | 
+	vk::AccessFlagBits::eColorAttachmentRead | 
+	vk::AccessFlagBits::eDepthStencilAttachmentRead | 
+	vk::AccessFlagBits::eTransferRead | 
+	vk::AccessFlagBits::eHostRead | 
+	vk::AccessFlagBits::eMemoryRead;
+
+static inline vk::AccessFlags s_accessWriteFlags =
+	vk::AccessFlagBits::eShaderWrite |
+	vk::AccessFlagBits::eColorAttachmentWrite |
+	vk::AccessFlagBits::eDepthStencilAttachmentWrite |
+	vk::AccessFlagBits::eTransferWrite |
+	vk::AccessFlagBits::eHostWrite |
+	vk::AccessFlagBits::eMemoryWrite;
+
+vk::AccessFlags GetAllAccess(ResourceUsage usage);
+inline vk::AccessFlags GetReadAccess(ResourceUsage usage) { 
+	return GetAllAccess(usage) & s_accessReadFlags; 
+}
+inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) { 
+	return GetAllAccess(usage) & s_accessWriteFlags; 
+}
+
 static inline utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
 		{ vk::Format::eUndefined,          Format::Invalid       },
 		{ vk::Format::eR8G8B8A8Unorm,      Format::R8G8B8A8      },
@@ -53,6 +119,22 @@ static inline utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
 		{ vk::Format::eS8Uint,             Format::S8            },
 	} };
 
+
+inline vk::Extent2D GetExtent2D(glm::uvec2 dim) {
+	return vk::Extent2D(dim.x, dim.y);
+}
+
+inline vk::Offset2D GetOffset2D(glm::ivec2 v) {
+	return vk::Offset2D(v.x, v.y);
+}
+
+inline vk::Extent3D GetExtent3D(glm::uvec3 dim) {
+	return vk::Extent3D(dim.x, dim.y, dim.z);
+}
+
+inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
+	return vk::Offset3D(v.x, v.y, v.z);
+}
 
 static inline utl::ValueRemapper<vk::PresentModeKHR, PresentMode> s_vk2PresentMode{ {
 		{vk::PresentModeKHR::eImmediate  , PresentMode::Immediate },
@@ -88,52 +170,5 @@ static inline utl::ValueRemapper<vk::CompareOp, CompareOp> s_vk2CompareOp{ {
 		{ vk::CompareOp::eGreaterOrEqual, CompareOp::GreaterOrEqual },
 		{ vk::CompareOp::eAlways        , CompareOp::Always         },
 	} };
-
-vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage);
-
-static inline vk::AccessFlags s_accessReadFlags = 
-	vk::AccessFlagBits::eIndirectCommandRead | 
-	vk::AccessFlagBits::eIndexRead | 
-	vk::AccessFlagBits::eVertexAttributeRead | 
-	vk::AccessFlagBits::eUniformRead | 
-	vk::AccessFlagBits::eInputAttachmentRead | 
-	vk::AccessFlagBits::eShaderRead | 
-	vk::AccessFlagBits::eColorAttachmentRead | 
-	vk::AccessFlagBits::eDepthStencilAttachmentRead | 
-	vk::AccessFlagBits::eTransferRead | 
-	vk::AccessFlagBits::eHostRead | 
-	vk::AccessFlagBits::eMemoryRead;
-
-static inline vk::AccessFlags s_accessWriteFlags =
-	vk::AccessFlagBits::eShaderWrite |
-	vk::AccessFlagBits::eColorAttachmentWrite |
-	vk::AccessFlagBits::eDepthStencilAttachmentWrite |
-	vk::AccessFlagBits::eTransferWrite |
-	vk::AccessFlagBits::eHostWrite |
-	vk::AccessFlagBits::eMemoryWrite;
-
-vk::AccessFlags GetAllAccess(ResourceUsage usage);
-inline vk::AccessFlags GetReadAccess(ResourceUsage usage) { 
-	return GetAllAccess(usage) & s_accessReadFlags; 
-}
-inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) { 
-	return GetAllAccess(usage) & s_accessWriteFlags; 
-}
-
-inline vk::Extent2D GetExtent2D(glm::uvec2 dim) {
-	return vk::Extent2D(dim.x, dim.y);
-}
-
-inline vk::Offset2D GetOffset2D(glm::ivec2 v) {
-	return vk::Offset2D(v.x, v.y);
-}
-
-inline vk::Extent3D GetExtent3D(glm::uvec3 dim) {
-	return vk::Extent3D(dim.x, dim.y, dim.z);
-}
-
-inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
-	return vk::Offset3D(v.x, v.y, v.z);
-}
 
 }

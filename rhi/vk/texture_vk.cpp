@@ -6,6 +6,7 @@ namespace rhi {
 static auto s_regTypes = TypeInfo::AddInitializer("texture_vk", [] {
 	TypeInfo::Register<TextureVk>().Name("TextureVk")
 		.Base<Texture>()
+		.Base<ResourceVk>()
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
@@ -181,9 +182,18 @@ bool TextureVk::InitView()
 	return true;
 }
 
-bool TextureVk::RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage)
+ResourceTransitionVk TextureVk::GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage)
 {
-	return false;
+	ResourceTransitionVk data{
+		._srcState = GetState(prevUsage),
+		._dstState = GetState(usage),
+	};
+	return data;
+}
+
+ResourceStateVk TextureVk::GetState(ResourceUsage usage)
+{
+	return ResourceStateVk();
 }
 
 }

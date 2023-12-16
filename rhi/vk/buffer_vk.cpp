@@ -6,6 +6,7 @@ namespace rhi {
 static auto s_regTypes = TypeInfo::AddInitializer("buffer_vk", [] {
 	TypeInfo::Register<BufferVk>().Name("BufferVk")
 		.Base<Buffer>()
+		.Base<ResourceVk>()
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
@@ -75,9 +76,18 @@ bool BufferVk::Unmap()
 	return true;
 }
 
-bool BufferVk::RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage)
+ResourceTransitionVk BufferVk::GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage)
 {
-	return false;
+	ResourceTransitionVk data{
+		._srcState = GetState(prevUsage),
+		._dstState = GetState(usage),
+	};
+	return data;
+}
+
+ResourceStateVk BufferVk::GetState(ResourceUsage usage)
+{
+	return ResourceStateVk();
 }
 
 }

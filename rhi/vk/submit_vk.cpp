@@ -136,15 +136,12 @@ vk::CommandBuffer SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 			vk::Result res = cmds.begin(beginInfo);
 			ASSERT(res == vk::Result::eSuccess);
 		}
-		bool res = false;
-		if (auto buffer = Cast<BufferVk>(transition._resource)) {
-			res = buffer->RecordTransition(cmds, transition._prevUsage, transition._usage);
-		} else if (auto texture = Cast<TextureVk>(transition._resource)) {
-			res = texture->RecordTransition(cmds, transition._prevUsage, transition._usage);
-		} else {
-			ASSERT(0);
-		}
-		ASSERT(res);
+
+		auto *resourceVk = Cast<ResourceVk>(transition._resource);
+		ResourceTransitionVk transitionData = resourceVk->GetTransitionData(transition._prevUsage, transition._usage);
+
+
+
 	}
 	
 	if (cmds) {

@@ -99,45 +99,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
 }
 
 
-
-bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
-{
-    ASSERT(!_rhi);
-    _rhi = rhi;
-    vk::SemaphoreTypeCreateInfo semType{
-        vk::SemaphoreType::eTimeline,
-        0,
-    };
-    vk::SemaphoreCreateInfo semInfo{
-        vk::SemaphoreCreateFlags(),
-        &semType,
-    };
-    if (_rhi->_device.createSemaphore(&semInfo, _rhi->AllocCallbacks(), &_semaphore) != vk::Result::eSuccess)
-        return false;
-
-    return true;
-}
-
-void TimelineSemaphoreVk::Done()
-{
-    if (_rhi) {
-        _rhi->_device.destroySemaphore(_semaphore);
-        _semaphore = nullptr;
-        _rhi = nullptr;
-    }
-}
-
-uint64_t TimelineSemaphoreVk::GetCurrentCounter()
-{
-    auto result = _rhi->_device.getSemaphoreCounterValue(_semaphore);
-    return result.result != vk::Result::eSuccess ? result.value : ~0ull;
-}
-
-bool TimelineSemaphoreVk::WaitCounter(uint64_t counter, uint64_t timeout)
-{
-    return false;
-}
-
 RhiVk::~RhiVk()
 {
     vmaDestroyAllocator(_vma);
