@@ -75,4 +75,9 @@ bool BufferVk::Unmap()
 	return true;
 }
 
+bool BufferVk::RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage)
+{
+	return false;
+}
+
 }

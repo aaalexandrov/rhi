@@ -43,7 +43,7 @@ vk::ImageType GetImageType(glm::uvec4 dims)
 vk::ImageViewType GetImageViewType(ResourceDescriptor const &desc)
 {
 	auto imgType = GetImageType(desc._dimensions);
-	bool isArray = desc._dimensions[4] > 0;
+	bool isArray = desc._dimensions[3] > 0;
 	switch (imgType) {
 		case vk::ImageType::e1D:
 			return isArray ? vk::ImageViewType::e1DArray : vk::ImageViewType::e1D;
@@ -154,6 +154,7 @@ bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
 	ASSERT(!_vmaAlloc);
 	_image = image;
 	_owner = owner->weak_from_this();
+	InitView();
 	return true;
 }
 
@@ -171,13 +172,18 @@ bool TextureVk::InitView()
 			0,
 			_descriptor._mipLevels,
 			0,
-			_descriptor._dimensions[4]
+			std::max(_descriptor._dimensions[3], 1u)
 		},
 	};
 	if (rhi->_device.createImageView(&viewInfo, rhi->AllocCallbacks(), &_view) != vk::Result::eSuccess)
 		return false;
 
 	return true;
+}
+
+bool TextureVk::RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage)
+{
+	return false;
 }
 
 }

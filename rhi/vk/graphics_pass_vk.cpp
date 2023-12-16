@@ -11,45 +11,6 @@ static auto s_regTypes = TypeInfo::AddInitializer("graphics_pass_vk", [] {
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
-CmdRecorderVk::~CmdRecorderVk()
-{
-	// buffers are freed by this call as well
-	_rhi->_device.destroyCommandPool(_cmdPool, _rhi->AllocCallbacks());
-}
-
-bool CmdRecorderVk::Init(RhiVk *rhi, uint32_t queueFamily)
-{
-	_rhi = rhi;
-	_queueFamily = queueFamily;
-	vk::CommandPoolCreateInfo poolInfo{
-		vk::CommandPoolCreateFlags(),
-		_queueFamily,
-	};
-	if (_rhi->_device.createCommandPool(&poolInfo, _rhi->AllocCallbacks(), &_cmdPool) != vk::Result::eSuccess)
-		return false;
-	return true;
-}
-
-void CmdRecorderVk::Clear()
-{
-	_rhi->_device.freeCommandBuffers(_cmdPool, _cmdBuffers);
-	_cmdBuffers.clear();
-}
-
-vk::CommandBuffer CmdRecorderVk::AllocCmdBuffer(vk::CommandBufferLevel level, std::string name)
-{
-	vk::CommandBufferAllocateInfo bufInfo{
-		_cmdPool,
-		level,
-		1,
-	};
-	vk::CommandBuffer buffer;
-	if (_rhi->_device.allocateCommandBuffers(&bufInfo, &buffer) != vk::Result::eSuccess)
-		return vk::CommandBuffer();
-	_cmdBuffers.push_back(buffer);
-	return buffer;
-}
-
 
 GraphicsPassVk::~GraphicsPassVk()
 {
@@ -155,6 +116,10 @@ bool GraphicsPassVk::InitRenderPass(RhiVk *rhi)
 bool GraphicsPassVk::InitFramebuffer(RhiVk *rhi)
 {
 	std::vector<vk::ImageView> attachViews;
+	for (auto &rt : _renderTargets) {
+		auto texVk = static_cast<TextureVk *>(rt._texture.get());
+		attachViews.push_back(texVk->_view);
+	}
 
 	glm::uvec4 commonSize = GetMinTargetSize();
 	vk::FramebufferCreateInfo frameInfo{

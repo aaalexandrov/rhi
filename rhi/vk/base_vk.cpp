@@ -1,7 +1,48 @@
 #define VMA_IMPLEMENTATION
 #include "base_vk.h"
+#include "rhi_vk.h"
 
 namespace rhi {
+
+CmdRecorderVk::~CmdRecorderVk()
+{
+    // buffers are freed by this call as well
+    _rhi->_device.destroyCommandPool(_cmdPool, _rhi->AllocCallbacks());
+}
+
+bool CmdRecorderVk::Init(RhiVk *rhi, uint32_t queueFamily)
+{
+    _rhi = rhi;
+    _queueFamily = queueFamily;
+    vk::CommandPoolCreateInfo poolInfo{
+        vk::CommandPoolCreateFlags(),
+        _queueFamily,
+    };
+    if (_rhi->_device.createCommandPool(&poolInfo, _rhi->AllocCallbacks(), &_cmdPool) != vk::Result::eSuccess)
+        return false;
+    return true;
+}
+
+void CmdRecorderVk::Clear()
+{
+    _rhi->_device.freeCommandBuffers(_cmdPool, _cmdBuffers);
+    _cmdBuffers.clear();
+}
+
+vk::CommandBuffer CmdRecorderVk::AllocCmdBuffer(vk::CommandBufferLevel level, std::string name)
+{
+    vk::CommandBufferAllocateInfo bufInfo{
+        _cmdPool,
+        level,
+        1,
+    };
+    vk::CommandBuffer buffer;
+    if (_rhi->_device.allocateCommandBuffers(&bufInfo, &buffer) != vk::Result::eSuccess)
+        return vk::CommandBuffer();
+    _cmdBuffers.push_back(buffer);
+    return buffer;
+}
+
 
 vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage)
 {

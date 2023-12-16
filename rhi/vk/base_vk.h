@@ -24,6 +24,22 @@
 
 namespace rhi {
 
+struct RhiVk;
+struct CmdRecorderVk {
+	~CmdRecorderVk();
+
+	bool Init(RhiVk *rhi, uint32_t queueFamily);
+
+	void Clear();
+
+	vk::CommandBuffer AllocCmdBuffer(vk::CommandBufferLevel level, std::string name);
+
+	RhiVk *_rhi = nullptr;
+	uint32_t _queueFamily = ~0;
+	std::vector<vk::CommandBuffer> _cmdBuffers;
+	vk::CommandPool _cmdPool;
+};
+
 static inline utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
 		{ vk::Format::eUndefined,          Format::Invalid       },
 		{ vk::Format::eR8G8B8A8Unorm,      Format::R8G8B8A8      },

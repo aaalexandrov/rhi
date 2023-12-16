@@ -13,6 +13,8 @@ struct TextureVk : public Texture {
 
 	bool InitView();
 
+	bool RecordTransition(vk::CommandBuffer cmds, ResourceUsage prevUsage, ResourceUsage usage);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<TextureVk>(); }
 
 	vk::ImageLayout GetInitialLayout() const;

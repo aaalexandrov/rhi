@@ -1,5 +1,7 @@
 #include "submit_vk.h"
 #include "rhi_vk.h"
+#include "buffer_vk.h"
+#include "texture_vk.h"
 
 namespace rhi {
 
@@ -9,10 +11,31 @@ static auto s_regTypes = TypeInfo::AddInitializer("submit_vk", [] {
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
+bool SubmissionVk::Prepare()
+{
+	if (!Submission::Prepare())
+		return false;
+
+	for (auto &pass : _passes) {
+		_perPassTransitionCmds.push_back(RecordPassTransitionCmds(pass.get()));
+	}
+
+	return true;
+}
+
 bool SubmissionVk::Execute()
 {
-	if (!Submission::Execute())
-		return false;
+	// we're not calling the base execute, should it exist at all?
+
+	for (uint32_t i = 0; i < _passes.size(); ++i) {
+		auto &pass = _passes[i];
+		vk::CommandBuffer transitionCmds = _perPassTransitionCmds[i];
+		if (transitionCmds) {
+			_toExecute.push_back(transitionCmds);
+		}
+		if (!pass->Execute(this))
+			return false;
+	}
 
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
 	_executeSignalValue = ++rhi->_timelineSemaphore._value;
@@ -62,6 +85,7 @@ bool SubmissionVk::ExecuteCommands(std::span<vk::CommandBuffer> cmdBuffers, vk::
 bool SubmissionVk::FlushCommands(RhiVk *rhi, uint64_t waitValue, uint64_t signalValue)
 {
 	std::vector<uint64_t> waitTimelineValues, signalTimelineValues;
+	std::vector<vk::PipelineStageFlags> waitDstStages;
 	std::vector<vk::Semaphore> waitSemaphores, signalSemaphores;
 
 	ASSERT(waitValue == ~0ull || signalValue != ~0ull || waitValue < signalValue);
@@ -69,6 +93,7 @@ bool SubmissionVk::FlushCommands(RhiVk *rhi, uint64_t waitValue, uint64_t signal
 	if (waitValue != ~0ull) {
 		waitSemaphores.push_back(rhi->_timelineSemaphore._semaphore);
 		waitTimelineValues.push_back(waitValue);
+		waitDstStages.push_back(_toExecuteDstStageFlags);
 	}
 
 	if (signalValue != ~0ull) {
@@ -84,7 +109,7 @@ bool SubmissionVk::FlushCommands(RhiVk *rhi, uint64_t waitValue, uint64_t signal
 	ASSERT(signalTimelineValues.size() == signalSemaphores.size());
 	vk::SubmitInfo submitInfo{
 		waitSemaphores,
-		_toExecuteDstStageFlags,
+		waitDstStages,
 		_toExecute,
 		signalSemaphores,
 		&timelineInfo
@@ -96,6 +121,38 @@ bool SubmissionVk::FlushCommands(RhiVk *rhi, uint64_t waitValue, uint64_t signal
 	_toExecuteDstStageFlags = vk::PipelineStageFlags();
 
 	return true;
+}
+
+vk::CommandBuffer SubmissionVk::RecordPassTransitionCmds(Pass *pass)
+{
+	vk::CommandBuffer cmds;
+	auto &transitions = _passTransitions[pass];
+	for (ResourceTransition &transition : transitions) {
+		if (!cmds) {
+			cmds = _recorder.AllocCmdBuffer(vk::CommandBufferLevel::ePrimary, "X_" + pass->_name);
+			vk::CommandBufferBeginInfo beginInfo{
+				vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+			};
+			vk::Result res = cmds.begin(beginInfo);
+			ASSERT(res == vk::Result::eSuccess);
+		}
+		bool res = false;
+		if (auto buffer = Cast<BufferVk>(transition._resource)) {
+			res = buffer->RecordTransition(cmds, transition._prevUsage, transition._usage);
+		} else if (auto texture = Cast<TextureVk>(transition._resource)) {
+			res = texture->RecordTransition(cmds, transition._prevUsage, transition._usage);
+		} else {
+			ASSERT(0);
+		}
+		ASSERT(res);
+	}
+	
+	if (cmds) {
+		vk::Result res = cmds.end();
+		ASSERT(res == vk::Result::eSuccess);
+	}
+
+	return cmds;
 }
 
 

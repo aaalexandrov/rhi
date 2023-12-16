@@ -8,6 +8,7 @@ namespace rhi {
 
 struct SubmissionVk : public Submission {
 
+	bool Prepare() override;
 	bool Execute() override;
 
 	bool IsFinishedExecuting() override;
@@ -21,6 +22,10 @@ struct SubmissionVk : public Submission {
 
 	bool FlushCommands(RhiVk *rhi, uint64_t waitValue = ~0ull, uint64_t signalValue = ~0ull);
 
+	vk::CommandBuffer RecordPassTransitionCmds(Pass *pass);
+
+	CmdRecorderVk _recorder;
+	std::vector<vk::CommandBuffer> _perPassTransitionCmds;
 	std::vector<vk::CommandBuffer> _toExecute;
 	vk::PipelineStageFlags _toExecuteDstStageFlags;
 	uint64_t _executeSignalValue = 0;
