@@ -14,11 +14,11 @@ static auto s_regTypes = TypeInfo::AddInitializer("swapchain_vk", [] {
 SwapchainVk::~SwapchainVk()
 {
 	_images.clear();
+	DestroySemaphores();
 
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	rhi->_instance.destroySurfaceKHR(_surface, rhi->AllocCallbacks());
-	rhi->_device.destroySemaphore(_acquireSemaphore, rhi->AllocCallbacks());
 }
 
 bool SwapchainVk::Init(SwapchainDescriptor const &desc)
@@ -56,10 +56,6 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 		if (supported.result != vk::Result::eSuccess || !supported.value)
 			return false;
 	}
-
-	vk::SemaphoreCreateInfo semInfo{};
-	if (rhi->_device.createSemaphore(&semInfo, rhi->AllocCallbacks(), &_acquireSemaphore) != vk::Result::eSuccess)
-		return false;
 
 	auto surfFormats = GetSupportedSurfaceFormats();
 	if (surfFormats.empty())
@@ -140,7 +136,10 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 		_swapchain,
 		nullptr
 	};
+
 	_images.clear();
+	DestroySemaphores();
+
 	auto swapchain = rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks());
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	_swapchain = swapchain.value;
@@ -171,18 +170,53 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 		_images.push_back(image);
 	}
 
+	// we create one more semaphore than the number of images because when acquiring an image
+	// we need to supply a non-signalled semaphore before knowhing which image we'll get
+	// so at the end of the array we keep an extra semaphore that'll be guaranteed unused 
+	if (!CreateSemaphores(_images.size() + 1))
+		return false;
+
 	return true;
+}
+
+bool SwapchainVk::CreateSemaphores(uint32_t num)
+{
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+
+	for (uint32_t i = 0; i < num; ++i) {
+		vk::SemaphoreCreateInfo semInfo{};
+		auto semRes = rhi->_device.createSemaphore(semInfo, rhi->AllocCallbacks());
+		if (semRes.result != vk::Result::eSuccess)
+			return false;
+		_acquireSemaphores.push_back(semRes.value);
+	}
+
+	return true;
+}
+
+void SwapchainVk::DestroySemaphores()
+{
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	for (auto sem : _acquireSemaphores) {
+		rhi->_device.destroySemaphore(sem, rhi->AllocCallbacks());
+	}
+	_acquireSemaphores.clear();
 }
 
 std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 {
+	ASSERT(_acquireSemaphores.size() == _images.size() + 1);
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
 	uint32_t imgIndex = ~0ull;
-	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphore, nullptr, &imgIndex);
+	// use the extra semaphore
+	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphores.back(), nullptr, &imgIndex);
 	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
 		return std::shared_ptr<Texture>();
+	// then put the extra semaphore at the index of the image
+	std::swap(_acquireSemaphores[imgIndex], _acquireSemaphores.back());
 	ASSERT(imgIndex < _images.size());
-	_images[imgIndex]->_state = ResourceUsage{ .present = 1, .write = 1 };
+	if (_images[imgIndex]->_state)
+		_images[imgIndex]->_state = ResourceUsage{ .present = 1, .write = 1 };
 	return _images[imgIndex];
 }
 

@@ -17,7 +17,6 @@ void ExecuteDataVk::Clear()
 	_waitSemaphores.clear();
 	_cmds.clear();
 	_signalSemaphores.clear();
-	_dstStageFlags = vk::PipelineStageFlags();
 }
 
 bool ExecuteDataVk::CanCombine(ExecuteDataVk const &other)
@@ -47,9 +46,19 @@ void ExecuteDataVk::Combine(ExecuteDataVk const &other)
 		_cmds.insert(_cmds.end(), other._cmds.begin(), other._cmds.end());
 	}
 	_signalSemaphores.insert(_signalSemaphores.end(), other._signalSemaphores.begin(), other._signalSemaphores.end());
-	_dstStageFlags |= other._dstStageFlags;
 }
 
+
+bool SubmissionVk::InitRhi(Rhi *rhi, std::string name)
+{
+	if (!Submission::InitRhi(rhi, name))
+		return false;
+	auto rhiVk = static_pointer_cast<RhiVk>(_rhi.lock());
+	if (!_recorder.Init(rhiVk.get(), rhiVk->_universalQueue._family))
+		return false;
+
+	return true;
+}
 
 bool SubmissionVk::Execute()
 {
@@ -114,10 +123,12 @@ bool SubmissionVk::FlushToExecute()
 	}
 
 	std::vector<vk::Semaphore> waitSemaphores, signalSemaphores;
+	std::vector<vk::PipelineStageFlags> waitStages;
 	std::vector<uint64_t> waitSemValues, signalSemValues;
 	std::vector<vk::CommandBuffer> cmds;
 	for (auto &sem : _toExecute._waitSemaphores) {
 		waitSemaphores.push_back(sem._semaphore);
+		waitStages.push_back(sem._stages);
 		waitSemValues.push_back(sem._counter);
 	}
 	for (auto &sem : _toExecute._signalSemaphores) {
@@ -131,7 +142,7 @@ bool SubmissionVk::FlushToExecute()
 	};
 	vk::SubmitInfo submitInfo{
 		waitSemaphores,
-		_toExecute._dstStageFlags,
+		waitStages,
 		_toExecute._cmds,
 		signalSemaphores, 
 		&semValuesInfo

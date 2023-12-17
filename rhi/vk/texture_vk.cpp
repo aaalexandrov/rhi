@@ -104,9 +104,9 @@ vk::ImageLayout GetImageLayout(ResourceUsage usage)
 
 TextureVk::~TextureVk()
 {
+	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	rhi->_device.destroyImageView(_view, rhi->AllocCallbacks());
 	if (_vmaAlloc) {
-		auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
-		rhi->_device.destroyImageView(_view, rhi->AllocCallbacks());
 		vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
 	}
 }
@@ -200,9 +200,14 @@ ResourceStateVk TextureVk::GetState(ResourceUsage usage)
 	state._layout = usage == ResourceUsage() ? GetInitialLayout() : GetImageLayout(usage);
 
 	if (usage == ResourceUsage{ .present = 1, .write = 1 }) {
-		// present acquired, need to wait for the swapchain semaphore
+		// present acquired, need to wait for the image's swapchain semaphore
 		auto swapchain = Cast<SwapchainVk>(_owner.lock());
-		state._semaphore._semaphore = swapchain->_acquireSemaphore;
+		int32_t texIndex = swapchain->GetTextureIndex(this);
+		ASSERT(0 <= texIndex && texIndex < swapchain->_images.size());
+		state._semaphore = SemaphoreReferenceVk{
+			._semaphore = swapchain->_acquireSemaphores[texIndex],
+			._stages = vk::PipelineStageFlagBits::eTransfer,
+		};
 	}
 
 	return state;

@@ -28,6 +28,8 @@ union ResourceUsage {
 	ResourceUsage operator~() { return ResourceUsage{ ._flags = ~_flags }; }
 	ResourceUsage &operator|=(ResourceUsage u) { _flags |= u._flags; return *this; }
 	ResourceUsage &operator&=(ResourceUsage u) { _flags &= u._flags; return *this; }
+	bool operator==(ResourceUsage u) const { return _flags == u._flags; }
+	bool operator!=(ResourceUsage u) const { return _flags != u._flags; }
 
 	operator bool() { return _flags; }
 	bool operator!() { return !_flags; }

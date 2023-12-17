@@ -13,7 +13,6 @@ struct ExecuteDataVk {
 	std::vector<SemaphoreReferenceVk> _waitSemaphores;
 	std::vector<vk::CommandBuffer> _cmds;
 	std::vector<SemaphoreReferenceVk> _signalSemaphores;
-	vk::PipelineStageFlags _dstStageFlags;
 
 	void Clear();
 	bool CanCombine(ExecuteDataVk const &other);
@@ -21,6 +20,7 @@ struct ExecuteDataVk {
 };
 
 struct SubmissionVk : public Submission {
+	bool InitRhi(Rhi *rhi, std::string name) override;
 
 	bool Execute() override;
 

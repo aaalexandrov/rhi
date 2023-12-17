@@ -122,7 +122,7 @@ int main()
 			presentPass->SetSwapchainTexture(renderTargets[0]._texture);
 			passes.push_back(presentPass);
 
-			auto submission = device->Submit(std::move(passes));
+			auto submission = device->Submit(std::move(passes), "Execute");
 			res = submission->Prepare();
 			ASSERT(res);
 			res = submission->Execute();

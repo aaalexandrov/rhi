@@ -56,7 +56,7 @@ bool Swapchain::Init(SwapchainDescriptor const &desc)
 {
 	_descriptor = desc;
 	_descriptor._dimensions[3] = std::max(_descriptor._dimensions[3], 1u);
-	_descriptor._dimensions = glm::max(_descriptor._dimensions, glm::uvec4(1));
+	_descriptor._usage.present = 1;
 	if (!_descriptor._window) {
 		ASSERT(0);
 		return false;

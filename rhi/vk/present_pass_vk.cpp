@@ -42,7 +42,6 @@ bool PresentPassVk::Execute(Submission *sub)
 
 		return true;
 	};
-	exec._dstStageFlags = vk::PipelineStageFlagBits::eTransfer;
 
 	if (!subVk->Execute(std::move(exec)))
 		return false;

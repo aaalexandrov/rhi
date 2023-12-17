@@ -157,9 +157,9 @@ bool GraphicsPassVk::Prepare(Submission *sub)
 	std::vector<vk::ClearValue> clearValues;
 	for (auto &rt : _renderTargets) {
 		if (rt._texture->_descriptor._usage.ds) {
-			clearValues.emplace_back(vk::ClearColorValue(rt._clearValue[0], rt._clearValue[1], rt._clearValue[2], rt._clearValue[3]));
-		} else {
 			clearValues.emplace_back(vk::ClearDepthStencilValue(rt._clearValue[0], (uint32_t)rt._clearValue[1]));
+		} else {
+			clearValues.emplace_back(vk::ClearColorValue(rt._clearValue[0], rt._clearValue[1], rt._clearValue[2], rt._clearValue[3]));
 		}
 	}
 	vk::RenderPassBeginInfo passInfo{
@@ -183,7 +183,6 @@ bool GraphicsPassVk::Execute(Submission *sub)
 
 	ExecuteDataVk exec;
 	exec._cmds.insert(exec._cmds.end(), _recorder._cmdBuffers.begin(), _recorder._cmdBuffers.end());
-	exec._dstStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	if (!subVk->Execute(std::move(exec)))
 		return false;
 

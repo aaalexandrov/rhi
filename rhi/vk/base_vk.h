@@ -57,6 +57,7 @@ struct TimelineSemaphoreVk {
 
 struct SemaphoreReferenceVk {
 	vk::Semaphore _semaphore;
+	vk::PipelineStageFlagBits _stages;
 	uint64_t _counter = ~0ull;
 };
 
@@ -111,7 +112,7 @@ inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) {
 	return GetAllAccess(usage) & s_accessWriteFlags; 
 }
 inline vk::AccessFlags GetAccess(ResourceUsage usage) {
-	ASSERT(usage.read | usage.write);
+	ASSERT(usage.read || usage.write || usage == ResourceUsage());
 	vk::AccessFlags access;
 	if (usage.read) {
 		if (usage.write)

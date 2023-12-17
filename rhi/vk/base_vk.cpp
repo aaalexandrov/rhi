@@ -64,7 +64,7 @@ bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
 void TimelineSemaphoreVk::Done()
 {
     if (_rhi) {
-        _rhi->_device.destroySemaphore(_semaphore);
+        _rhi->_device.destroySemaphore(_semaphore, _rhi->AllocCallbacks());
         _semaphore = nullptr;
         _rhi = nullptr;
     }
@@ -107,10 +107,13 @@ vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage)
             vk::PipelineStageFlagBits::eGeometryShader |
             vk::PipelineStageFlagBits::eFragmentShader |
             vk::PipelineStageFlagBits::eComputeShader;
-    if (usage.copySrc | usage.copyDst)
+    if (usage.copySrc | usage.copyDst | usage.present)
         flags |= vk::PipelineStageFlagBits::eTransfer;
     if (usage.cpuAccess)
         flags |= vk::PipelineStageFlagBits::eHost;
+
+    if (!flags)
+        flags |= vk::PipelineStageFlagBits::eTopOfPipe;
 
     return flags;
 }
