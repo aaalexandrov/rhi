@@ -87,7 +87,10 @@ ResourceTransitionVk BufferVk::GetTransitionData(ResourceUsage prevUsage, Resour
 
 ResourceStateVk BufferVk::GetState(ResourceUsage usage)
 {
-	return ResourceStateVk();
+	ResourceStateVk state;
+	state._access = GetAccess(usage);
+	state._stages = GetPipelineStages(usage);
+	return state;
 }
 
 }

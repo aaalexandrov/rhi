@@ -61,7 +61,7 @@ struct SemaphoreReferenceVk {
 };
 
 struct ResourceStateVk {
-	vk::AccessFlagBits _access;
+	vk::AccessFlags _access;
 	vk::PipelineStageFlags _stages;
 	vk::ImageLayout _layout;
 	SemaphoreReferenceVk _semaphore;
@@ -69,6 +69,11 @@ struct ResourceStateVk {
 
 struct ResourceTransitionVk {
 	ResourceStateVk _srcState, _dstState;
+	bool HasLayouts() const {
+		return 
+			_srcState._layout != vk::ImageLayout::eUndefined || 
+			_dstState._layout != vk::ImageLayout::eUndefined;
+	}
 };
 
 struct ResourceVk {
@@ -77,7 +82,7 @@ struct ResourceVk {
 
 vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage);
 
-static inline vk::AccessFlags s_accessReadFlags = 
+static inline constexpr vk::AccessFlags s_accessReadFlags = 
 	vk::AccessFlagBits::eIndirectCommandRead | 
 	vk::AccessFlagBits::eIndexRead | 
 	vk::AccessFlagBits::eVertexAttributeRead | 
@@ -90,7 +95,7 @@ static inline vk::AccessFlags s_accessReadFlags =
 	vk::AccessFlagBits::eHostRead | 
 	vk::AccessFlagBits::eMemoryRead;
 
-static inline vk::AccessFlags s_accessWriteFlags =
+static inline constexpr vk::AccessFlags s_accessWriteFlags =
 	vk::AccessFlagBits::eShaderWrite |
 	vk::AccessFlagBits::eColorAttachmentWrite |
 	vk::AccessFlagBits::eDepthStencilAttachmentWrite |
@@ -105,20 +110,18 @@ inline vk::AccessFlags GetReadAccess(ResourceUsage usage) {
 inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) { 
 	return GetAllAccess(usage) & s_accessWriteFlags; 
 }
-
-static inline utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
-		{ vk::Format::eUndefined,          Format::Invalid       },
-		{ vk::Format::eR8G8B8A8Unorm,      Format::R8G8B8A8      },
-		{ vk::Format::eR8G8B8A8Srgb,       Format::R8G8B8A8_srgb },
-		{ vk::Format::eB8G8R8A8Unorm,      Format::B8G8R8A8      },
-		{ vk::Format::eB8G8R8A8Srgb,       Format::B8G8R8A8_srgb },
-		{ vk::Format::eR8Unorm,            Format::R8            },
-		{ vk::Format::eD24UnormS8Uint,     Format::D24S8         },
-		{ vk::Format::eD32SfloatS8Uint,    Format::D32S8         },
-		{ vk::Format::eD32Sfloat,          Format::D32           },
-		{ vk::Format::eS8Uint,             Format::S8            },
-	} };
-
+inline vk::AccessFlags GetAccess(ResourceUsage usage) {
+	ASSERT(usage.read | usage.write);
+	vk::AccessFlags access;
+	if (usage.read) {
+		if (usage.write)
+			access = GetAllAccess(usage);
+		else 
+			access = GetReadAccess(usage);
+	} else if (usage.write)
+		access = GetWriteAccess(usage);
+	return access;
+}
 
 inline vk::Extent2D GetExtent2D(glm::uvec2 dim) {
 	return vk::Extent2D(dim.x, dim.y);
@@ -136,31 +139,45 @@ inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
 	return vk::Offset3D(v.x, v.y, v.z);
 }
 
-static inline utl::ValueRemapper<vk::PresentModeKHR, PresentMode> s_vk2PresentMode{ {
+static inline const utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
+		{ vk::Format::eUndefined,          Format::Invalid       },
+		{ vk::Format::eR8G8B8A8Unorm,      Format::R8G8B8A8      },
+		{ vk::Format::eR8G8B8A8Srgb,       Format::R8G8B8A8_srgb },
+		{ vk::Format::eB8G8R8A8Unorm,      Format::B8G8R8A8      },
+		{ vk::Format::eB8G8R8A8Srgb,       Format::B8G8R8A8_srgb },
+		{ vk::Format::eR8Unorm,            Format::R8            },
+		{ vk::Format::eD24UnormS8Uint,     Format::D24S8         },
+		{ vk::Format::eD32SfloatS8Uint,    Format::D32S8         },
+		{ vk::Format::eD32Sfloat,          Format::D32           },
+		{ vk::Format::eS8Uint,             Format::S8            },
+	} };
+
+
+static inline const utl::ValueRemapper<vk::PresentModeKHR, PresentMode> s_vk2PresentMode{ {
 		{vk::PresentModeKHR::eImmediate  , PresentMode::Immediate },
 		{vk::PresentModeKHR::eMailbox    , PresentMode::Mailbox },
 		{vk::PresentModeKHR::eFifo       , PresentMode::Fifo },
 		{vk::PresentModeKHR::eFifoRelaxed, PresentMode::FifoRelaxed },
 	} };
 
-static inline utl::ValueRemapper<vk::Filter, Filter> s_vk2Filter{ {
+static inline const utl::ValueRemapper<vk::Filter, Filter> s_vk2Filter{ {
 		{ vk::Filter::eNearest , Filter::Nearest },
 		{ vk::Filter::eLinear  , Filter::Linear  },
 		{ vk::Filter::eCubicIMG, Filter::Cubic   },
 	} };
 
-static inline utl::ValueRemapper<vk::SamplerMipmapMode, MipMapMode>s_vk2MipMapMode{ {
+static inline const utl::ValueRemapper<vk::SamplerMipmapMode, MipMapMode>s_vk2MipMapMode{ {
 		{ vk::SamplerMipmapMode::eNearest, MipMapMode::Nearest },
 		{ vk::SamplerMipmapMode::eLinear , MipMapMode::Linear  },
 	} };
 
-static inline utl::ValueRemapper<vk::SamplerAddressMode, AddressMode> s_vk2AddressMode{ {
+static inline const utl::ValueRemapper<vk::SamplerAddressMode, AddressMode> s_vk2AddressMode{ {
 		{ vk::SamplerAddressMode::eRepeat        , AddressMode::Repeat         },
 		{ vk::SamplerAddressMode::eClampToEdge   , AddressMode::ClampToEdge    },
 		{ vk::SamplerAddressMode::eMirroredRepeat, AddressMode::MirroredRepeat },
 	} };
 
-static inline utl::ValueRemapper<vk::CompareOp, CompareOp> s_vk2CompareOp{ {
+static inline const utl::ValueRemapper<vk::CompareOp, CompareOp> s_vk2CompareOp{ {
 		{ vk::CompareOp::eNever         , CompareOp::Never          },
 		{ vk::CompareOp::eLess          , CompareOp::Less           },
 		{ vk::CompareOp::eEqual         , CompareOp::Equal          },

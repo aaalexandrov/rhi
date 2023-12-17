@@ -1,7 +1,6 @@
 #include "submit.h"
 #include "pass.h"
 #include "resource.h"
-#include <deque>
 
 namespace rhi {
 

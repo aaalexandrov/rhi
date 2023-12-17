@@ -1,5 +1,6 @@
 #include "texture_vk.h"
 #include "rhi_vk.h"
+#include "swapchain_vk.h"
 
 namespace rhi {
 
@@ -193,7 +194,18 @@ ResourceTransitionVk TextureVk::GetTransitionData(ResourceUsage prevUsage, Resou
 
 ResourceStateVk TextureVk::GetState(ResourceUsage usage)
 {
-	return ResourceStateVk();
+	ResourceStateVk state;
+	state._access = GetAccess(usage);
+	state._stages = GetPipelineStages(usage);
+	state._layout = usage == ResourceUsage() ? GetInitialLayout() : GetImageLayout(usage);
+
+	if (usage == ResourceUsage{ .present = 1, .write = 1 }) {
+		// present acquired, need to wait for the swapchain semaphore
+		auto swapchain = Cast<SwapchainVk>(_owner.lock());
+		state._semaphore._semaphore = swapchain->_acquireSemaphore;
+	}
+
+	return state;
 }
 
 }

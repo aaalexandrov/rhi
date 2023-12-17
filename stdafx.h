@@ -5,6 +5,7 @@
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <deque>
 #include <functional>
 #include <utility>
 #include <algorithm>

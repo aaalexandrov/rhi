@@ -101,12 +101,12 @@ vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage)
         flags |= vk::PipelineStageFlagBits::eVertexInput;
     if (usage.srv)
         flags |=
-        vk::PipelineStageFlagBits::eVertexShader |
-        vk::PipelineStageFlagBits::eTessellationControlShader |
-        vk::PipelineStageFlagBits::eTessellationEvaluationShader |
-        vk::PipelineStageFlagBits::eGeometryShader |
-        vk::PipelineStageFlagBits::eFragmentShader |
-        vk::PipelineStageFlagBits::eComputeShader;
+            vk::PipelineStageFlagBits::eVertexShader |
+            vk::PipelineStageFlagBits::eTessellationControlShader |
+            vk::PipelineStageFlagBits::eTessellationEvaluationShader |
+            vk::PipelineStageFlagBits::eGeometryShader |
+            vk::PipelineStageFlagBits::eFragmentShader |
+            vk::PipelineStageFlagBits::eComputeShader;
     if (usage.copySrc | usage.copyDst)
         flags |= vk::PipelineStageFlagBits::eTransfer;
     if (usage.cpuAccess)

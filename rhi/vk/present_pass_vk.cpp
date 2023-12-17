@@ -20,10 +20,13 @@ bool PresentPassVk::Prepare(Submission *sub)
 bool PresentPassVk::Execute(Submission *sub)
 {
 	SubmissionVk *subVk = static_cast<SubmissionVk*>(sub);
-	SwapchainVk *swapchain = static_cast<SwapchainVk*>(_swapchain.get());
-	uint32_t imgIndex = swapchain->GetTextureIndex(_swapchainTexture.get());
-	ASSERT(imgIndex < swapchain->_images.size());
-	bool res = subVk->ExecuteDirect([&](RhiVk::QueueData &queue) {
+
+	ExecuteDataVk exec;
+	exec._fnExecute = [this](RhiVk::QueueData &queue) {
+		SwapchainVk *swapchain = static_cast<SwapchainVk *>(_swapchain.get());
+		uint32_t imgIndex = swapchain->GetTextureIndex(_swapchainTexture.get());
+		ASSERT(imgIndex < swapchain->_images.size());
+
 		std::vector<vk::Semaphore> waitSemaphores;
 		vk::PresentInfoKHR presentInfo{
 			(uint32_t)waitSemaphores.size(),
@@ -38,8 +41,10 @@ bool PresentPassVk::Execute(Submission *sub)
 			return false;
 
 		return true;
-	}, vk::PipelineStageFlagBits::eTransfer);
-	if (!res)
+	};
+	exec._dstStageFlags = vk::PipelineStageFlagBits::eTransfer;
+
+	if (!subVk->Execute(std::move(exec)))
 		return false;
 
 	return true;

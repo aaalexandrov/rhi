@@ -181,7 +181,10 @@ bool GraphicsPassVk::Execute(Submission *sub)
 {
 	auto *subVk = static_cast<SubmissionVk *>(sub);
 
-	if (!subVk->ExecuteCommands(_recorder._cmdBuffers, vk::PipelineStageFlagBits::eColorAttachmentOutput))
+	ExecuteDataVk exec;
+	exec._cmds.insert(exec._cmds.end(), _recorder._cmdBuffers.begin(), _recorder._cmdBuffers.end());
+	exec._dstStageFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	if (!subVk->Execute(std::move(exec)))
 		return false;
 
 	return true;

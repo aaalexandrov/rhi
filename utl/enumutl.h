@@ -41,7 +41,7 @@ struct ValueRemapper {
 		}
 	}
 
-	DST ToDst(SRC src)
+	DST ToDst(SRC src) const
 	{
 		if (BITMASK) {
 			return CheckBitmask(src, _src2dst);
@@ -50,14 +50,14 @@ struct ValueRemapper {
 		return _src2dst.at((std::underlying_type_t<SRC>)src);
 	}
 
-	DST ToDst(SRC src, DST dflt)
+	DST ToDst(SRC src, DST dflt) const
 	{
 		static_assert(!BITMASK);
 		auto it = _src2dst.find((std::underlying_type_t<SRC>)src);
 		return it != _src2dst.end() ? it->second : dflt;
 	}
 
-	SRC ToSrc(DST dst)
+	SRC ToSrc(DST dst) const
 	{
 		if (BITMASK) {
 			return CheckBitmask(dst, _dst2src);
@@ -66,7 +66,7 @@ struct ValueRemapper {
 		return _dst2src.at((std::underlying_type_t<DST>)dst);
 	}
 
-	SRC ToSrc(DST dst, SRC dflt)
+	SRC ToSrc(DST dst, SRC dflt) const
 	{
 		static_assert(!BITMASK);
 		auto it = _dst2src.find((std::underlying_type_t<DST>)dst);

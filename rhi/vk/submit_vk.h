@@ -6,28 +6,36 @@
 
 namespace rhi {
 
+using DirectExecutionFuncVk = std::function<bool(RhiVk::QueueData &queue)>;
+struct ExecuteDataVk {
+	// executed in the order of the declarations below
+	DirectExecutionFuncVk _fnExecute;
+	std::vector<SemaphoreReferenceVk> _waitSemaphores;
+	std::vector<vk::CommandBuffer> _cmds;
+	std::vector<SemaphoreReferenceVk> _signalSemaphores;
+	vk::PipelineStageFlags _dstStageFlags;
+
+	void Clear();
+	bool CanCombine(ExecuteDataVk const &other);
+	void Combine(ExecuteDataVk const &other);
+};
+
 struct SubmissionVk : public Submission {
 
-	bool Prepare() override;
 	bool Execute() override;
 
 	bool IsFinishedExecuting() override;
 	bool WaitUntilFinished() override;
 
-	using DirectExecutionFunc = std::function<bool(RhiVk::QueueData &queue)>;
-	bool ExecuteDirect(DirectExecutionFunc fnExecute, vk::PipelineStageFlags dstStageFlags);
-	bool ExecuteCommands(std::span<vk::CommandBuffer> cmdBuffers, vk::PipelineStageFlags dstStageFlags);
+	bool Execute(ExecuteDataVk &&execute);
+	bool FlushToExecute();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<SubmissionVk>(); }
 
-	bool FlushCommands(RhiVk *rhi, uint64_t waitValue = ~0ull, uint64_t signalValue = ~0ull);
-
-	vk::CommandBuffer RecordPassTransitionCmds(Pass *pass);
+	ExecuteDataVk RecordPassTransitionCmds(Pass *pass);
 
 	CmdRecorderVk _recorder;
-	std::vector<vk::CommandBuffer> _perPassTransitionCmds;
-	std::vector<vk::CommandBuffer> _toExecute;
-	vk::PipelineStageFlags _toExecuteDstStageFlags;
+	ExecuteDataVk _toExecute;
 	uint64_t _executeSignalValue = 0;
 };
 
