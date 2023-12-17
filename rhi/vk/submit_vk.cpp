@@ -101,7 +101,10 @@ bool SubmissionVk::WaitUntilFinished()
 		return false;
 	
 	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
-	return rhi->_timelineSemaphore.WaitCounter(_executeSignalValue);
+	bool res = rhi->_timelineSemaphore.WaitCounter(_executeSignalValue);
+	uint64_t semCounter = rhi->_timelineSemaphore.GetCurrentCounter();
+	ASSERT(semCounter <= _executeSignalValue);
+	return res;
 }
 
 bool SubmissionVk::Execute(ExecuteDataVk &&execute)
@@ -174,8 +177,10 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 		srcStages |= transitionData._srcState._stages;
 		dstStages |= transitionData._dstState._stages;
 
-		if (transitionData._srcState._semaphore._semaphore)
+		if (transitionData._srcState._semaphore._semaphore) {
+			transitionData._srcState._semaphore._stages = transitionData._dstState._stages;
 			cmds._waitSemaphores.push_back(transitionData._srcState._semaphore);
+		}
 		if (transitionData._dstState._semaphore._semaphore)
 			cmds._signalSemaphores.push_back(transitionData._dstState._semaphore);
 

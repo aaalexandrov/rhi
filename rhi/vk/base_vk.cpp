@@ -73,7 +73,8 @@ void TimelineSemaphoreVk::Done()
 uint64_t TimelineSemaphoreVk::GetCurrentCounter()
 {
     auto result = _rhi->_device.getSemaphoreCounterValue(_semaphore);
-    return result.result != vk::Result::eSuccess ? result.value : ~0ull;
+    ASSERT(result.result == vk::Result::eSuccess);
+    return result.result == vk::Result::eSuccess ? result.value : ~0ull;
 }
 
 bool TimelineSemaphoreVk::WaitCounter(uint64_t counter, uint64_t timeout)

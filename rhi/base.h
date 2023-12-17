@@ -19,6 +19,7 @@ union ResourceUsage {
 		uint32_t cpuAccess : 1;
 		uint32_t read : 1;
 		uint32_t write : 1;
+		uint32_t create : 1;
 		uint32_t cube : 1;
 	};
 	uint32_t _flags = 0;

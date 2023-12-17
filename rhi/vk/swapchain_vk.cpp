@@ -215,8 +215,7 @@ std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 	// then put the extra semaphore at the index of the image
 	std::swap(_acquireSemaphores[imgIndex], _acquireSemaphores.back());
 	ASSERT(imgIndex < _images.size());
-	if (_images[imgIndex]->_state)
-		_images[imgIndex]->_state = ResourceUsage{ .present = 1, .write = 1 };
+	_images[imgIndex]->_state = _images[imgIndex]->_state & ResourceUsage{ .create = 1 } | ResourceUsage{ .present = 1, .write = 1 };
 	return _images[imgIndex];
 }
 

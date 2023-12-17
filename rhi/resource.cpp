@@ -32,6 +32,7 @@ uint8_t ResourceDescriptor::GetMaxMipLevels(glm::uvec3 dims)
 bool Resource::Init(ResourceDescriptor const &desc)
 {
 	_descriptor = desc;
+	_state.create = 1;
 	return true;
 }
 
