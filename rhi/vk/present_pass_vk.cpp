@@ -37,8 +37,15 @@ bool PresentPassVk::Execute(Submission *sub)
 			&_presentResult,
 		};
 		vk::Result ret = queue._queue.presentKHR(presentInfo);
-		if (ret != vk::Result::eSuccess && ret != vk::Result::eSuboptimalKHR && ret != vk::Result::eErrorOutOfDateKHR)
-			return false;
+		switch (ret) {
+			case vk::Result::eSuboptimalKHR:
+			case vk::Result::eErrorOutOfDateKHR:
+				swapchain->_needsUpdate = true;
+			case vk::Result::eSuccess:
+				break;
+			default:
+				return false;
+		}
 
 		return true;
 	};

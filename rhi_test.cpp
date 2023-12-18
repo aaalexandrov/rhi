@@ -74,25 +74,19 @@ int main()
 	//res = samp->Init(sampDesc);
 	//ASSERT(res);
 
-	auto shad = device->Create<rhi::Shader>("Shad1");
-	res = shad->Load("shad1.vert", rhi::ShaderKind::Vertex, "data/solid.vert.spv");
-	ASSERT(res);
+	//auto shad = device->Create<rhi::Shader>("Shad1");
+	//res = shad->Load("shad1.vert", rhi::ShaderKind::Vertex, "data/solid.vert.spv");
+	//ASSERT(res);
 
-	shad = nullptr;
+	//shad = nullptr;
 	//samp = nullptr;
 	//img = nullptr;
 	//buf = nullptr;
 
-	auto getWindowSize = [](SDL_Window *win) {
-		int w, h;
-		SDL_GetWindowSize(win, &w, &h);
-		return glm::uvec2(w, h);
-	};
 	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
 	rhi::SwapchainDescriptor chainDesc{
 		._usage{.rt = 1},
 		._format = rhi::Format::B8G8R8A8_srgb,
-		._dimensions = glm::uvec4(getWindowSize(window), 0, 0),
 		._presentMode = rhi::PresentMode::Fifo,
 		._window = deviceSettings._window,
 	};
@@ -106,10 +100,9 @@ int main()
 				running = false;
 			}
 
-			glm::uvec2 winSize = getWindowSize(window);
-			if (winSize != glm::uvec2(swapchain->_descriptor._dimensions)) {
-				res = swapchain->Update(winSize);
-			}
+			res = swapchain->Update();
+			if (!res)
+				continue;
 
 			std::vector<std::shared_ptr<rhi::Pass>> passes;
 			std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{

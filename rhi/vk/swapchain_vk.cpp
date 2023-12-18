@@ -71,7 +71,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 	}
 	ASSERT(surfModes & (1 << (uint32_t)_descriptor._presentMode));
 
-	return Update(_descriptor._dimensions);
+	return Update();
 }
 
 std::vector<Format> SwapchainVk::GetSupportedSurfaceFormats() const
@@ -99,58 +99,70 @@ uint32_t SwapchainVk::GetSupportedPresentModeMask() const
 	return modeMask;
 }
 
-bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfaceFormat)
+bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 {
 	auto rhi = static_cast<RhiVk*>(_rhi);
 	vk::SurfaceCapabilitiesKHR surfCaps;
 	if ((vk::Result)rhi->_physDevice.getSurfaceCapabilitiesKHR(_surface, &surfCaps) != vk::Result::eSuccess)
 		return false;
 	vk::Extent2D swapchainSize = surfCaps.currentExtent;
-	if (surfCaps.currentExtent.width == ~0u) {
-		swapchainSize.width = size.x;
-		swapchainSize.height = size.y;
-	}
+	ASSERT(surfCaps.currentExtent.width != ~0u && surfCaps.currentExtent.height != ~0u);
 	swapchainSize.width = utl::Clamp(surfCaps.minImageExtent.width, surfCaps.maxImageExtent.width, swapchainSize.width);
 	swapchainSize.height = utl::Clamp(surfCaps.minImageExtent.height, surfCaps.maxImageExtent.height, swapchainSize.height);
 	uint32_t imgCount = utl::Clamp(surfCaps.minImageCount, surfCaps.maxImageCount, _descriptor._dimensions[2]);
 
-	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
-	vk::SwapchainCreateInfoKHR chainInfo{
-		vk::SwapchainCreateFlagsKHR(),
-		_surface,
-		imgCount,
-		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
-		vk::ColorSpaceKHR::eSrgbNonlinear,
-		swapchainSize,
-		std::max(_descriptor._dimensions[3], 1u),
-		GetImageUsage(_descriptor._usage, _descriptor._format),
-		vk::SharingMode::eExclusive,
-		(uint32_t)queueFamilies.size(),
-		queueFamilies.data(),
-		(surfCaps.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
-			? vk::SurfaceTransformFlagBitsKHR::eIdentity
-			: surfCaps.currentTransform,
-		vk::CompositeAlphaFlagBitsKHR::eOpaque,
-		s_vk2PresentMode.ToSrc(_descriptor._presentMode),
-		false,
-		_swapchain,
-		nullptr
-	};
+	if (presentMode == PresentMode::Invalid)
+		presentMode = _descriptor._presentMode;
+	if (surfaceFormat == Format::Invalid)
+		surfaceFormat = _descriptor._format;
+
+	glm::uvec4 newDims = glm::uvec4(swapchainSize.width, swapchainSize.height, imgCount, _descriptor._dimensions[3]);
+	if (!_needsUpdate && _descriptor._dimensions == newDims && presentMode == _descriptor._presentMode && surfaceFormat == _descriptor._format)
+		return true;
 
 	_images.clear();
 	DestroySemaphores();
 
-	auto swapchain = rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks());
+	auto swapchain = [&] { 
+		if (swapchainSize.width == 0 || swapchainSize.height == 0)
+			return vk::ResultValue<vk::SwapchainKHR>{ vk::Result::eErrorNotPermittedKHR, vk::SwapchainKHR() };
+
+		auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
+		vk::SwapchainCreateInfoKHR chainInfo{
+			vk::SwapchainCreateFlagsKHR(),
+			_surface,
+			imgCount,
+			s_vk2Format.ToSrc(surfaceFormat, vk::Format::eUndefined),
+			vk::ColorSpaceKHR::eSrgbNonlinear,
+			swapchainSize,
+			std::max(_descriptor._dimensions[3], 1u),
+			GetImageUsage(_descriptor._usage, surfaceFormat),
+			vk::SharingMode::eExclusive,
+			(uint32_t)queueFamilies.size(),
+			queueFamilies.data(),
+			(surfCaps.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity)
+				? vk::SurfaceTransformFlagBitsKHR::eIdentity
+				: surfCaps.currentTransform,
+			vk::CompositeAlphaFlagBitsKHR::eOpaque,
+			s_vk2PresentMode.ToSrc(presentMode),
+			false,
+			_swapchain,
+			nullptr
+		};
+
+		return rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks()); 
+	}();
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	_swapchain = swapchain.value;
 	if (swapchain.result != vk::Result::eSuccess) {
-		_descriptor._dimensions[0] = 0;
-		_descriptor._dimensions[1] = 0;
+		_descriptor._dimensions = glm::uvec4(glm::uvec3(0), _descriptor._dimensions[3]);
+		_needsUpdate = true;
 		return false;
 	}
 
-	_descriptor._dimensions[0] = swapchainSize.width;
-	_descriptor._dimensions[1] = swapchainSize.height;
+	_descriptor._dimensions = newDims;
+	_descriptor._format = surfaceFormat;
+	_descriptor._presentMode = presentMode;
 
 	auto swapchainImages = rhi->_device.getSwapchainImagesKHR(_swapchain);
 	if (swapchainImages.result != vk::Result::eSuccess)
@@ -175,6 +187,8 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 	// so at the end of the array we keep an extra semaphore that'll be guaranteed unused 
 	if (!CreateSemaphores(_images.size() + 1))
 		return false;
+
+	_needsUpdate = false;
 
 	return true;
 }
@@ -205,13 +219,22 @@ void SwapchainVk::DestroySemaphores()
 
 std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 {
+	ASSERT(!_needsUpdate);
 	ASSERT(_acquireSemaphores.size() == _images.size() + 1);
 	auto rhi = static_cast<RhiVk*>(_rhi);
 	uint32_t imgIndex = ~0;
 	// use the extra semaphore
 	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphores.back(), nullptr, &imgIndex);
-	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-		return std::shared_ptr<Texture>();
+	switch (result) {
+		case vk::Result::eSuboptimalKHR:
+			_needsUpdate = true;
+		case vk::Result::eSuccess:
+			break;
+		case vk::Result::eErrorOutOfDateKHR:
+			_needsUpdate = true;
+		default:
+			return std::shared_ptr<Texture>();
+	}
 	// then put the extra semaphore at the index of the image
 	std::swap(_acquireSemaphores[imgIndex], _acquireSemaphores.back());
 	ASSERT(imgIndex < _images.size());
