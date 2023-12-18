@@ -38,7 +38,13 @@ set(dir_SOURCES
 
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)
 
+if(WIN32)
+	set(VK_LIB vulkan-1)
+else()
+	set(VK_LIB vulkan)
+endif()
+
 target_link_libraries(${BINARY} PRIVATE 
-	vulkan-1
+	${VK_LIB}
 	shaderc_shared
 )

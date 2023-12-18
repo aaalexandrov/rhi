@@ -4,6 +4,8 @@
 #include <array>
 #include <span>
 #include <string>
+#include <memory>
+#include <atomic>
 #include <unordered_map>
 #include <deque>
 #include <functional>

@@ -1,7 +1,6 @@
 #include "rhi_vk.h"
 #include "utl/mathutl.h"
 #include "utl/mem.h"
-#include "vma/vk_mem_alloc.h"
 
 namespace rhi {
 
@@ -189,13 +188,13 @@ struct DeviceCreateData {
 
 DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDev, Rhi::Settings const &settings) 
 {
-    auto queueFamilyCanPresent = [](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
+    auto queueFamilyCanPresent = [&](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
 #if defined(_WIN32)
         return physDev.getWin32PresentationSupportKHR(queueFamily);
 #elif defined(__linux__)
         auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get());
         ASSERT(winDataXlib);
-        return winDataXlib && physDev.getXlibPresentationSupportKHR(q, winDataXlib->_display, winDataXlib->GetVisualId());
+        return winDataXlib && physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
 #endif
     };
 

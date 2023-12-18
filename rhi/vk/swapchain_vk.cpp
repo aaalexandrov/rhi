@@ -45,8 +45,8 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 		return false;
 	vk::XlibSurfaceCreateInfoKHR surfInfo{
 		vk::XlibSurfaceCreateFlagsKHR(),
-		createXlib->_display,
-		createXlib->_window 
+		winData->_display,
+		winData->_window 
 	};
 	if (rhi->_instance.createXlibSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
 		return false;
@@ -207,7 +207,7 @@ std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 {
 	ASSERT(_acquireSemaphores.size() == _images.size() + 1);
 	auto rhi = static_cast<RhiVk*>(_rhi);
-	uint32_t imgIndex = ~0ull;
+	uint32_t imgIndex = ~0;
 	// use the extra semaphore
 	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphores.back(), nullptr, &imgIndex);
 	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)

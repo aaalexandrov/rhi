@@ -18,7 +18,11 @@
 #undef max
 #endif
 
-#include "vma/vk_mem_alloc.h"
+#if defined(Always)
+#undef Always
+#endif
+
+#include "vk_mem_alloc.h"
 
 #include "../base.h"
 #include "utl/enumutl.h"

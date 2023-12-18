@@ -7,6 +7,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 cmake_policy(SET CMP0091 NEW) #to enable the MSVC_RUNTIME_LIBRARY property
 project(rhi)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	set(LINUX TRUE)
+endif()
+
+
 set(VK_SDK_PATH $ENV{VULKAN_SDK})
 
 if (WIN32)
@@ -35,16 +40,12 @@ add_executable(${BINARY} ${SOURCES})
 add_subdirectory(utl)
 add_subdirectory(rhi)
 
-if (WIN32)
-	set(BUILD_STATIC_LIBS 1)
-	add_subdirectory(${VK_SDK_PATH}/include/glm glm)
-endif()	
-
 set_property(TARGET ${BINARY} PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
-target_link_libraries(${BINARY} PRIVATE SDL2::SDL2-static glm_static)
+target_link_libraries(${BINARY} PRIVATE SDL2::SDL2-static)
 
-target_include_directories(${BINARY} PRIVATE . ${VK_SDK_PATH}/include)
+target_include_directories(${BINARY} PRIVATE . ${VK_SDK_PATH}/include ${VK_SDK_PATH}/include/vma)
+
 target_link_directories(${BINARY} PRIVATE ${VK_SDK_PATH}/lib)
 
 target_precompile_headers(${BINARY} PRIVATE stdafx.h)
