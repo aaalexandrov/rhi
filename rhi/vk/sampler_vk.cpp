@@ -12,7 +12,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("sampler_vk", [] {
 
 SamplerVk::~SamplerVk()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	rhi->_device.destroySampler(_sampler, rhi->AllocCallbacks());
 }
 
@@ -20,7 +20,7 @@ bool SamplerVk::Init(SamplerDescriptor const &desc)
 {
 	if (!Sampler::Init(desc))
 		return false;
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	vk::SamplerCreateInfo samplerInfo{
 		vk::SamplerCreateFlags(),
 		s_vk2Filter.ToSrc(_descriptor._magFilter),

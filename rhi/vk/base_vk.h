@@ -2,6 +2,7 @@
 
 #define VULKAN_HPP_NO_EXCEPTIONS
 #define VULKAN_HPP_NO_SMART_HANDLE
+#define VULKAN_HPP_ASSERT ASSERT
 #if defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(__linux__)

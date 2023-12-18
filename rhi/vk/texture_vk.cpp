@@ -104,7 +104,7 @@ vk::ImageLayout GetImageLayout(ResourceUsage usage)
 
 TextureVk::~TextureVk()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	rhi->_device.destroyImageView(_view, rhi->AllocCallbacks());
 	if (_vmaAlloc) {
 		vmaDestroyImage(rhi->_vma, _image, _vmaAlloc);
@@ -124,7 +124,7 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 {
 	if (!Texture::Init(desc))
 		return false;
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock()); 
+	auto rhi = static_cast<RhiVk*>(_rhi); 
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
 	auto dimNatural = glm::max(_descriptor._dimensions, glm::uvec4(1));
 	vk::ImageCreateInfo imgInfo{
@@ -162,7 +162,7 @@ bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
 
 bool TextureVk::InitView()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	vk::ImageViewCreateInfo viewInfo{
 		vk::ImageViewCreateFlags(),
 		_image,

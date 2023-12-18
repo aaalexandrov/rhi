@@ -13,8 +13,8 @@ struct GraphicsPassVk : public GraphicsPass {
 	bool Prepare(Submission *sub) override;
 	bool Execute(Submission *sub) override;
 
-	bool InitRenderPass(RhiVk *rhi);
-	bool InitFramebuffer(RhiVk *rhi);
+	bool InitRenderPass();
+	bool InitFramebuffer();
 
 	glm::uvec4 GetMinTargetSize();
 

@@ -6,6 +6,7 @@
 
 #include "rhi/vk/rhi_vk.h"
 #include "rhi/pass.h"
+#include "rhi/pipeline.h"
 
 int main()
 {
@@ -73,6 +74,11 @@ int main()
 	//res = samp->Init(sampDesc);
 	//ASSERT(res);
 
+	auto shad = device->Create<rhi::Shader>("Shad1");
+	res = shad->Load("shad1.vert", rhi::ShaderKind::Vertex, "data/solid.vert.spv");
+	ASSERT(res);
+
+	shad = nullptr;
 	//samp = nullptr;
 	//img = nullptr;
 	//buf = nullptr;

@@ -5,6 +5,9 @@ set(dir_SOURCES
 	pass.h
 	pass.cpp
 
+	pipeline.h
+	pipeline.cpp
+
 	resource.h
 	resource.cpp
 

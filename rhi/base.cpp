@@ -22,9 +22,9 @@ RhiOwned::~RhiOwned()
 
 bool RhiOwned::InitRhi(Rhi *rhi, std::string name)
 {
-	ASSERT(_rhi.expired());
+	ASSERT(!_rhi);
 	ASSERT(_name.empty());
-	_rhi = rhi->weak_from_this();
+	_rhi = rhi;
 	_name = name;
 	return true;
 }

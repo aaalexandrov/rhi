@@ -38,4 +38,7 @@ set(dir_SOURCES
 
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)
 
-target_link_libraries(${BINARY} PRIVATE vulkan-1)
+target_link_libraries(${BINARY} PRIVATE 
+	vulkan-1
+	shaderc_shared
+)

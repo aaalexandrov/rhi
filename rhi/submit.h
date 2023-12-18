@@ -19,6 +19,8 @@ struct Submission : public RhiOwned {
 	virtual bool Prepare();
 	virtual bool Execute();
 
+	virtual bool ExecuteTransitions(Pass *pass) = 0;
+
 	virtual bool IsFinishedExecuting() = 0;
 	virtual bool WaitUntilFinished() = 0;
 

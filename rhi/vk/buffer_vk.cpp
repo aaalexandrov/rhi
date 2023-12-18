@@ -13,7 +13,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("buffer_vk", [] {
 
 BufferVk::~BufferVk()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	vmaDestroyBuffer(rhi->_vma, _buffer, _vmaAlloc);
 }
 
@@ -43,7 +43,7 @@ bool BufferVk::Init(ResourceDescriptor const &desc)
 	if (!Buffer::Init(desc))
 		return false;
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
 	vk::BufferCreateInfo bufInfo{
 		vk::BufferCreateFlags(),
@@ -62,7 +62,7 @@ bool BufferVk::Init(ResourceDescriptor const &desc)
 
 std::span<uint8_t> BufferVk::Map()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	void *mapped = nullptr;
 	if ((vk::Result)vmaMapMemory(rhi->_vma, _vmaAlloc, &mapped) != vk::Result::eSuccess)
 		return std::span<uint8_t>();
@@ -71,7 +71,7 @@ std::span<uint8_t> BufferVk::Map()
 
 bool BufferVk::Unmap()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	vmaUnmapMemory(rhi->_vma, _vmaAlloc);
 	return true;
 }

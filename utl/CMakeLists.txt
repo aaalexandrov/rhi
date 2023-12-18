@@ -8,6 +8,9 @@ set(dir_SOURCES
 	enumutl.h
 	enumutl.cpp
 
+	file.h
+	file.cpp
+
 	geom.h
 	geom.cpp
 

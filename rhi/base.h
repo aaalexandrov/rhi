@@ -75,6 +75,14 @@ inline bool IsDepthStencil(Format fmt) {
 	return Format::DepthStencilFirst <= fmt && fmt <= Format::DepthStencilLast;
 }
 
+enum class ShaderKind: int8_t {
+	Invalid = -1,
+	Vertex,
+	Fragment,
+	Compute,
+	Count,
+};
+
 enum class PresentMode : int8_t {
 	Invalid = -1,
 	Immediate,
@@ -118,7 +126,7 @@ struct WindowData : public utl::Any {
 
 struct Rhi;
 struct RhiOwned : public std::enable_shared_from_this<RhiOwned>, public utl::Any {
-	std::weak_ptr<Rhi> _rhi;
+	Rhi *_rhi = nullptr;
 	std::string _name;
 
 	RhiOwned();

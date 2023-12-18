@@ -31,6 +31,8 @@ bool Submission::Prepare()
 bool Submission::Execute()
 {
 	for (auto &pass : _passes) {
+		if (!ExecuteTransitions(pass.get()))
+			return false;
 		if (!pass->Execute(this))
 			return false;
 	}

@@ -14,7 +14,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("graphics_pass_vk", [] {
 
 GraphicsPassVk::~GraphicsPassVk()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	rhi->_device.destroyFramebuffer(_framebuffer, rhi->AllocCallbacks());
 	rhi->_device.destroyRenderPass(_renderPass, rhi->AllocCallbacks());
 }
@@ -24,21 +24,22 @@ bool GraphicsPassVk::Init(std::span<TargetData> rts)
 	if (!GraphicsPass::Init(rts))
 		return false;
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
-	if (!_recorder.Init(rhi.get(), rhi->_universalQueue._family))
+	auto rhi = static_cast<RhiVk*>(_rhi);
+	if (!_recorder.Init(rhi, rhi->_universalQueue._family))
 		return false;
 
-	if (!InitRenderPass(rhi.get()))
+	if (!InitRenderPass())
 		return false;
 
-	if (!InitFramebuffer(rhi.get()))
+	if (!InitFramebuffer())
 		return false;
 
 	return true;
 }
 
-bool GraphicsPassVk::InitRenderPass(RhiVk *rhi)
+bool GraphicsPassVk::InitRenderPass()
 {
+	auto rhi = static_cast<RhiVk *>(_rhi);
 	ResourceUsage attachesUsage;
 	std::vector<vk::AttachmentDescription> attachments;
 	for (auto &rt : _renderTargets) {
@@ -113,8 +114,9 @@ bool GraphicsPassVk::InitRenderPass(RhiVk *rhi)
 	return true;
 }
 
-bool GraphicsPassVk::InitFramebuffer(RhiVk *rhi)
+bool GraphicsPassVk::InitFramebuffer()
 {
+	auto rhi = static_cast<RhiVk *>(_rhi);
 	std::vector<vk::ImageView> attachViews;
 	for (auto &rt : _renderTargets) {
 		auto texVk = static_cast<TextureVk *>(rt._texture.get());

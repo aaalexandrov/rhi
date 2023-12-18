@@ -24,6 +24,8 @@ struct SubmissionVk : public Submission {
 
 	bool Execute() override;
 
+	bool ExecuteTransitions(Pass *pass) override;
+
 	bool IsFinishedExecuting() override;
 	bool WaitUntilFinished() override;
 

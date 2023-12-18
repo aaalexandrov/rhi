@@ -53,8 +53,8 @@ bool SubmissionVk::InitRhi(Rhi *rhi, std::string name)
 {
 	if (!Submission::InitRhi(rhi, name))
 		return false;
-	auto rhiVk = static_pointer_cast<RhiVk>(_rhi.lock());
-	if (!_recorder.Init(rhiVk.get(), rhiVk->_universalQueue._family))
+	auto rhiVk = static_cast<RhiVk*>(_rhi);
+	if (!_recorder.Init(rhiVk, rhiVk->_universalQueue._family))
 		return false;
 
 	return true;
@@ -63,16 +63,11 @@ bool SubmissionVk::InitRhi(Rhi *rhi, std::string name)
 bool SubmissionVk::Execute()
 {
 	ASSERT(!_executeSignalValue);
-	// we're not calling the base execute, should it exist at all?
-	for (auto &pass : _passes) {
-		ExecuteDataVk execTransitions = RecordPassTransitionCmds(pass.get());
-		if (!Execute(std::move(execTransitions)))
-			return false;
-		if (!pass->Execute(this))
-			return false;
-	}
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	if (!Submission::Execute())
+		return false;
+
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	_executeSignalValue = ++rhi->_timelineSemaphore._value;
 
 	ExecuteDataVk execSignalEnd;
@@ -87,11 +82,20 @@ bool SubmissionVk::Execute()
 	return true;
 }
 
+bool SubmissionVk::ExecuteTransitions(Pass *pass)
+{
+	ExecuteDataVk execTransitions = RecordPassTransitionCmds(pass);
+	if (!Execute(std::move(execTransitions)))
+		return false;
+
+	return true;
+}
+
 bool SubmissionVk::IsFinishedExecuting()
 {
 	if (!_executeSignalValue)
 		return false;
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	return _executeSignalValue <= rhi->_timelineSemaphore.GetCurrentCounter();
 }
 
@@ -100,7 +104,7 @@ bool SubmissionVk::WaitUntilFinished()
 	if (!_executeSignalValue)
 		return false;
 	
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	bool res = rhi->_timelineSemaphore.WaitCounter(_executeSignalValue);
 	uint64_t semCounter = rhi->_timelineSemaphore.GetCurrentCounter();
 	ASSERT(semCounter <= _executeSignalValue);
@@ -119,7 +123,7 @@ bool SubmissionVk::Execute(ExecuteDataVk &&execute)
 
 bool SubmissionVk::FlushToExecute()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	if (_toExecute._fnExecute) {
 		if (!_toExecute._fnExecute(rhi->_universalQueue))
 			return false;
@@ -162,7 +166,7 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 {
 	auto &transitions = _passTransitions[pass];
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	ExecuteDataVk cmds;
 	std::vector<vk::MemoryBarrier> memoryBarriers;
 	std::vector<vk::BufferMemoryBarrier> bufferBarriers;

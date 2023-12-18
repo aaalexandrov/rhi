@@ -16,7 +16,7 @@ SwapchainVk::~SwapchainVk()
 	_images.clear();
 	DestroySemaphores();
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	rhi->_instance.destroySurfaceKHR(_surface, rhi->AllocCallbacks());
 }
@@ -26,7 +26,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 	if (!Swapchain::Init(desc))
 		return false;
 
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 
 #if defined(_WIN32)
 	WindowDataWin32 *winData = Cast<WindowDataWin32>(_descriptor._window.get());
@@ -76,7 +76,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 
 std::vector<Format> SwapchainVk::GetSupportedSurfaceFormats() const
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	auto vkFormats = rhi->_physDevice.getSurfaceFormatsKHR(_surface).value;
 	std::vector<Format> formats;
 	for (auto &vkFmt : vkFormats) {
@@ -88,7 +88,7 @@ std::vector<Format> SwapchainVk::GetSupportedSurfaceFormats() const
 
 uint32_t SwapchainVk::GetSupportedPresentModeMask() const
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	auto vkModes = rhi->_physDevice.getSurfacePresentModesKHR(_surface).value;
 	uint32_t modeMask = 0;
 	for (auto &vkMode : vkModes) {
@@ -101,7 +101,7 @@ uint32_t SwapchainVk::GetSupportedPresentModeMask() const
 
 bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfaceFormat)
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	vk::SurfaceCapabilitiesKHR surfCaps;
 	if ((vk::Result)rhi->_physDevice.getSurfaceCapabilitiesKHR(_surface, &surfCaps) != vk::Result::eSuccess)
 		return false;
@@ -181,7 +181,7 @@ bool SwapchainVk::Update(glm::uvec2 size, PresentMode presentMode, Format surfac
 
 bool SwapchainVk::CreateSemaphores(uint32_t num)
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 
 	for (uint32_t i = 0; i < num; ++i) {
 		vk::SemaphoreCreateInfo semInfo{};
@@ -196,7 +196,7 @@ bool SwapchainVk::CreateSemaphores(uint32_t num)
 
 void SwapchainVk::DestroySemaphores()
 {
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	for (auto sem : _acquireSemaphores) {
 		rhi->_device.destroySemaphore(sem, rhi->AllocCallbacks());
 	}
@@ -206,7 +206,7 @@ void SwapchainVk::DestroySemaphores()
 std::shared_ptr<Texture> SwapchainVk::AcquireNextImage()
 {
 	ASSERT(_acquireSemaphores.size() == _images.size() + 1);
-	auto rhi = static_pointer_cast<RhiVk>(_rhi.lock());
+	auto rhi = static_cast<RhiVk*>(_rhi);
 	uint32_t imgIndex = ~0ull;
 	// use the extra semaphore
 	vk::Result result = rhi->_device.acquireNextImageKHR(_swapchain, ~0ull, _acquireSemaphores.back(), nullptr, &imgIndex);
