@@ -85,6 +85,7 @@ struct RhiVk : public Rhi {
 	QueueData _universalQueue;
 	VmaAllocator _vma = {};
 	TimelineSemaphoreVk _timelineSemaphore;
+	vk::PipelineCache _pipelineCache;
 };
 
 }

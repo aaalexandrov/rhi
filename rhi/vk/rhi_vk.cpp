@@ -100,6 +100,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
 
 RhiVk::~RhiVk()
 {
+    _device.destroyPipelineCache(_pipelineCache, AllocCallbacks());
     vmaDestroyAllocator(_vma);
     _timelineSemaphore.Done();
     _device.destroy(AllocCallbacks());
@@ -122,6 +123,10 @@ bool RhiVk::Init(Settings const &settings)
         return false;
 
     if (!InitVma())
+        return false;
+
+    vk::PipelineCacheCreateInfo cacheInfo{};
+    if (_device.createPipelineCache(&cacheInfo, AllocCallbacks(), &_pipelineCache) != vk::Result::eSuccess)
         return false;
 
     return true;

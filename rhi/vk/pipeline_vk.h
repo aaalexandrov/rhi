@@ -16,11 +16,17 @@ struct ShaderVk : public Shader {
 };
 
 struct PipelineVk : public Pipeline {
+	~PipelineVk() override;
 
+	bool Init(std::span<std::shared_ptr<Shader>> shaders) override;
 
+	bool InitLayout();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<PipelineVk>(); }
 
+	vk::Pipeline _pipeline;
+	std::vector<vk::DescriptorSetLayout> _descriptorSetLayouts;
+	vk::PipelineLayout _layout;
 };
 
 }

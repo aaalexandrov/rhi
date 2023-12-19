@@ -34,7 +34,13 @@ struct Shader : public RhiOwned {
 
 struct Pipeline : public RhiOwned {
 
+	virtual bool Init(std::span<std::shared_ptr<Shader>> shaders);
+
+	Shader *GetShader(ShaderKind kind);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
+
+	std::vector<std::shared_ptr<Shader>> _shaders;
 };
 
 
