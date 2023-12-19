@@ -54,6 +54,7 @@ PassResourceTransitions Submission::ExtractResourceUse()
 
 	for (auto &pass : _passes) {
 		pass->EnumResources([&](Resource *resource, ResourceUsage usage) {
+			ASSERT((resource->_descriptor._usage & usage & ResourceUsage::Operations()) == (usage & ResourceUsage::Operations()));
 			ResourceUse *&lastUse = lastUses[resource];
 			usedResources.push_back(ResourceUse{
 				._resource = resource,

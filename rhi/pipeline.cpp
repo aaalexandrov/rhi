@@ -38,11 +38,11 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 				continue;
 
 			ResourceSetDescription &setDesc = utl::GetFromVec(_resourceSetDescriptions, param._set);
-			ResourceSetDescription::Param paramDesc = utl::GetFromVec(setDesc._resources, param._binding);
+			ResourceSetDescription::Param &paramDesc = utl::GetFromVec(setDesc._resources, param._binding);
 			uint32_t numEntries = param.GetNumEntries();
 			if (paramDesc._numEntries) {
 				if (paramDesc._name != param._name || paramDesc._kind != param._kind || paramDesc._numEntries != numEntries) {
-					LOG("Pipeline '%s' contains shader '%s' with parameter '%s' (%d entries) that doesn't match previous definitions, can't build resource set for the pipeline", _name, shader->_name, param._name, numEntries);
+					LOG("Pipeline '{}' contains shader '{}' with parameter '{}' ({} entries) that doesn't match previous definitions, can't build resource set for the pipeline", _name, shader->_name, param._name, numEntries);
 					return false;
 				}
 			} else {

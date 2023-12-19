@@ -34,6 +34,9 @@ union ResourceUsage {
 
 	operator bool() { return _flags; }
 	bool operator!() { return !_flags; }
+
+	static inline constexpr ResourceUsage Operations() { return ResourceUsage{ .vb = 1, .ib = 1, .srv = 1, .uav = 1, .rt = 1, .ds = 1, .present = 1, .copySrc = 1, .copyDst = 1, .cpuAccess = 1 }; }
+	static inline constexpr ResourceUsage Access() { return ResourceUsage{ .read = 1, .write = 1, .create = 1 }; }
 };
 
 

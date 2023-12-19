@@ -10,7 +10,7 @@ namespace utl {
 
 void AssertFailed(char const *message, char const *file, unsigned line)
 {
-	std::string msg = std::format("%s(%u): Assert failed: %s", file, line, message);
+	std::string msg = std::format("{}({}): Assert failed: {}", file, line, message);
 	LogLine(std::cerr, "%s", msg);
 
 #if defined(_WIN32)

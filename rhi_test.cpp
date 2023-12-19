@@ -74,16 +74,27 @@ int main()
 	//res = samp->Init(sampDesc);
 	//ASSERT(res);
 
-	auto shadVert = device->Create<rhi::Shader>();
-	res = shadVert->Load("data/solid.vert.spv", rhi::ShaderKind::Vertex);
+	//auto shadVert = device->Create<rhi::Shader>();
+	//res = shadVert->Load("data/solid.vert.spv", rhi::ShaderKind::Vertex);
+	//ASSERT(res);
+
+	//auto shadFrag = device->Create<rhi::Shader>();
+	//res = shadFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
+	//ASSERT(res);
+
+	auto shadComp = device->Create<rhi::Shader>();
+	res = shadComp->Load("data/gen.comp", rhi::ShaderKind::Compute);
 	ASSERT(res);
 
-	auto shadFrag = device->Create<rhi::Shader>();
-	res = shadFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
+
+	auto pipeComp = device->Create<rhi::Pipeline>();
+	res = pipeComp->Init(std::span(&shadComp, 1));
 	ASSERT(res);
 
-	shadFrag = nullptr;
-	shadVert = nullptr;
+	pipeComp = nullptr;
+	shadComp = nullptr;
+	//shadFrag = nullptr;
+	//shadVert = nullptr;
 	//samp = nullptr;
 	//img = nullptr;
 	//buf = nullptr;

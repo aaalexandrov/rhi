@@ -49,19 +49,48 @@ void DescriptorSetAllocatorVk::Set::Delete()
 	_pool = nullptr;
 }
 
+DescriptorSetAllocatorVk::~DescriptorSetAllocatorVk()
+{
+	for (auto pool : _pools) {
+		_rhi->_device.destroyDescriptorPool(pool, _rhi->AllocCallbacks());
+	}
+}
+
 bool DescriptorSetAllocatorVk::Init(RhiVk *rhi, uint32_t baseDescriptorCount)
 {
 	ASSERT(!_rhi);
 	ASSERT(_poolSizes.empty());
 	_rhi = rhi;
-	_baseDescriptorCount = baseDescriptorCount;
+	_maxSets = baseDescriptorCount;
 
 	for (uint32_t i = 0; i < (uint32_t)ShaderParam::Kind::Count; ++i) {
 		vk::DescriptorPoolSize size{
 			GetDescriptorType((ShaderParam::Kind)i),
-			_baseDescriptorCount,
+			baseDescriptorCount,
 		};
 		_poolSizes.push_back(size);
+	}
+
+	if (!AllocPool())
+		return false;
+
+	return true;
+}
+
+bool DescriptorSetAllocatorVk::Init(RhiVk *rhi, uint32_t maxSets, std::span<vk::DescriptorSetLayoutBinding> bindings)
+{
+	ASSERT(!_rhi);
+	ASSERT(_poolSizes.empty());
+	_rhi = rhi;
+	_maxSets = maxSets;
+
+	for (auto &bind : bindings) {
+		auto it = std::find_if(_poolSizes.begin(), _poolSizes.end(), [&](auto &sz) {
+			return sz.type == bind.descriptorType;
+		});
+		vk::DescriptorPoolSize &poolSize = it != _poolSizes.end() ? *it : _poolSizes.emplace_back();
+		poolSize.type = bind.descriptorType;
+		poolSize.descriptorCount += bind.descriptorCount * _maxSets;
 	}
 
 	if (!AllocPool())
@@ -106,14 +135,9 @@ auto DescriptorSetAllocatorVk::Allocate(vk::DescriptorSetLayout layout) -> Set
 
 bool DescriptorSetAllocatorVk::AllocPool()
 {
-	// possibly have a statistic of allocations an modify the pool sizes based on actual usage?
-	uint32_t maxDescriptors = 0;
-	for (auto &sz : _poolSizes) {
-		maxDescriptors = std::max(maxDescriptors, sz.descriptorCount);
-	}
 	vk::DescriptorPoolCreateInfo poolInfo{
 		vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-		maxDescriptors, // should we multiply that by a constant?
+		_maxSets,
 		_poolSizes,
 	};
 	auto poolRes = _rhi->_device.createDescriptorPool(poolInfo, _rhi->AllocCallbacks());
@@ -202,6 +226,16 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 				typeInfo = structInfo;
 				break;
 			}
+			case spirv_cross::SPIRType::SByte: {
+				static std::unordered_map<std::pair<uint32_t, uint32_t>, TypeInfo const *> types{
+					{ {1, 1}, TypeInfo::Get<int8_t>() },
+					{ {1, 2}, TypeInfo::Get<glm::i8vec2>() },
+					{ {1, 3}, TypeInfo::Get<glm::i8vec3>() },
+					{ {1, 4}, TypeInfo::Get<glm::i8vec4>() },
+				};
+				typeInfo = types[{type.columns, type.vecsize}];
+				break;
+			}
 			case spirv_cross::SPIRType::UByte: {
 				static std::unordered_map<std::pair<uint32_t, uint32_t>, TypeInfo const *> types{
 					{ {1, 1}, TypeInfo::Get<uint8_t>() },
@@ -218,6 +252,16 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 					{ {1, 2}, TypeInfo::Get<glm::ivec2>() },
 					{ {1, 3}, TypeInfo::Get<glm::ivec3>() },
 					{ {1, 4}, TypeInfo::Get<glm::ivec4>() },
+				};
+				typeInfo = types[{type.columns, type.vecsize}];
+				break;
+			}
+			case spirv_cross::SPIRType::UInt: {
+				static std::unordered_map<std::pair<uint32_t, uint32_t>, TypeInfo const *> types{
+					{ {1, 1}, TypeInfo::Get<uint32_t>() },
+					{ {1, 2}, TypeInfo::Get<glm::uvec2>() },
+					{ {1, 3}, TypeInfo::Get<glm::uvec3>() },
+					{ {1, 4}, TypeInfo::Get<glm::uvec4>() },
 				};
 				typeInfo = types[{type.columns, type.vecsize}];
 				break;
@@ -284,9 +328,9 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 		shaderc_shader_kind shadercKind = s_shaderKind2Shaderc[_kind];
-		shadercResult = compiler.CompileGlslToSpv((char const *)content.data(), content.size(), shadercKind, _name.c_str(), options);
+		shadercResult = compiler.CompileGlslToSpv((char const *)content.data(), content.size(), shadercKind, _name.c_str(), _entryPoint.c_str(), options);
 		if (shadercResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-			LOG("Compilation of GLSL shader '%s' failed with error: %s", _name, shadercResult.GetErrorMessage());
+			LOG("Compilation of GLSL shader '{}' failed with error: {}", _name, shadercResult.GetErrorMessage());
 			return false;
 		}
 		spirv = std::span(shadercResult.begin(), shadercResult.end());
@@ -352,8 +396,8 @@ PipelineVk::~PipelineVk()
 	auto rhi = static_cast<RhiVk *>(_rhi);
 	rhi->_device.destroyPipeline(_pipeline, rhi->AllocCallbacks());
 	rhi->_device.destroyPipelineLayout(_layout, rhi->AllocCallbacks());
-	for (auto setLayout : _descriptorSetLayouts) {
-		rhi->_device.destroyDescriptorSetLayout(setLayout, rhi->AllocCallbacks());
+	for (auto &setData : _descriptorSetData) {
+		rhi->_device.destroyDescriptorSetLayout(setData._layout, rhi->AllocCallbacks());
 	}
 }
 
@@ -377,7 +421,7 @@ bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
 				shaderVk->_shaderModule,
-				shaderVk->_name.c_str(),
+				shaderVk->_entryPoint.c_str(),
 			},
 			_layout,
 		};
@@ -396,11 +440,10 @@ bool PipelineVk::InitLayout()
 	ASSERT(s_shaderKind2Vk.size() == (size_t)ShaderKind::Count);
 	auto rhi = static_cast<RhiVk *>(_rhi);
 
-	_descriptorSetLayouts.resize(_resourceSetDescriptions.size());
+	_descriptorSetData.resize(_resourceSetDescriptions.size());
+	std::vector<vk::DescriptorSetLayout> setLayouts(_resourceSetDescriptions.size());
 	for (uint32_t setIndex = 0; setIndex < _resourceSetDescriptions.size(); ++setIndex) {
 		auto &setDesc = _resourceSetDescriptions[setIndex];
-		if (setDesc._resources.empty())
-			continue;
 
 		std::vector<vk::DescriptorSetLayoutBinding> bindings;
 		for (uint32_t resIndex = 0; resIndex < setDesc._resources.size(); ++resIndex) {
@@ -413,6 +456,7 @@ bool PipelineVk::InitLayout()
 				if (resource._shaderKindsMask & (1 << i))
 					bind.stageFlags |= s_shaderKind2Vk[(ShaderKind)i];
 			}
+			bindings.push_back(bind);
 		}
 
 		vk::DescriptorSetLayoutCreateInfo setInfo{
@@ -423,13 +467,16 @@ bool PipelineVk::InitLayout()
 		if (setResult.result != vk::Result::eSuccess)
 			return false;
 
-		_descriptorSetLayouts[setIndex] = setResult.value;
+		setLayouts[setIndex] = _descriptorSetData[setIndex]._layout = setResult.value;
+		_descriptorSetData[setIndex]._allocator = std::make_unique<DescriptorSetAllocatorVk>();
+		if (!_descriptorSetData[setIndex]._allocator->Init(rhi, 1024, bindings))
+			return false;
 	}
 
 	std::array<vk::PushConstantRange, 0> noPushConsts;
 	vk::PipelineLayoutCreateInfo layoutInfo{
 		vk::PipelineLayoutCreateFlags(),
-		_descriptorSetLayouts,
+		setLayouts,
 		noPushConsts,
 	};
 	if (rhi->_device.createPipelineLayout(&layoutInfo, rhi->AllocCallbacks(), &_layout) != vk::Result::eSuccess)

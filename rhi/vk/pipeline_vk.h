@@ -33,7 +33,14 @@ struct DescriptorSetAllocatorVk {
 		DescriptorSetAllocatorVk *_allocator = nullptr;
 	};
 
+	DescriptorSetAllocatorVk() = default;
+	~DescriptorSetAllocatorVk();
+
 	bool Init(RhiVk *rhi, uint32_t baseDescriptorCount);
+	bool Init(RhiVk *rhi, uint32_t maxSets, std::span<vk::DescriptorSetLayoutBinding> bindings);
+
+	DescriptorSetAllocatorVk &operator=(DescriptorSetAllocatorVk const &) = delete;
+	DescriptorSetAllocatorVk &operator=(DescriptorSetAllocatorVk &&) = delete;
 
 	Set Allocate(vk::DescriptorSetLayout layout);
 
@@ -42,7 +49,7 @@ struct DescriptorSetAllocatorVk {
 	RhiVk *_rhi = nullptr;
 	std::mutex _mutex;
 	std::vector<vk::DescriptorPoolSize> _poolSizes;
-	uint32_t _baseDescriptorCount = 0;
+	uint32_t _maxSets = 0;
 	std::vector<vk::DescriptorPool> _pools;
 	uint32_t _lastUsedPool = 0;
 };
@@ -55,6 +62,7 @@ struct ShaderVk : public Shader {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ShaderVk>(); }
 
 	vk::ShaderModule _shaderModule;
+	std::string _entryPoint = "main";
 };
 
 struct PipelineVk : public Pipeline {
@@ -66,8 +74,13 @@ struct PipelineVk : public Pipeline {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<PipelineVk>(); }
 
+	struct DescriptorSetData {
+		vk::DescriptorSetLayout _layout;
+		std::unique_ptr<DescriptorSetAllocatorVk> _allocator;
+	};
+
 	vk::Pipeline _pipeline;
-	std::vector<vk::DescriptorSetLayout> _descriptorSetLayouts;
+	std::vector<DescriptorSetData> _descriptorSetData;
 	vk::PipelineLayout _layout;
 };
 
