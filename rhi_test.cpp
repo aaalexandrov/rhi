@@ -74,11 +74,16 @@ int main()
 	//res = samp->Init(sampDesc);
 	//ASSERT(res);
 
-	//auto shad = device->Create<rhi::Shader>("Shad1");
-	//res = shad->Load("shad1.vert", rhi::ShaderKind::Vertex, "data/solid.vert.spv");
-	//ASSERT(res);
+	auto shadVert = device->Create<rhi::Shader>();
+	res = shadVert->Load("data/solid.vert.spv", rhi::ShaderKind::Vertex);
+	ASSERT(res);
 
-	//shad = nullptr;
+	auto shadFrag = device->Create<rhi::Shader>();
+	res = shadFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
+	ASSERT(res);
+
+	shadFrag = nullptr;
+	shadVert = nullptr;
 	//samp = nullptr;
 	//img = nullptr;
 	//buf = nullptr;

@@ -47,4 +47,6 @@ endif()
 target_link_libraries(${BINARY} PRIVATE 
 	${VK_LIB}
 	shaderc_shared
+	spirv-cross-core
+	spirv-cross-reflect
 )

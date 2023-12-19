@@ -98,6 +98,7 @@ struct TypeInfo {
 	struct Member {
 		std::string _name;
 		Variable _var;
+		std::vector<AnyValue> _metadata;
 	};
 
 	using Constructor = std::function<void(void *)>;
@@ -265,6 +266,7 @@ std::shared_ptr<T> Cast(std::shared_ptr<Any> const &anyShared) {
 template <typename T>
 struct TypeInitializer {
 	TypeInfo *_type;
+	int32_t _lastMember = -1;
 
 	TypeInitializer(TypeInfo *type) : _type{ type } { ASSERT(!_type->_isRegistered); _type->_isRegistered = true; }
 
@@ -293,6 +295,7 @@ struct TypeInitializer {
 	}
 
 	TypeInitializer &Member(std::string name, TypeInfo const *memberType, size_t memberOffset) {
+		_lastMember = _type->_members.size();
 		_type->_members.push_back({ ._name = name, ._var = { ._type = memberType, ._offset = memberOffset } });
 		return *this;
 	}
@@ -304,6 +307,14 @@ struct TypeInitializer {
 	TypeInitializer &Member(std::string name, M memberPtr) {
 		auto *ptr = &(((T *)nullptr)->*memberPtr);
 		return Member<decltype(*ptr)>(name, (size_t)ptr);
+	}
+	TypeInitializer &MemberMetadata(AnyValue &&val) {
+		ASSERT(0 <= _lastMember && _lastMember < _type->_members.size());
+		_type->_members[_lastMember]._metadata.push_back(std::move(val));
+	}
+	template <typename V>
+	TypeInitializer &MemberMetadata(V &&val) {
+		return MemberMetadata(AnyValue::New(std::move(val)));
 	}
 
 	TypeInitializer &Metadata(std::string name, AnyValue &&val) {

@@ -79,4 +79,17 @@ auto &GetFromMap(Map &map, K const &k, Fn fn) {
 	return map.insert({ k, fn() }).first->second;
 }
 
-}
+} // utl
+
+namespace std {
+
+template <typename A, typename B>
+struct hash<pair<A, B>> {
+	size_t operator()(pair<A, B> const &p) const {
+		size_t h = hash<A>()(p.first);
+		h = 31 * h + hash<B>()(p.second);
+		return h;
+	}
+};
+
+} // std

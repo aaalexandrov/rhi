@@ -60,6 +60,20 @@ N Sqr(N n)
 	return n * n;
 }
 
+template <typename N>
+	requires std::integral<N>
+N RoundUp(N n, N multiple)
+{
+	return (n + multiple - 1) / multiple * multiple;
+}
+
+template <typename N>
+	requires std::integral<N>
+N RoundDown(N n, N multiple)
+{
+	return n / multiple * multiple;
+}
+
 template<class V>
 std::string ToString(V const &v)
 {

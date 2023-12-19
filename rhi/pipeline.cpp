@@ -12,9 +12,18 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline", [] {
 		.Base<RhiOwned>();
 });
 
-bool Shader::Load(std::string name, ShaderKind kind, std::string path)
+bool Shader::Load(std::string name, ShaderKind kind, std::vector<uint8_t> const &content)
 {
-	return Load(name, kind, utl::ReadFile(path));
+	ASSERT(_name.empty());
+	ASSERT(_kind == ShaderKind::Invalid);
+	_name = name;
+	_kind = kind;
+	return true;
+}
+
+bool Shader::Load(std::string path, ShaderKind kind)
+{
+	return Load(utl::GetPathFilenameExt(path), kind, utl::ReadFile(path));
 }
 
 }

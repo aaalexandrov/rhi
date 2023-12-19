@@ -4,6 +4,7 @@
 namespace utl {
 
 static auto s_regTypes = TypeInfo::AddInitializer("type_info", [] {
+	TypeInfo::Register<void>().Name("void");
 	TypeInfo::Register<bool>().Name("bool");
 	TypeInfo::Register<wchar_t>().Name("wchar_t");
 	TypeInfo::Register<std::string>().Name("std::string");
