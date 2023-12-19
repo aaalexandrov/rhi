@@ -64,14 +64,15 @@ template <typename N>
 	requires std::integral<N>
 N RoundUp(N n, N multiple)
 {
-	return (n + multiple - 1) / multiple * multiple;
+	N mod = n % multiple;
+	return mod ? n - mod + multiple : n;
 }
 
 template <typename N>
 	requires std::integral<N>
 N RoundDown(N n, N multiple)
 {
-	return n / multiple * multiple;
+	return n - n % multiple;
 }
 
 template<class V>

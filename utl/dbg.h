@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <format>
 
 namespace utl {
 
@@ -25,14 +26,10 @@ void AssertFailed(char const *message, char const *file, unsigned line);
 #endif
 
 
-template <typename ARG, typename... ARGS>
-void LogLine(std::ostream &out, ARG &&arg, ARGS&&... args)
+template <typename... ARGS>
+void LogLine(std::ostream &out, std::format_string<ARGS...> fmt, ARGS&&... args)
 {
-	out << std::forward<ARG>(arg);
-	using expander = int[];
-	static_cast<void>(expander{ 0, (void(out << std::forward<ARGS>(args)), 0)... });
-	out << std::endl;
+	out << std::format(fmt, std::forward<ARGS>(args)...) << std::endl;
 }
-
 
 }

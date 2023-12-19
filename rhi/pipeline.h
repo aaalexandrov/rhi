@@ -15,6 +15,11 @@ struct ShaderParam {
 		VertexLayout,
 		Count
 	};
+
+	uint32_t GetNumEntries() const {
+		return std::max((uint32_t)_type->_arraySize, 1u);
+	}
+
 	std::string _name;
 	TypeInfo const *_type = nullptr;
 	Kind _kind = Invalid;
@@ -32,6 +37,17 @@ struct Shader : public RhiOwned {
 	std::vector<ShaderParam> _params;
 };
 
+
+struct ResourceSetDescription {
+	struct Param {
+		std::string _name;
+		ShaderParam::Kind _kind = ShaderParam::Invalid;
+		uint32_t _numEntries = 0;
+		uint32_t _shaderKindsMask = 0;
+	};
+	std::vector<Param> _resources;
+};
+
 struct Pipeline : public RhiOwned {
 
 	virtual bool Init(std::span<std::shared_ptr<Shader>> shaders);
@@ -41,6 +57,7 @@ struct Pipeline : public RhiOwned {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
 
 	std::vector<std::shared_ptr<Shader>> _shaders;
+	std::vector<ResourceSetDescription> _resourceSetDescriptions;
 };
 
 

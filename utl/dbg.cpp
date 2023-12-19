@@ -10,12 +10,11 @@ namespace utl {
 
 void AssertFailed(char const *message, char const *file, unsigned line)
 {
-	char msg[1024];
-	snprintf(msg, ArraySize(msg), "%s(%u): Assert failed: %s", file, line, message);
-	LogLine(std::cerr, msg);
+	std::string msg = std::format("%s(%u): Assert failed: %s", file, line, message);
+	LogLine(std::cerr, "%s", msg);
 
 #if defined(_WIN32)
-	int res = MessageBoxA(nullptr, msg, "Assert failed", MB_ABORTRETRYIGNORE | MB_DEFBUTTON2 | MB_ICONEXCLAMATION | MB_TASKMODAL | MB_SETFOREGROUND);
+	int res = MessageBoxA(nullptr, msg.c_str(), "Assert failed", MB_ABORTRETRYIGNORE | MB_DEFBUTTON2 | MB_ICONEXCLAMATION | MB_TASKMODAL | MB_SETFOREGROUND);
 	switch (res) {
 		case IDABORT:
 			std::abort();

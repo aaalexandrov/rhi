@@ -79,6 +79,13 @@ auto &GetFromMap(Map &map, K const &k, Fn fn) {
 	return map.insert({ k, fn() }).first->second;
 }
 
+template <typename Vec>
+auto &GetFromVec(Vec &vec, size_t ind) {
+	if (ind >= vec.size())
+		vec.resize(ind + 1);
+	return vec[ind];
+}
+
 } // utl
 
 namespace std {

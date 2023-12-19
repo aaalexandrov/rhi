@@ -18,6 +18,115 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline_vk", [] {
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
+vk::DescriptorType GetDescriptorType(ShaderParam::Kind kind)
+{
+	switch (kind) {
+		case ShaderParam::UniformBuffer:
+			return vk::DescriptorType::eUniformBuffer;
+		case ShaderParam::UAVBuffer:
+			return vk::DescriptorType::eStorageBuffer;
+		case ShaderParam::Texture:
+			return vk::DescriptorType::eSampledImage;
+		case ShaderParam::UAVTexture:
+			return vk::DescriptorType::eStorageImage;
+		case ShaderParam::Sampler:
+			return vk::DescriptorType::eSampler;
+	}
+	ASSERT(0);
+	return vk::DescriptorType();
+}
+
+void DescriptorSetAllocatorVk::Set::Delete()
+{
+	if (!_allocator)
+		return;
+	{
+		std::lock_guard lock(_allocator->_mutex);
+		_allocator->_rhi->_device.freeDescriptorSets(_pool, _set);
+	}
+	_allocator = nullptr;
+	_set = nullptr;
+	_pool = nullptr;
+}
+
+bool DescriptorSetAllocatorVk::Init(RhiVk *rhi, uint32_t baseDescriptorCount)
+{
+	ASSERT(!_rhi);
+	ASSERT(_poolSizes.empty());
+	_rhi = rhi;
+	_baseDescriptorCount = baseDescriptorCount;
+
+	for (uint32_t i = 0; i < (uint32_t)ShaderParam::Kind::Count; ++i) {
+		vk::DescriptorPoolSize size{
+			GetDescriptorType((ShaderParam::Kind)i),
+			_baseDescriptorCount,
+		};
+		_poolSizes.push_back(size);
+	}
+
+	if (!AllocPool())
+		return false;
+
+	return true;
+}
+
+auto DescriptorSetAllocatorVk::Allocate(vk::DescriptorSetLayout layout) -> Set
+{
+	Set set;
+	vk::DescriptorSetAllocateInfo setInfo{
+		nullptr,
+		1,
+		&layout
+	};
+
+	std::lock_guard lock(_mutex);
+
+	ASSERT(_lastUsedPool < _pools.size());
+	uint32_t startPool = _lastUsedPool;
+	bool poolCreated = false;
+	while (true) {
+		setInfo.descriptorPool = _pools[_lastUsedPool];
+		vk::Result res = _rhi->_device.allocateDescriptorSets(&setInfo, &set._set);
+		if (res == vk::Result::eSuccess) {
+			set._allocator = this;
+			set._pool = _pools[_lastUsedPool];
+			return set;
+		} 
+		if (poolCreated) {
+			LOG("Failed to allocate descriptor set!");
+			return set;
+		}
+		_lastUsedPool = (_lastUsedPool + 1) % _pools.size();
+		if (_lastUsedPool == startPool) {
+			AllocPool();
+			poolCreated = true;
+		}
+	}
+}
+
+bool DescriptorSetAllocatorVk::AllocPool()
+{
+	// possibly have a statistic of allocations an modify the pool sizes based on actual usage?
+	uint32_t maxDescriptors = 0;
+	for (auto &sz : _poolSizes) {
+		maxDescriptors = std::max(maxDescriptors, sz.descriptorCount);
+	}
+	vk::DescriptorPoolCreateInfo poolInfo{
+		vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+		maxDescriptors, // should we multiply that by a constant?
+		_poolSizes,
+	};
+	auto poolRes = _rhi->_device.createDescriptorPool(poolInfo, _rhi->AllocCallbacks());
+	if (poolRes.result != vk::Result::eSuccess)
+		return false;
+	
+	_lastUsedPool = (uint32_t)_pools.size();
+	_pools.push_back(poolRes.value);
+
+	return true;
+}
+
+
 static std::unordered_map<ShaderKind, vk::ShaderStageFlags> s_shaderKind2Vk{
 	{ ShaderKind::Vertex, vk::ShaderStageFlagBits::eVertex },
 	{ ShaderKind::Fragment, vk::ShaderStageFlagBits::eFragment },
@@ -177,7 +286,7 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 		shaderc_shader_kind shadercKind = s_shaderKind2Shaderc[_kind];
 		shadercResult = compiler.CompileGlslToSpv((char const *)content.data(), content.size(), shadercKind, _name.c_str(), options);
 		if (shadercResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-			LOG(std::format("Compilation of GLSL shader '%s' failed with error: %s\n", _name, shadercResult.GetErrorMessage()));
+			LOG("Compilation of GLSL shader '%s' failed with error: %s", _name, shadercResult.GetErrorMessage());
 			return false;
 		}
 		spirv = std::span(shadercResult.begin(), shadercResult.end());
@@ -287,62 +396,34 @@ bool PipelineVk::InitLayout()
 	ASSERT(s_shaderKind2Vk.size() == (size_t)ShaderKind::Count);
 	auto rhi = static_cast<RhiVk *>(_rhi);
 
-	std::vector<std::vector<vk::DescriptorSetLayoutBinding>> setParamBindings;
-	for (auto &shader : _shaders) {
-		vk::ShaderStageFlags stageFlags = s_shaderKind2Vk[shader->_kind];
-		for (auto &param : shader->_params) {
-			if (param._kind == ShaderParam::VertexLayout)
-				continue;
+	_descriptorSetLayouts.resize(_resourceSetDescriptions.size());
+	for (uint32_t setIndex = 0; setIndex < _resourceSetDescriptions.size(); ++setIndex) {
+		auto &setDesc = _resourceSetDescriptions[setIndex];
+		if (setDesc._resources.empty())
+			continue;
 
-			setParamBindings.resize(std::max((uint32_t)setParamBindings.size(), param._set + 1));
-			auto &bindings = setParamBindings[param._set];
-			bindings.resize(std::max((uint32_t)bindings.size(), param._binding + 1));
-			auto &bind = bindings[param._binding];
-
-			ASSERT(bind.descriptorCount == 0 || bind.binding == param._binding);
-			bind.binding = param._binding;
-			bind.stageFlags |= stageFlags;
-
-			uint32_t descCount = std::max((uint32_t)param._type->_arraySize, 1u);
-			vk::DescriptorType descType;
-			switch (param._kind) {
-				case ShaderParam::UniformBuffer:
-					descType = vk::DescriptorType::eUniformBuffer;
-					break;
-				case ShaderParam::UAVBuffer:
-					descType = vk::DescriptorType::eStorageBuffer;
-					break;
-				case ShaderParam::Texture:
-					descType = vk::DescriptorType::eSampledImage;
-					break;
-				case ShaderParam::UAVTexture:
-					descType = vk::DescriptorType::eStorageImage;
-					break;
-				case ShaderParam::Sampler:
-					descType = vk::DescriptorType::eSampler;
-					break;
-				default:
-					ASSERT(0);
-					break;
+		std::vector<vk::DescriptorSetLayoutBinding> bindings;
+		for (uint32_t resIndex = 0; resIndex < setDesc._resources.size(); ++resIndex) {
+			auto &resource = setDesc._resources[resIndex];
+			vk::DescriptorSetLayoutBinding bind;
+			bind.binding = resIndex;
+			bind.descriptorType = GetDescriptorType(resource._kind);
+			bind.descriptorCount = resource._numEntries;
+			for (uint32_t i = 0; i < (uint32_t)ShaderKind::Count; ++i) {
+				if (resource._shaderKindsMask & (1 << i))
+					bind.stageFlags |= s_shaderKind2Vk[(ShaderKind)i];
 			}
-			if (bind.descriptorCount > 0 && (bind.descriptorCount != descCount || bind.descriptorType != descType)) {
-				LOG("Shader '%s' contains parameter '%s' with type or size that doesn't match other shader stages\n", shader->_name, param._name);
-				return false;
-			}
-			bind.descriptorCount = descCount;
-			bind.descriptorType = descType;
 		}
-	}
 
-	for (uint32_t set = 0; set < setParamBindings.size(); ++set) {
 		vk::DescriptorSetLayoutCreateInfo setInfo{
 			vk::DescriptorSetLayoutCreateFlags(),
-			setParamBindings[set],
+			bindings,
 		};
 		auto setResult = rhi->_device.createDescriptorSetLayout(setInfo, rhi->AllocCallbacks());
 		if (setResult.result != vk::Result::eSuccess)
 			return false;
-		_descriptorSetLayouts.push_back(setResult.value);
+
+		_descriptorSetLayouts[setIndex] = setResult.value;
 	}
 
 	std::array<vk::PushConstantRange, 0> noPushConsts;
@@ -356,5 +437,6 @@ bool PipelineVk::InitLayout()
 
 	return true;
 }
+
 
 }
