@@ -123,6 +123,10 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 	_images.clear();
 	DestroySemaphores();
 
+	ResourceUsage imgUsage = s_vkImageUsage2ResourceUsage.ToDst((VkImageUsageFlags)surfCaps.supportedUsageFlags);
+	imgUsage &= rhi->GetFormatImageUsage(surfaceFormat) & _descriptor._usage;
+	imgUsage.present = 1;
+
 	auto swapchain = [&] { 
 		if (swapchainSize.width == 0 || swapchainSize.height == 0)
 			return vk::ResultValue<vk::SwapchainKHR>{ vk::Result::eErrorNotPermittedKHR, vk::SwapchainKHR() };
@@ -136,7 +140,7 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 			vk::ColorSpaceKHR::eSrgbNonlinear,
 			swapchainSize,
 			(uint32_t)std::max(_descriptor._dimensions[3], 1),
-			GetImageUsage(_descriptor._usage, surfaceFormat),
+			GetImageUsage(imgUsage, surfaceFormat),
 			vk::SharingMode::eExclusive,
 			(uint32_t)queueFamilies.size(),
 			queueFamilies.data(),
@@ -169,7 +173,7 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 		return false;
 
 	ResourceDescriptor imgDesc{
-		._usage = _descriptor._usage,
+		._usage = imgUsage,
 		._format = _descriptor._format,
 		._dimensions = _descriptor._dimensions,
 		._mipLevels = 1,

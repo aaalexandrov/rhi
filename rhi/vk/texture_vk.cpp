@@ -66,19 +66,7 @@ vk::ImageViewType GetImageViewType(glm::ivec4 dims)
 
 vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
 {
-	vk::ImageUsageFlags imgUsage;
-	if (usage.copySrc)
-		imgUsage |= vk::ImageUsageFlagBits::eTransferSrc;
-	if (usage.copyDst)
-		imgUsage |= vk::ImageUsageFlagBits::eTransferDst;
-	if (usage.srv)
-		imgUsage |= vk::ImageUsageFlagBits::eSampled;
-	if (usage.uav)
-		imgUsage |= vk::ImageUsageFlagBits::eStorage;
-	if (usage.rt)
-		imgUsage |= vk::ImageUsageFlagBits::eColorAttachment;
-	if (usage.ds)
-		imgUsage |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+	vk::ImageUsageFlags imgUsage = (vk::ImageUsageFlags)s_vkImageUsage2ResourceUsage.ToSrc(usage);
 	return imgUsage;
 }
 

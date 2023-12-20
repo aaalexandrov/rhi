@@ -31,6 +31,7 @@
 namespace rhi {
 
 struct RhiVk;
+struct Submission;
 struct CmdRecorderVk {
 	~CmdRecorderVk();
 
@@ -39,6 +40,11 @@ struct CmdRecorderVk {
 	void Clear();
 
 	vk::CommandBuffer AllocCmdBuffer(vk::CommandBufferLevel level, std::string name);
+
+	vk::CommandBuffer BeginCmds(std::string name);
+	bool EndCmds(vk::CommandBuffer cmds);
+
+	bool Execute(Submission *sub);
 
 	RhiVk *_rhi = nullptr;
 	uint32_t _queueFamily = ~0;
@@ -151,6 +157,8 @@ inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
 	return vk::Offset3D(v.x, v.y, v.z);
 }
 
+ResourceUsage GetUsageFromFormatFeatures(vk::FormatFeatureFlags fmtFlags);
+
 static inline const utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
 		{ vk::Format::eUndefined,          Format::Invalid       },
 		{ vk::Format::eR8G8B8A8Unorm,      Format::R8G8B8A8      },
@@ -164,6 +172,14 @@ static inline const utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {
 		{ vk::Format::eS8Uint,             Format::S8            },
 	} };
 
+static inline const utl::ValueRemapper<VkImageUsageFlags, ResourceUsage, true> s_vkImageUsage2ResourceUsage{ {
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eTransferSrc           , ResourceUsage{.copySrc = 1} },
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eTransferDst           , ResourceUsage{.copyDst = 1} },
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eSampled               , ResourceUsage{.srv = 1}     },
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eStorage               , ResourceUsage{.uav = 1}     },
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eColorAttachment       , ResourceUsage{.rt = 1}      },
+		{ (VkImageUsageFlags)vk::ImageUsageFlagBits::eDepthStencilAttachment, ResourceUsage{.ds = 1}      },
+	} };
 
 static inline const utl::ValueRemapper<vk::PresentModeKHR, PresentMode> s_vk2PresentMode{ {
 		{vk::PresentModeKHR::eImmediate  , PresentMode::Immediate },

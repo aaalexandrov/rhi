@@ -149,11 +149,8 @@ glm::ivec4 GraphicsPassVk::GetMinTargetSize()
 
 bool GraphicsPassVk::Prepare(Submission *sub)
 {
-	vk::CommandBuffer cmds = _recorder.AllocCmdBuffer(vk::CommandBufferLevel::ePrimary, _name + std::to_string(_recorder._cmdBuffers.size()));
-	vk::CommandBufferBeginInfo cmdBegin{
-		vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-	};
-	if (cmds.begin(cmdBegin) != vk::Result::eSuccess)
+	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
+	if (!cmds)
 		return false;
 
 	std::vector<vk::ClearValue> clearValues;
@@ -172,8 +169,10 @@ bool GraphicsPassVk::Prepare(Submission *sub)
 	};
 	cmds.beginRenderPass(passInfo, vk::SubpassContents::eInline);
 
+
 	cmds.endRenderPass();
-	if (cmds.end() != vk::Result::eSuccess)
+
+	if (!_recorder.EndCmds(cmds))
 		return false;
 
 	return true;
@@ -181,16 +180,7 @@ bool GraphicsPassVk::Prepare(Submission *sub)
 
 bool GraphicsPassVk::Execute(Submission *sub)
 {
-	auto *subVk = static_cast<SubmissionVk *>(sub);
-
-	ExecuteDataVk exec;
-	exec._cmds.insert(exec._cmds.end(), _recorder._cmdBuffers.begin(), _recorder._cmdBuffers.end());
-	if (!subVk->Execute(std::move(exec)))
-		return false;
-
-	return true;
+	return _recorder.Execute(sub);
 }
-
-
 
 }

@@ -1,8 +1,14 @@
 #define VMA_IMPLEMENTATION
 #include "base_vk.h"
 #include "rhi_vk.h"
+#include "submit_vk.h"
 
 namespace rhi {
+
+static auto s_regTypes = TypeInfo::AddInitializer("base_vk", [] {
+    TypeInfo::Register<ResourceVk>().Name("ResourceVk");
+});
+
 
 CmdRecorderVk::~CmdRecorderVk()
 {
@@ -41,6 +47,38 @@ vk::CommandBuffer CmdRecorderVk::AllocCmdBuffer(vk::CommandBufferLevel level, st
         return vk::CommandBuffer();
     _cmdBuffers.push_back(buffer);
     return buffer;
+}
+
+vk::CommandBuffer CmdRecorderVk::BeginCmds(std::string name)
+{
+    vk::CommandBuffer cmds = AllocCmdBuffer(vk::CommandBufferLevel::ePrimary, name + std::to_string(_cmdBuffers.size()));
+    vk::CommandBufferBeginInfo cmdBegin{
+        vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+    };
+    if (cmds.begin(cmdBegin) != vk::Result::eSuccess)
+        return vk::CommandBuffer();
+
+    return cmds;
+}
+
+bool CmdRecorderVk::EndCmds(vk::CommandBuffer cmds)
+{
+    if (cmds.end() != vk::Result::eSuccess)
+        return false;
+
+    return true;
+}
+
+bool CmdRecorderVk::Execute(Submission *sub)
+{
+    auto *subVk = static_cast<SubmissionVk *>(sub);
+
+    ExecuteDataVk exec;
+    exec._cmds.insert(exec._cmds.end(), _cmdBuffers.begin(), _cmdBuffers.end());
+    if (!subVk->Execute(std::move(exec)))
+        return false;
+
+    return true;
 }
 
 bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
@@ -140,6 +178,25 @@ vk::AccessFlags GetAllAccess(ResourceUsage usage)
         flags |= vk::AccessFlagBits::eHostRead | vk::AccessFlagBits::eHostWrite;
 
     return vk::AccessFlags();
+}
+
+ResourceUsage GetUsageFromFormatFeatures(vk::FormatFeatureFlags fmtFlags)
+{
+    ResourceUsage usage;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eTransferSrc)
+        usage.copySrc = 1;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eTransferDst)
+        usage.copyDst = 1;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eSampledImage)
+        usage.srv = 1;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eStorageImage)
+        usage.uav = 1;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eColorAttachment)
+        usage.rt = 1;
+    if (fmtFlags & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+        usage.ds = 1;
+
+    return usage;
 }
 
 }

@@ -81,4 +81,29 @@ void ComputePass::EnumResources(ResourceEnum enumFn)
 	}
 }
 
+bool CopyPass::Copy(CopyData copy)
+{
+	if (!copy._src.ValidateView() || !copy._dst.ValidateView())
+		return false;
+
+	if (copy._src._resource->GetTypeInfo() == copy._dst._resource->GetTypeInfo()) {
+		glm::ivec4 regionSize = glm::min(copy._src._view._region.GetSize(), copy._dst._view._region.GetSize());
+		copy._src._view._region.SetSize(regionSize);
+		copy._dst._view._region.SetSize(regionSize);
+
+		int8_t mipRange = std::min(copy._src._view._mipRange.GetSize(), copy._dst._view._mipRange.GetSize());
+		copy._src._view._mipRange.SetSize(mipRange);
+		copy._dst._view._mipRange.SetSize(mipRange);
+	} else {
+		ASSERT(!"Unimplemented");
+	}
+
+	if (copy._src._view.IsEmpty() || copy._dst._view.IsEmpty())
+		return false;
+
+	_copies.push_back(std::move(copy));
+
+	return true;
+}
+
 }

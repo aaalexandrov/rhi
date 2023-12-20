@@ -101,7 +101,7 @@ int main()
 
 	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
 	rhi::SwapchainDescriptor chainDesc{
-		._usage{.rt = 1},
+		._usage{.rt = 1, .copySrc = 1, .copyDst = 1},
 		._format = rhi::Format::B8G8R8A8_srgb,
 		._presentMode = rhi::PresentMode::Fifo,
 		._window = deviceSettings._window,

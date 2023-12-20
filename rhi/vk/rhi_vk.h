@@ -65,6 +65,7 @@ struct RhiVk : public Rhi {
 	bool InitVma();
 
 	std::span<uint32_t> GetQueueFamilyIndices(ResourceUsage usage);
+	ResourceUsage GetFormatImageUsage(Format fmt, bool optimalTiling = true);
 
 	VmaAllocationCreateInfo GetVmaAllocCreateInfo(Resource *resource);
 

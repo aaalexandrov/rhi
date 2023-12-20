@@ -292,6 +292,13 @@ std::span<uint32_t> RhiVk::GetQueueFamilyIndices(ResourceUsage usage)
     return s_theQueue;
 }
 
+ResourceUsage RhiVk::GetFormatImageUsage(Format fmt, bool optimalTiling)
+{
+    vk::FormatProperties fmtProps = _physDevice.getFormatProperties(s_vk2Format.ToSrc(fmt, vk::Format::eUndefined));
+    vk::FormatFeatureFlags fmtFlags = optimalTiling ? fmtProps.optimalTilingFeatures : fmtProps.linearTilingFeatures;
+    return GetUsageFromFormatFeatures(fmtFlags);
+}
+
 VmaAllocationCreateInfo RhiVk::GetVmaAllocCreateInfo(Resource *resource)
 {
     VmaAllocationCreateInfo allocInfo{

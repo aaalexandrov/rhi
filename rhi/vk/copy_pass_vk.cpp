@@ -10,4 +10,23 @@ static auto s_regTypes = TypeInfo::AddInitializer("copy_pass_vk", [] {
 });
 
 
+bool CopyPassVk::Prepare(Submission *sub)
+{
+	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
+	if (!cmds)
+		return false;
+
+
+
+	if (!_recorder.EndCmds(cmds))
+		return false;
+
+	return true;
+}
+
+bool CopyPassVk::Execute(Submission *sub)
+{
+	return _recorder.Execute(sub);
+}
+
 }

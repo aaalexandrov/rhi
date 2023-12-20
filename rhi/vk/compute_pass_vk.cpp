@@ -16,11 +16,8 @@ bool ComputePassVk::Prepare(Submission *sub)
 {
 	ASSERT(all(greaterThan(_pipeline->GetComputeGroupSize(), glm::ivec3(0))));
 
-	vk::CommandBuffer cmds = _recorder.AllocCmdBuffer(vk::CommandBufferLevel::ePrimary, _name + std::to_string(_recorder._cmdBuffers.size()));
-	vk::CommandBufferBeginInfo cmdBegin{
-		vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-	};
-	if (cmds.begin(cmdBegin) != vk::Result::eSuccess)
+	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
+	if (!cmds)
 		return false;
 
 	auto *pipeVk = static_cast<PipelineVk *>(_pipeline.get());
@@ -36,7 +33,7 @@ bool ComputePassVk::Prepare(Submission *sub)
 
 	cmds.dispatch(_numGroups.x, _numGroups.y, _numGroups.z);
 
-	if (cmds.end() != vk::Result::eSuccess)
+	if (_recorder.EndCmds(cmds))
 		return false;
 
 	return true;
@@ -44,14 +41,7 @@ bool ComputePassVk::Prepare(Submission *sub)
 
 bool ComputePassVk::Execute(Submission *sub)
 {
-	auto *subVk = static_cast<SubmissionVk *>(sub);
-
-	ExecuteDataVk exec;
-	exec._cmds.insert(exec._cmds.end(), _recorder._cmdBuffers.begin(), _recorder._cmdBuffers.end());
-	if (!subVk->Execute(std::move(exec)))
-		return false;
-
-	return true;
+	return _recorder.Execute(sub);
 }
 
 }

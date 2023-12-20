@@ -48,7 +48,15 @@ struct ComputePass : public Pass {
 };
 
 struct CopyPass : public Pass {
+	struct CopyData {
+		ResourceRef _src, _dst;
+	};
+
+	virtual bool Copy(CopyData copy);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPass>(); }
+
+	std::vector<CopyData> _copies;
 };
 
 struct Swapchain;

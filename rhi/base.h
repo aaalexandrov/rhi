@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utl/enumutl.h"
+
 namespace rhi {
 
 using utl::TypeInfo;
@@ -66,6 +68,16 @@ enum class Format : int32_t {
 	DepthStencilFirst = DepthFirst,
 	DepthStencilLast = StencilLast,
 };
+
+static inline std::unordered_map<Format, TypeInfo const *> s_format2TypeInfo{ {
+		{ Format::R8, TypeInfo::Get<uint8_t>() },
+		{ Format::R8G8B8A8, TypeInfo::Get<glm::uvec4>() },
+		{ Format::R8G8B8A8_srgb, TypeInfo::Get<glm::uvec4>() },
+		{ Format::B8G8R8A8, TypeInfo::Get<uint32_t>() },
+		{ Format::B8G8R8A8_srgb, TypeInfo::Get<uint32_t>() },
+		{ Format::D32, TypeInfo::Get<uint32_t>() },
+		{ Format::S8, TypeInfo::Get<uint8_t>() },
+	} };
 
 struct ResourceDescriptor {
 	ResourceUsage _usage;
@@ -181,3 +193,14 @@ struct RhiOwned : public std::enable_shared_from_this<RhiOwned>, public utl::Any
 
 } // rhi
 
+namespace std {
+
+template<>
+struct hash<rhi::ResourceUsage> {
+	size_t operator()(rhi::ResourceUsage u) const {
+		size_t h = hash<decltype(rhi::ResourceUsage::_flags)>()(u._flags);
+		return h;
+	}
+};
+
+}
