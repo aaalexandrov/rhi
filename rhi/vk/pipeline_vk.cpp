@@ -366,6 +366,14 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 	addParams(shaderResources.storage_images, ShaderParam::UAVTexture);
 	addParams(shaderResources.separate_samplers, ShaderParam::Sampler);
 
+	if (_kind == ShaderKind::Compute) {
+		auto &entryPoint = refl.get_entry_point(_entryPoint, spv::ExecutionModelGLCompute);
+		auto &groupSize = entryPoint.workgroup_size;
+		_groupSize = glm::ivec3(groupSize.x, groupSize.y, groupSize.z);
+		// group size might be dependent on specialization constants or be otherwise dynamic, and then dimensions might be 0
+		ASSERT(all(greaterThan(_groupSize, glm::ivec3(0))));
+	}
+
 	if (_kind == ShaderKind::Vertex) {
 		// Aggregate all vertex stage inputs into a common typeinfo
 		ShaderParam attribs{
@@ -428,8 +436,8 @@ bool ResourceSetVk::Update()
 	std::array<vk::BufferView, 0> noTexelInfos;
 	uint32_t resRefIdx = 0;
 	uint32_t curImgInfoCount = 0, curBufInfoCount = 0;
-	for (uint32_t i = 0; i < setDescription->_resources.size(); ++i) {
-		auto &res = setDescription->_resources[i];
+	for (uint32_t i = 0; i < setDescription->_params.size(); ++i) {
+		auto &res = setDescription->_params[i];
 		for (uint32_t e = 0; e < res._numEntries; ++e) {
 			auto &resRef = _resourceRefs[resRefIdx + e];
 			if (res.IsBuffer()) {
@@ -537,8 +545,8 @@ bool PipelineVk::InitLayout()
 		auto &setDesc = _resourceSetDescriptions[setIndex];
 
 		std::vector<vk::DescriptorSetLayoutBinding> bindings;
-		for (uint32_t resIndex = 0; resIndex < setDesc._resources.size(); ++resIndex) {
-			auto &resource = setDesc._resources[resIndex];
+		for (uint32_t resIndex = 0; resIndex < setDesc._params.size(); ++resIndex) {
+			auto &resource = setDesc._params[resIndex];
 			vk::DescriptorSetLayoutBinding bind;
 			bind.binding = resIndex;
 			bind.descriptorType = GetDescriptorType(resource._kind);

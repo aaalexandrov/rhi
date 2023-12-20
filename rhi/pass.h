@@ -7,10 +7,11 @@ namespace rhi {
 struct Resource;
 struct Texture;
 struct Submission;
+struct Pipeline;
+struct ResourceSet;
 
 struct Pass : public RhiOwned {
 
-	using ResourceEnum = std::function<void(Resource *, ResourceUsage)>;
 	virtual void EnumResources(ResourceEnum enumFn) = 0;
 
 	virtual bool Prepare(Submission *sub) = 0;
@@ -35,7 +36,15 @@ struct GraphicsPass : public Pass {
 };
 
 struct ComputePass : public Pass {
+	virtual bool Init(Pipeline *pipeline, std::span<std::shared_ptr<ResourceSet>> resourceSets, glm::ivec3 numGroups);
+
+	void EnumResources(ResourceEnum enumFn) override;
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ComputePass>(); }
+
+	std::shared_ptr<Pipeline> _pipeline;
+	std::vector<std::shared_ptr<ResourceSet>> _resourceSets;
+	glm::ivec3 _numGroups{ 0 };
 };
 
 struct CopyPass : public Pass {

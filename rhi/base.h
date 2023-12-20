@@ -94,6 +94,8 @@ struct ResourceView {
 	static ResourceView FromDescriptor(ResourceDescriptor const &desc);
 };
 
+using ResourceEnum = std::function<void(Resource *, ResourceUsage)>;
+
 struct ResourceRef {
 	std::shared_ptr<Resource> _resource;
 	ResourceView _view;

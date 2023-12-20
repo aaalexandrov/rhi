@@ -1,6 +1,7 @@
 #include "pass.h"
 #include "rhi.h"
 #include "resource.h"
+#include "pipeline.h"
 
 namespace rhi {
 
@@ -53,6 +54,31 @@ void PresentPass::EnumResources(ResourceEnum enumFn)
 {
 	ASSERT(bool(_swapchainTexture->_descriptor._usage & ResourceUsage{ .present=1 }));
 	enumFn(_swapchainTexture.get(), ResourceUsage{.present=1, .read=1});
+}
+
+bool ComputePass::Init(Pipeline *pipeline, std::span<std::shared_ptr<ResourceSet>> resourceSets, glm::ivec3 numGroups)
+{
+	ASSERT(!_pipeline);
+	ASSERT(_resourceSets.empty());
+
+	if (!pipeline || any(lessThanEqual(pipeline->GetComputeGroupSize(), glm::ivec3(0))))
+		return false;
+
+	_pipeline = static_pointer_cast<Pipeline>(pipeline->shared_from_this());
+	_resourceSets.insert(_resourceSets.end(), resourceSets.begin(), resourceSets.end());
+	_numGroups = numGroups;
+
+
+	// should we check resource sets are suitable for the pipeline? that numgroups are valid?
+
+	return true;
+}
+
+void ComputePass::EnumResources(ResourceEnum enumFn)
+{
+	for (auto &set : _resourceSets) {
+		set->EnumResources(enumFn);
+	}
 }
 
 }

@@ -32,7 +32,7 @@ bool Shader::Load(std::string path, ShaderKind kind)
 uint32_t ResourceSetDescription::GetNumEntries() const
 {
 	uint32_t numEntries = 0;
-	for (auto &res : _resources) {
+	for (auto &res : _params) {
 		numEntries += res._numEntries;
 	}
 	return numEntries;
@@ -46,6 +46,20 @@ bool ResourceSetDescription::Param::IsImage() const
 bool ResourceSetDescription::Param::IsBuffer() const
 {
 	return _kind == ShaderParam::UniformBuffer || _kind == ShaderParam::UAVBuffer;
+}
+
+ResourceUsage ResourceSetDescription::Param::GetUsage() const
+{
+	switch (_kind) {
+		case ShaderParam::UniformBuffer:
+		case ShaderParam::Texture:
+			return ResourceUsage{ .srv = 1, .read = 1 };
+		case ShaderParam::UAVBuffer:
+		case ShaderParam::UAVTexture:
+			return ResourceUsage{ .uav = 1, .write = 1 };
+			return ResourceUsage{ .srv = 1, .read = 1 };
+	}
+	return ResourceUsage();
 }
 
 bool ResourceSet::Init(Pipeline *pipeline, uint32_t setIndex)
@@ -83,6 +97,22 @@ bool ResourceSet::Update(std::initializer_list<ResourceRef> resRefs)
 	return Update();
 }
 
+void ResourceSet::EnumResources(ResourceEnum enumFn)
+{
+	ResourceSetDescription const *setDesc = GetSetDescription();
+	uint32_t resIndex = 0;
+	for (auto &param : setDesc->_params) {
+		ResourceUsage paramUsage = param.GetUsage();
+		if (paramUsage) {
+			for (uint32_t e = 0; e < param._numEntries; ++e) {
+				enumFn(_resourceRefs[resIndex + e]._resource.get(), paramUsage);
+			}
+		}
+		resIndex += param._numEntries;
+	}
+	ASSERT(resIndex == _resourceRefs.size());
+}
+
 bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 {
 	ASSERT(_shaders.empty());
@@ -95,7 +125,7 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 				continue;
 
 			ResourceSetDescription &setDesc = utl::GetFromVec(_resourceSetDescriptions, param._set);
-			ResourceSetDescription::Param &paramDesc = utl::GetFromVec(setDesc._resources, param._binding);
+			ResourceSetDescription::Param &paramDesc = utl::GetFromVec(setDesc._params, param._binding);
 			uint32_t numEntries = param.GetNumEntries();
 			if (paramDesc._numEntries) {
 				if (paramDesc._name != param._name || paramDesc._kind != param._kind || paramDesc._numEntries != numEntries) {
@@ -114,7 +144,13 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 	return true;
 }
 
-Shader *Pipeline::GetShader(ShaderKind kind)
+glm::ivec3 Pipeline::GetComputeGroupSize() const
+{
+	Shader *compute = GetShader(ShaderKind::Compute);
+	return compute ? compute->_groupSize : glm::ivec3(0);
+}
+
+Shader *Pipeline::GetShader(ShaderKind kind) const
 {
 	auto it = std::find_if(_shaders.begin(), _shaders.end(), [=](auto &s) { return s->_kind == kind; });
 	return it != _shaders.end() ? it->get() : nullptr;

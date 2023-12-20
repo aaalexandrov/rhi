@@ -6,10 +6,12 @@
 namespace rhi {
 
 struct ComputePassVk : public ComputePass {
-
+	bool Prepare(Submission *sub) override;
+	bool Execute(Submission *sub) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ComputePassVk>(); }
 
+	CmdRecorderVk _recorder;
 };
 
 }

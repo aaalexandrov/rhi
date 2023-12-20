@@ -37,6 +37,7 @@ struct Shader : public RhiOwned {
 
 	ShaderKind _kind = ShaderKind::Invalid;
 	std::vector<ShaderParam> _params;
+	glm::ivec3 _groupSize{ 0 };
 };
 
 
@@ -49,11 +50,13 @@ struct ResourceSetDescription {
 
 		bool IsImage() const;
 		bool IsBuffer() const;
+
+		ResourceUsage GetUsage() const;
 	};
 
 	uint32_t GetNumEntries() const;
 
-	std::vector<Param> _resources;
+	std::vector<Param> _params;
 };
 
 struct Pipeline;
@@ -68,6 +71,8 @@ struct ResourceSet : public utl::Any {
 
 	ResourceSetDescription const *GetSetDescription() const;
 
+	void EnumResources(ResourceEnum enumFn);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ResourceSet>(); }
 
 	Pipeline *_pipeline = nullptr;
@@ -81,7 +86,9 @@ struct Pipeline : public RhiOwned {
 
 	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
 
-	Shader *GetShader(ShaderKind kind);
+	Shader *GetShader(ShaderKind kind) const;
+
+	glm::ivec3 GetComputeGroupSize() const;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
 
