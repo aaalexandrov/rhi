@@ -138,9 +138,9 @@ bool GraphicsPassVk::InitFramebuffer()
 	return true;
 }
 
-glm::uvec4 GraphicsPassVk::GetMinTargetSize()
+glm::ivec4 GraphicsPassVk::GetMinTargetSize()
 {
-	glm::uvec4 size{ std::numeric_limits<uint32_t>::max() };
+	glm::ivec4 size{ std::numeric_limits<int32_t>::max() };
 	for (auto &rt : _renderTargets)
 		size = glm::min(size, rt._texture->_descriptor._dimensions);
 	return size;

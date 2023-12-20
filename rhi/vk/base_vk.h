@@ -130,7 +130,9 @@ inline vk::AccessFlags GetAccess(ResourceUsage usage) {
 	return access;
 }
 
-inline vk::Extent2D GetExtent2D(glm::uvec2 dim) {
+inline vk::Extent2D GetExtent2D(glm::ivec2 dim) {
+	ASSERT(dim.x >= 0);
+	ASSERT(dim.y >= 0);
 	return vk::Extent2D(dim.x, dim.y);
 }
 
@@ -138,7 +140,10 @@ inline vk::Offset2D GetOffset2D(glm::ivec2 v) {
 	return vk::Offset2D(v.x, v.y);
 }
 
-inline vk::Extent3D GetExtent3D(glm::uvec3 dim) {
+inline vk::Extent3D GetExtent3D(glm::ivec3 dim) {
+	ASSERT(dim.x >= 0);
+	ASSERT(dim.y >= 0);
+	ASSERT(dim.z >= 0);
 	return vk::Extent3D(dim.x, dim.y, dim.z);
 }
 

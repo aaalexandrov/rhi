@@ -5,7 +5,6 @@
 
 namespace rhi {
 
-
 struct SamplerDescriptor {
 	Filter _minFilter = Filter::Linear, _magFilter = Filter::Linear;
 	MipMapMode _mipMapMode = MipMapMode::Linear;
@@ -16,20 +15,10 @@ struct SamplerDescriptor {
 	float _minLod = 0, _maxLod = 1000;
 };
 
-struct ResourceDescriptor {
-	ResourceUsage _usage;
-	Format _format = Format::Invalid;
-	glm::uvec4 _dimensions{ 0 };
-	uint8_t _mipLevels = 1;
-
-	void SetMaxMipLevels() { _mipLevels = GetMaxMipLevels(_dimensions); }
-	static uint8_t GetMaxMipLevels(glm::uvec3 dims);
-};
-
 struct SwapchainDescriptor {
 	ResourceUsage _usage{.rt = 1, .present = 1};
 	Format _format = Format::Invalid;
-	glm::uvec4 _dimensions{ 0 };
+	glm::ivec4 _dimensions{ 0 };
 	PresentMode _presentMode = PresentMode::Fifo;
 	std::shared_ptr<WindowData> _window;
 };

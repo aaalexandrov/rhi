@@ -109,14 +109,14 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 	ASSERT(surfCaps.currentExtent.width != ~0u && surfCaps.currentExtent.height != ~0u);
 	swapchainSize.width = utl::Clamp(surfCaps.minImageExtent.width, surfCaps.maxImageExtent.width, swapchainSize.width);
 	swapchainSize.height = utl::Clamp(surfCaps.minImageExtent.height, surfCaps.maxImageExtent.height, swapchainSize.height);
-	uint32_t imgCount = utl::Clamp(surfCaps.minImageCount, surfCaps.maxImageCount, _descriptor._dimensions[2]);
+	uint32_t imgCount = utl::Clamp(surfCaps.minImageCount, surfCaps.maxImageCount, (uint32_t)_descriptor._dimensions[2]);
 
 	if (presentMode == PresentMode::Invalid)
 		presentMode = _descriptor._presentMode;
 	if (surfaceFormat == Format::Invalid)
 		surfaceFormat = _descriptor._format;
 
-	glm::uvec4 newDims = glm::uvec4(swapchainSize.width, swapchainSize.height, imgCount, _descriptor._dimensions[3]);
+	glm::ivec4 newDims = glm::ivec4(swapchainSize.width, swapchainSize.height, imgCount, _descriptor._dimensions[3]);
 	if (!_needsUpdate && _descriptor._dimensions == newDims && presentMode == _descriptor._presentMode && surfaceFormat == _descriptor._format)
 		return true;
 
@@ -135,7 +135,7 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 			s_vk2Format.ToSrc(surfaceFormat, vk::Format::eUndefined),
 			vk::ColorSpaceKHR::eSrgbNonlinear,
 			swapchainSize,
-			std::max(_descriptor._dimensions[3], 1u),
+			(uint32_t)std::max(_descriptor._dimensions[3], 1),
 			GetImageUsage(_descriptor._usage, surfaceFormat),
 			vk::SharingMode::eExclusive,
 			(uint32_t)queueFamilies.size(),
@@ -155,7 +155,7 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	_swapchain = swapchain.value;
 	if (swapchain.result != vk::Result::eSuccess) {
-		_descriptor._dimensions = glm::uvec4(glm::uvec3(0), _descriptor._dimensions[3]);
+		_descriptor._dimensions = glm::ivec4(glm::ivec3(0), _descriptor._dimensions[3]);
 		_needsUpdate = true;
 		return false;
 	}

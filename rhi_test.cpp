@@ -55,7 +55,7 @@ int main()
 	//auto buf = device->Create<rhi::Buffer>("Buf1");
 	//rhi::ResourceDescriptor bufDesc{
 	//	._usage = { .copySrc = 1, .cpuAccess = 1, },
-	//	._dimensions = glm::uvec4(256, 0, 0, 0),
+	//	._dimensions = glm::ivec4(256, 0, 0, 0),
 	//};
 	//res = buf->Init(bufDesc);
 	//ASSERT(res);
@@ -64,7 +64,7 @@ int main()
 	//rhi::ResourceDescriptor imgDesc{
 	//	._usage = { .srv = 1, .copyDst = 1, },
 	//	._format = rhi::Format::R8G8B8A8,
-	//	._dimensions = glm::uvec4(256, 256, 0, 0),
+	//	._dimensions = glm::ivec4(256, 256, 0, 0),
 	//};
 	//res = img->Init(imgDesc);
 	//ASSERT(res);

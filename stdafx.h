@@ -18,4 +18,5 @@
 
 #include "glm/glm.hpp"
 #include "utl/dbg.h"
+#include "utl/geom.h"
 #include "utl/type_info.h"

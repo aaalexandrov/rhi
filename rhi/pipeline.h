@@ -4,6 +4,8 @@
 
 namespace rhi {
 
+struct Resource;
+
 struct ShaderParam {
 	enum Kind: int8_t {
 		Invalid = -1,
@@ -44,13 +46,40 @@ struct ResourceSetDescription {
 		ShaderParam::Kind _kind = ShaderParam::Invalid;
 		uint32_t _numEntries = 0;
 		uint32_t _shaderKindsMask = 0;
+
+		bool IsImage() const;
+		bool IsBuffer() const;
 	};
+
+	uint32_t GetNumEntries() const;
+
 	std::vector<Param> _resources;
+};
+
+struct Pipeline;
+struct ResourceSet : public utl::Any {
+	virtual ~ResourceSet() {}
+
+	virtual bool Init(Pipeline *pipeline, uint32_t setIndex);
+
+	virtual bool Update();
+
+	bool Update(std::initializer_list<ResourceRef> resRefs);
+
+	ResourceSetDescription const *GetSetDescription() const;
+
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ResourceSet>(); }
+
+	Pipeline *_pipeline = nullptr;
+	uint32_t _setIndex = ~0u;
+	std::vector<ResourceRef> _resourceRefs;
 };
 
 struct Pipeline : public RhiOwned {
 
 	virtual bool Init(std::span<std::shared_ptr<Shader>> shaders);
+
+	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
 
 	Shader *GetShader(ShaderKind kind);
 
@@ -60,5 +89,8 @@ struct Pipeline : public RhiOwned {
 	std::vector<ResourceSetDescription> _resourceSetDescriptions;
 };
 
+inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {
+	return &_pipeline->_resourceSetDescriptions[_setIndex];
+}
 
 }

@@ -16,7 +16,7 @@ struct GraphicsPassVk : public GraphicsPass {
 	bool InitRenderPass();
 	bool InitFramebuffer();
 
-	glm::uvec4 GetMinTargetSize();
+	glm::ivec4 GetMinTargetSize();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<GraphicsPassVk>(); }
 

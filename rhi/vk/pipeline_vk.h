@@ -24,6 +24,7 @@ struct DescriptorSetAllocatorVk {
 				Delete();
 				Swap(other);
 			}
+			return *this;
 		}
 
 		operator bool() const { return _allocator != nullptr; }
@@ -53,6 +54,7 @@ struct DescriptorSetAllocatorVk {
 	std::vector<vk::DescriptorPool> _pools;
 	uint32_t _lastUsedPool = 0;
 };
+using DescSetVk = DescriptorSetAllocatorVk::Set;
 
 struct ShaderVk : public Shader {
 	~ShaderVk() override;
@@ -65,6 +67,16 @@ struct ShaderVk : public Shader {
 	std::string _entryPoint = "main";
 };
 
+struct ResourceSetVk : public ResourceSet {
+	bool Init(Pipeline *pipeline, uint32_t setIndex) override;
+
+	bool Update() override;
+
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ResourceSetVk>(); }
+
+	DescSetVk _descSet;
+};
+
 struct PipelineVk : public Pipeline {
 	~PipelineVk() override;
 
@@ -72,11 +84,17 @@ struct PipelineVk : public Pipeline {
 
 	bool InitLayout();
 
+	std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) override;
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<PipelineVk>(); }
 
 	struct DescriptorSetData {
 		vk::DescriptorSetLayout _layout;
 		std::unique_ptr<DescriptorSetAllocatorVk> _allocator;
+
+		DescSetVk AllocateDescSet() {
+			return _allocator->Allocate(_layout);
+		}
 	};
 
 	vk::Pipeline _pipeline;

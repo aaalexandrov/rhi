@@ -15,8 +15,10 @@ static auto s_regTypes = TypeInfo::AddInitializer("texture_vk", [] {
 vk::ImageCreateFlags GetImageCreateFlags(ResourceDescriptor const &desc)
 {
 	vk::ImageCreateFlags flags = {};
-	if (desc._usage.cube)
+	if (desc.IsCube())
 		flags |= vk::ImageCreateFlagBits::eCubeCompatible;
+	if (GetImageType(desc._dimensions) == vk::ImageType::e3D)
+		flags |= vk::ImageCreateFlagBits::e2DArrayCompatible;
 	return flags;
 }
 
@@ -32,8 +34,9 @@ vk::ImageAspectFlags GetImageAspect(Format fmt)
 	return flags;
 }
 
-vk::ImageType GetImageType(glm::uvec4 dims)
+vk::ImageType GetImageType(glm::ivec4 dims)
 {
+	dims = ResourceDescriptor::GetNaturalDims(dims);
 	ASSERT(dims.x > 0);
 	if (dims.y == 0)
 		return vk::ImageType::e1D;
@@ -42,16 +45,18 @@ vk::ImageType GetImageType(glm::uvec4 dims)
 	return vk::ImageType::e3D;
 }
 
-vk::ImageViewType GetImageViewType(ResourceDescriptor const &desc)
+vk::ImageViewType GetImageViewType(glm::ivec4 dims)
 {
-	auto imgType = GetImageType(desc._dimensions);
-	bool isArray = desc._dimensions[3] > 0;
+	bool isCube = ResourceDescriptor::IsCube(dims);
+	dims = ResourceDescriptor::GetNaturalDims(dims);
+	auto imgType = GetImageType(dims);
+	bool isArray = dims[3] > 0;
 	switch (imgType) {
 		case vk::ImageType::e1D:
 			return isArray ? vk::ImageViewType::e1DArray : vk::ImageViewType::e1D;
 		case vk::ImageType::e2D:
-			if (desc._usage.cube)
-				return isArray ? vk::ImageViewType::eCubeArray : vk::ImageViewType::eCube;
+			if (isCube)
+				return dims[3] > 6 ? vk::ImageViewType::eCubeArray : vk::ImageViewType::eCube;
 			return isArray ? vk::ImageViewType::e2DArray : vk::ImageViewType::e2D;
 		default:
 			ASSERT(imgType == vk::ImageType::e3D);
@@ -126,14 +131,14 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 		return false;
 	auto rhi = static_cast<RhiVk*>(_rhi); 
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
-	auto dimNatural = glm::max(_descriptor._dimensions, glm::uvec4(1));
+	auto dimNatural = glm::max(_descriptor._dimensions, glm::ivec4(1));
 	vk::ImageCreateInfo imgInfo{
 		GetImageCreateFlags(_descriptor),
 		GetImageType(_descriptor._dimensions),
 		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
 		GetExtent3D(dimNatural),
-		_descriptor._mipLevels,
-		dimNatural[3],
+		(uint32_t)_descriptor._mipLevels,
+		(uint32_t)dimNatural[3],
 		vk::SampleCountFlagBits::e1,
 		_descriptor._usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal,
 		GetImageUsage(_descriptor._usage, _descriptor._format),
@@ -156,30 +161,9 @@ bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
 	ASSERT(!_vmaAlloc);
 	_image = image;
 	_owner = owner->weak_from_this();
-	InitView();
-	return true;
-}
-
-bool TextureVk::InitView()
-{
-	auto rhi = static_cast<RhiVk*>(_rhi);
-	vk::ImageViewCreateInfo viewInfo{
-		vk::ImageViewCreateFlags(),
-		_image,
-		GetImageViewType(_descriptor),
-		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
-		vk::ComponentMapping{vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity},
-		vk::ImageSubresourceRange{
-			GetImageAspect(_descriptor._format),
-			0,
-			_descriptor._mipLevels,
-			0,
-			std::max(_descriptor._dimensions[3], 1u)
-		},
-	};
-	if (rhi->_device.createImageView(&viewInfo, rhi->AllocCallbacks(), &_view) != vk::Result::eSuccess)
+	_view = CreateView(ResourceView::FromDescriptor(_descriptor));
+	if (!_view)
 		return false;
-
 	return true;
 }
 
@@ -210,6 +194,32 @@ ResourceStateVk TextureVk::GetState(ResourceUsage usage)
 	}
 
 	return state;
+}
+
+vk::ImageView TextureVk::CreateView(ResourceView const &view)
+{
+	glm::ivec4 viewDims = view._region.GetSize();
+	auto rhi = static_cast<RhiVk *>(_rhi);
+	vk::ImageViewCreateInfo viewInfo{
+		vk::ImageViewCreateFlags(),
+		_image,
+		GetImageViewType(viewDims),
+		s_vk2Format.ToSrc(view._format, vk::Format::eUndefined),
+		vk::ComponentMapping{vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity},
+		vk::ImageSubresourceRange{
+			GetImageAspect(view._format),
+			(uint32_t)view._mipRange._min,
+			(uint32_t)view._mipRange.GetSize(),
+			(uint32_t)view._region._min[3],
+			(uint32_t)std::max(viewDims[3], 1)
+		},
+	};
+	vk::ImageView imgView;
+	if (rhi->_device.createImageView(&viewInfo, rhi->AllocCallbacks(), &imgView) != vk::Result::eSuccess)
+		return vk::ImageView();
+
+
+	return imgView;
 }
 
 }

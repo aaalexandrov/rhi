@@ -11,10 +11,10 @@ struct TextureVk : public Texture, public ResourceVk {
 	bool Init(ResourceDescriptor const &desc) override;
 	bool Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner);
 
-	bool InitView();
-
 	ResourceTransitionVk GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage) override;
 	ResourceStateVk GetState(ResourceUsage usage);
+
+	vk::ImageView CreateView(ResourceView const &view);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<TextureVk>(); }
 
@@ -28,7 +28,7 @@ struct TextureVk : public Texture, public ResourceVk {
 vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat);
 vk::ImageLayout GetImageLayout(ResourceUsage usage);
 vk::ImageAspectFlags GetImageAspect(Format fmt);
-vk::ImageType GetImageType(glm::uvec4 dims);
-vk::ImageViewType GetImageViewType(ResourceDescriptor const &desc);
+vk::ImageType GetImageType(glm::ivec4 dims);
+vk::ImageViewType GetImageViewType(glm::ivec4 dims);
 
 }

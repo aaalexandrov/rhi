@@ -8,6 +8,9 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline", [] {
 	TypeInfo::Register<Shader>().Name("Shader")
 		.Base<RhiOwned>();
 
+	TypeInfo::Register<ResourceSet>().Name("ResourceSet")
+		.Base<utl::Any>();
+
 	TypeInfo::Register<Pipeline>().Name("Pipeline")
 		.Base<RhiOwned>();
 });
@@ -24,6 +27,60 @@ bool Shader::Load(std::string name, ShaderKind kind, std::vector<uint8_t> const 
 bool Shader::Load(std::string path, ShaderKind kind)
 {
 	return Load(utl::GetPathFilenameExt(path), kind, utl::ReadFile(path));
+}
+
+uint32_t ResourceSetDescription::GetNumEntries() const
+{
+	uint32_t numEntries = 0;
+	for (auto &res : _resources) {
+		numEntries += res._numEntries;
+	}
+	return numEntries;
+}
+
+bool ResourceSetDescription::Param::IsImage() const
+{
+	return _kind == ShaderParam::Texture || _kind == ShaderParam::UAVTexture;
+}
+
+bool ResourceSetDescription::Param::IsBuffer() const
+{
+	return _kind == ShaderParam::UniformBuffer || _kind == ShaderParam::UAVBuffer;
+}
+
+bool ResourceSet::Init(Pipeline *pipeline, uint32_t setIndex)
+{
+	ASSERT(!_pipeline);
+	_pipeline = pipeline;
+	_setIndex = setIndex;
+	_resourceRefs.resize(GetSetDescription()->GetNumEntries());
+
+	return true;
+}
+
+bool ResourceSet::Update()
+{
+	for (uint32_t i = 0; i < _resourceRefs.size(); ++i) {
+		if (!_resourceRefs[i].ValidateView()) {
+			ASSERT(0);
+			return false;
+		}
+	}
+	return true;
+}
+
+bool ResourceSet::Update(std::initializer_list<ResourceRef> resRefs)
+{
+	ASSERT(_resourceRefs.empty());
+
+	if (resRefs.size() != _resourceRefs.size()) {
+		ASSERT(0);
+		return false;
+	}
+
+	std::copy(resRefs.begin(), resRefs.end(), _resourceRefs.begin());
+
+	return Update();
 }
 
 bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)

@@ -5,6 +5,8 @@ namespace rhi {
 using utl::TypeInfo;
 using utl::Enum;
 
+struct Resource;
+
 union ResourceUsage {
 	struct {
 		uint32_t vb : 1;
@@ -20,7 +22,6 @@ union ResourceUsage {
 		uint32_t read : 1;
 		uint32_t write : 1;
 		uint32_t create : 1;
-		uint32_t cube : 1;
 	};
 	uint32_t _flags = 0;
 
@@ -64,6 +65,40 @@ enum class Format : int32_t {
 
 	DepthStencilFirst = DepthFirst,
 	DepthStencilLast = StencilLast,
+};
+
+struct ResourceDescriptor {
+	ResourceUsage _usage;
+	Format _format = Format::Invalid;
+	glm::ivec4 _dimensions{ 0 };
+	int8_t _mipLevels = 1;
+
+	void SetMaxMipLevels() { _mipLevels = GetMaxMipLevels(_dimensions); }
+	static uint8_t GetMaxMipLevels(glm::ivec3 dims);
+
+	glm::ivec4 GetNaturalDims() const { return GetNaturalDims(_dimensions); }
+	static glm::ivec4 GetNaturalDims(glm::ivec4 dims);
+
+	bool IsCube() const { return IsCube(_dimensions); }
+	static bool IsCube(glm::ivec4 dims);
+};
+
+struct ResourceView {
+	Format _format = Format::Invalid;
+	utl::Box4I _region = utl::Box4I::GetMaximum();
+	utl::IntervalI8 _mipRange = utl::IntervalI8::GetMaximum();
+
+	bool IsEmpty() const;
+	ResourceView GetIntersection(ResourceView const &other) const;
+	ResourceView GetIntersection(ResourceDescriptor &desc) const;
+	static ResourceView FromDescriptor(ResourceDescriptor const &desc);
+};
+
+struct ResourceRef {
+	std::shared_ptr<Resource> _resource;
+	ResourceView _view;
+
+	bool ValidateView();
 };
 
 inline bool IsDepth(Format fmt) {

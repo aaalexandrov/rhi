@@ -1,5 +1,7 @@
 #include "pipeline_vk.h"
 #include "rhi_vk.h"
+#include "buffer_vk.h"
+#include "texture_vk.h"
 
 #include "utl/mathutl.h"
 
@@ -12,6 +14,9 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline_vk", [] {
 	TypeInfo::Register<ShaderVk>().Name("ShaderVk")
 		.Base<Shader>()
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
+
+	TypeInfo::Register<ResourceSetVk>().Name("ResourceSetVk")
+		.Base<ResourceSet>();
 
 	TypeInfo::Register<PipelineVk>().Name("PipelineVk")
 		.Base<Pipeline>()
@@ -391,6 +396,92 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 	return true;
 }
 
+bool ResourceSetVk::Init(Pipeline *pipeline, uint32_t setIndex)
+{
+	if (!ResourceSet::Init(pipeline, setIndex))
+		return false;
+
+	auto pipeVk = static_cast<PipelineVk *>(_pipeline);
+	_descSet = pipeVk->_descriptorSetData[_setIndex].AllocateDescSet();
+
+	if (!_descSet)
+		return false;
+
+	return true;
+
+}
+
+bool ResourceSetVk::Update()
+{
+	if (!ResourceSet::Update())
+		return false;
+
+	auto pipeVk = static_cast<PipelineVk *>(_pipeline);
+	ResourceSetDescription const *setDescription = GetSetDescription();
+	ASSERT(_resourceRefs.size() == setDescription->GetNumEntries());
+
+	auto *rhi = static_cast<RhiVk *>(pipeVk->_rhi);
+	std::vector<vk::WriteDescriptorSet> writeRes;
+	// we pre-allocate the following arrays with worst-case size because we'll be storing pointers to their elements and we don't want them to get reallocated
+	std::vector<vk::DescriptorImageInfo> imgInfos(_resourceRefs.size());
+	std::vector<vk::DescriptorBufferInfo> bufInfos(_resourceRefs.size());
+	std::array<vk::BufferView, 0> noTexelInfos;
+	uint32_t resRefIdx = 0;
+	uint32_t curImgInfoCount = 0, curBufInfoCount = 0;
+	for (uint32_t i = 0; i < setDescription->_resources.size(); ++i) {
+		auto &res = setDescription->_resources[i];
+		for (uint32_t e = 0; e < res._numEntries; ++e) {
+			auto &resRef = _resourceRefs[resRefIdx + e];
+			if (res.IsBuffer()) {
+				BufferVk *bufVk = Cast<BufferVk>(resRef._resource.get());
+				if (!bufVk) {
+					ASSERT(0);
+					return false;
+				}
+				auto &bufInfo = bufInfos[curBufInfoCount + e];
+				bufInfo.buffer = bufVk->_buffer;
+				bufInfo.offset = resRef._view._region._min[0];
+				bufInfo.range = resRef._view._region.GetSize()[0];
+				if (bufInfo.offset + bufInfo.range > bufVk->GetSize()) {
+					ASSERT(0);
+					return false;
+				}
+			} else if (res.IsImage()) {
+				TextureVk *texVk = Cast<TextureVk>(resRef._resource.get());
+				if (!texVk) {
+					ASSERT(0);
+					return false;
+				}
+				auto &imgInfo = imgInfos[curImgInfoCount + e];
+				// TO DO: handle resource ref views
+				imgInfo.imageView = texVk->_view;
+				ASSERT(res._kind == ShaderParam::UAVTexture || res._kind == ShaderParam::Texture);
+				imgInfo.imageLayout = res._kind == ShaderParam::UAVTexture ? vk::ImageLayout::eGeneral : vk::ImageLayout::eShaderReadOnlyOptimal;
+			}
+		}
+		vk::WriteDescriptorSet write{
+			_descSet._set,
+			i, 
+			0,
+			res._numEntries,
+			GetDescriptorType(res._kind),
+			&imgInfos[curImgInfoCount],
+			&bufInfos[curBufInfoCount],
+			nullptr,
+		};
+		writeRes.push_back(write);
+
+		curImgInfoCount += res.IsImage() * res._numEntries;
+		curBufInfoCount += res.IsBuffer() * res._numEntries;
+		resRefIdx += res._numEntries;
+	}
+
+	std::array<vk::CopyDescriptorSet, 0> noCopies;
+	rhi->_device.updateDescriptorSets(writeRes, noCopies);
+
+	return true;
+}
+
 PipelineVk::~PipelineVk()
 {
 	auto rhi = static_cast<RhiVk *>(_rhi);
@@ -483,6 +574,14 @@ bool PipelineVk::InitLayout()
 		return false;
 
 	return true;
+}
+
+std::shared_ptr<ResourceSet> PipelineVk::AllocResourceSet(uint32_t setIndex)
+{
+	auto resSet = std::make_shared<ResourceSetVk>();
+	resSet->_pipeline = this;
+	resSet->_setIndex = setIndex;
+	return resSet;
 }
 
 

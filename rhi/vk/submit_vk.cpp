@@ -193,9 +193,9 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 			vk::ImageSubresourceRange subResRange{
 				GetImageAspect(texture->_descriptor._format),
 				0,
-				texture->_descriptor._mipLevels,
+				(uint32_t)texture->_descriptor._mipLevels,
 				0,
-				texture->_descriptor._dimensions[3]
+				(uint32_t)texture->_descriptor._dimensions[3]
 			};
 			imageSubResRanges.push_back(subResRange);
 			vk::ImageMemoryBarrier imgBarrier{
@@ -218,7 +218,7 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 				rhi->_universalQueue._family,
 				buffer->_buffer,
 				0,
-				buffer->_descriptor._dimensions[0],
+				(uint32_t)buffer->_descriptor._dimensions[0],
 			};
 			bufferBarriers.push_back(bufBarrier);
 		}
