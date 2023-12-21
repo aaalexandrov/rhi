@@ -22,18 +22,6 @@ vk::ImageCreateFlags GetImageCreateFlags(ResourceDescriptor const &desc)
 	return flags;
 }
 
-vk::ImageAspectFlags GetImageAspect(Format fmt)
-{
-	vk::ImageAspectFlags flags;
-	if (IsDepth(fmt))
-		flags |= vk::ImageAspectFlagBits::eDepth;
-	if (IsStencil(fmt))
-		flags |= vk::ImageAspectFlagBits::eStencil;
-	if (!flags)
-		flags = vk::ImageAspectFlagBits::eColor;
-	return flags;
-}
-
 vk::ImageType GetImageType(glm::ivec4 dims)
 {
 	dims = ResourceDescriptor::GetNaturalDims(dims);

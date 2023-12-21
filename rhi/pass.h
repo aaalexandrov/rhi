@@ -48,11 +48,21 @@ struct ComputePass : public Pass {
 };
 
 struct CopyPass : public Pass {
+	union CopyType {
+		struct {
+			int8_t srcTex : 1;
+			int8_t dstTex : 1;
+		};
+		int8_t _flags = 0;
+	};
 	struct CopyData {
 		ResourceRef _src, _dst;
+		CopyType GetCopyType() const;
 	};
 
 	virtual bool Copy(CopyData copy);
+
+	void EnumResources(ResourceEnum enumFn) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPass>(); }
 

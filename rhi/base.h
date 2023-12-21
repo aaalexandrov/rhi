@@ -79,6 +79,11 @@ static inline std::unordered_map<Format, TypeInfo const *> s_format2TypeInfo{ {
 		{ Format::S8, TypeInfo::Get<uint8_t>() },
 	} };
 
+uint32_t GetFormatSize(Format fmt);
+
+uint8_t GetMaxMipLevels(glm::ivec3 dims);
+glm::ivec3 GetMipLevelSize(glm::ivec3 dims, int32_t mipLevel);
+
 struct ResourceDescriptor {
 	ResourceUsage _usage;
 	Format _format = Format::Invalid;
@@ -86,7 +91,6 @@ struct ResourceDescriptor {
 	int8_t _mipLevels = 1;
 
 	void SetMaxMipLevels() { _mipLevels = GetMaxMipLevels(_dimensions); }
-	static uint8_t GetMaxMipLevels(glm::ivec3 dims);
 
 	glm::ivec4 GetNaturalDims() const { return GetNaturalDims(_dimensions); }
 	static glm::ivec4 GetNaturalDims(glm::ivec4 dims);

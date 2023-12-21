@@ -83,20 +83,36 @@ void ComputePass::EnumResources(ResourceEnum enumFn)
 
 bool CopyPass::Copy(CopyData copy)
 {
+	if (!copy._src._resource || !copy._dst._resource)
+		return false;
 	if (!copy._src.ValidateView() || !copy._dst.ValidateView())
 		return false;
 
-	if (copy._src._resource->GetTypeInfo() == copy._dst._resource->GetTypeInfo()) {
+	CopyType cpType = copy.GetCopyType();
+	if (cpType.srcTex == cpType.dstTex) {
 		glm::ivec4 regionSize = glm::min(copy._src._view._region.GetSize(), copy._dst._view._region.GetSize());
 		copy._src._view._region.SetSize(regionSize);
 		copy._dst._view._region.SetSize(regionSize);
-
-		int8_t mipRange = std::min(copy._src._view._mipRange.GetSize(), copy._dst._view._mipRange.GetSize());
-		copy._src._view._mipRange.SetSize(mipRange);
-		copy._dst._view._mipRange.SetSize(mipRange);
 	} else {
-		ASSERT(!"Unimplemented");
+		auto &refBuf = cpType.srcTex ? copy._dst : copy._src;
+		auto &refTex = cpType.srcTex ? copy._src : copy._dst;
+		uint32_t pixSize = GetFormatSize(refTex._view._format);
+		uint32_t rowSize = pixSize * refTex._view._region.GetSize()[0];
+		uint32_t sliceSize = rowSize * refTex._view._region.GetSize()[1];
+		// 3d images can't be arrays, so we take the size of either the 3rd dimension, or array slices, whichever is greater
+		uint32_t transferSize = sliceSize * std::max(refTex._view._region.GetSize()[2], refTex._view._region.GetSize()[3]);
+		// not enough buffer space for all requested pixels?
+		if (refBuf._view._region.GetSize()[0] < transferSize)
+			return false;
 	}
+
+	int8_t mipRange = std::min(copy._src._view._mipRange.GetSize(), copy._dst._view._mipRange.GetSize());
+	if (!cpType.srcTex || !cpType.dstTex) {
+		ASSERT(mipRange == 1 || !cpType.srcTex && !cpType.dstTex);
+		mipRange = std::min(mipRange, (int8_t)1);
+	}
+	copy._src._view._mipRange.SetSize(mipRange);
+	copy._dst._view._mipRange.SetSize(mipRange);
 
 	if (copy._src._view.IsEmpty() || copy._dst._view.IsEmpty())
 		return false;
@@ -104,6 +120,26 @@ bool CopyPass::Copy(CopyData copy)
 	_copies.push_back(std::move(copy));
 
 	return true;
+}
+
+void CopyPass::EnumResources(ResourceEnum enumFn)
+{
+	for (auto &copy : _copies) {
+		enumFn(copy._src._resource.get(), ResourceUsage{ .copySrc = 1, .read = 1  });
+		enumFn(copy._dst._resource.get(), ResourceUsage{ .copyDst = 1, .write = 1 });
+	}
+}
+
+auto CopyPass::CopyData::GetCopyType() const -> CopyType
+{
+	CopyType cpType{
+		.srcTex = Cast<Texture>(_src._resource.get()) != nullptr,
+		.dstTex = Cast<Texture>(_dst._resource.get()) != nullptr,
+	};
+	ASSERT(cpType.srcTex == int8_t(Cast<Buffer>(_src._resource.get()) == nullptr));
+	ASSERT(cpType.dstTex == int8_t(Cast<Buffer>(_dst._resource.get()) == nullptr));
+
+	return cpType;
 }
 
 }

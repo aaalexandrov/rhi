@@ -132,6 +132,8 @@ struct TypeInfo {
 	ptrdiff_t GetBaseOffset(TypeInfo const *base) const;
 	Variable GetMemberData(std::string name) const;
 
+	size_t GetArraySize() const { return _arraySize; }
+
 	AnyValue const *GetMetadata(std::string name) const;
 	void const *GetMetadata(std::string name, TypeInfo const *type) const {
 		AnyValue const *val = GetMetadata(name);
@@ -161,6 +163,34 @@ struct TypeInfo {
 	template <typename T>
 	T *CastAs(void *instance) const {
 		return (T*)CastAs(Get<T>(), instance);
+	}
+
+	size_t GetMemberArraySize(std::string name) const {
+		Variable member = GetMemberData(name);
+		return member._type ? member._type->GetArraySize() : 0;
+	}
+
+	void *GetMemberPtr(TypeInfo const *type, void *instance, std::string name, size_t index = ~0ull) const {
+		Variable member = GetMemberData(name);
+		if (!member._type || !instance)
+			return nullptr;
+		if (member._type->_isArray) {
+			TypeInfo const *elemType = member._type->_bases[0]._type;
+			ptrdiff_t typeOffs = type ? elemType->GetBaseOffset(type) : 0;
+			if (typeOffs < 0)
+				return nullptr;
+			if (index >= member._type->GetArraySize())
+				return nullptr;
+			return (uint8_t *)instance + member._offset + index * elemType->_size + typeOffs;
+		}
+		ptrdiff_t typeOffs = type ? member._type->GetBaseOffset(type) : 0;
+		if (typeOffs < 0)
+			return nullptr;
+		return (uint8_t *)instance + member._offset + typeOffs;
+	}
+	template <typename T>
+	T *GetMemberPtr(void *instance, std::string name, size_t index = ~0ull) const {
+		return (T*)GetMemberPtr(Get<T>(), instance, name);
 	}
 
 	void *Construct(void *at, bool allocate) const;

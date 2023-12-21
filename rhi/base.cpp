@@ -12,14 +12,6 @@ static auto s_regTypes = TypeInfo::AddInitializer("type_info", [] {
 });
 
 
-uint8_t ResourceDescriptor::GetMaxMipLevels(glm::ivec3 dims)
-{
-	uint32_t maxDim = utl::VecMaxElem(dims);
-	auto numBits = std::bit_width(maxDim);
-	ASSERT(maxDim > numBits == 1);
-	return numBits;
-}
-
 glm::ivec4 ResourceDescriptor::GetNaturalDims(glm::ivec4 dims)
 {
 	return IsCube(dims) ? glm::ivec4(dims.x, dims.y, 0, dims.w) : dims;
@@ -95,6 +87,30 @@ bool ResourceRef::ValidateView()
 		return false;
 
 	return true;
+}
+
+uint32_t GetFormatSize(Format fmt)
+{
+	TypeInfo const *type = s_format2TypeInfo[fmt];
+	return type ? sizeof(type) : 0;
+}
+
+uint8_t GetMaxMipLevels(glm::ivec3 dims)
+{
+	uint32_t maxDim = utl::VecMaxElem(dims);
+	auto numBits = std::bit_width(maxDim);
+	ASSERT(maxDim > int(numBits == 1));
+	return numBits;
+}
+
+glm::ivec3 GetMipLevelSize(glm::ivec3 dims, int32_t mipLevel)
+{
+	glm::ivec3 mipSize = dims >> mipLevel;
+	if (all(lessThanEqual(mipSize, glm::ivec3(0))))
+		return glm::ivec3(0);
+	glm::ivec3 nonZero = glm::greaterThan(dims, glm::ivec3(0));
+	mipSize = glm::max(mipSize, nonZero);
+	return mipSize;
 }
 
 }

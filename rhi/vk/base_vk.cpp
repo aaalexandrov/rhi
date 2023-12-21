@@ -199,4 +199,28 @@ ResourceUsage GetUsageFromFormatFeatures(vk::FormatFeatureFlags fmtFlags)
     return usage;
 }
 
+vk::ImageAspectFlags GetImageAspect(Format fmt)
+{
+    vk::ImageAspectFlags flags;
+    if (IsDepth(fmt))
+        flags |= vk::ImageAspectFlagBits::eDepth;
+    if (IsStencil(fmt))
+        flags |= vk::ImageAspectFlagBits::eStencil;
+    if (!flags)
+        flags = vk::ImageAspectFlagBits::eColor;
+    return flags;
+}
+
+vk::ImageSubresourceLayers GetImageSubresourceLayers(ResourceView const &view, uint32_t mipLevel)
+{
+    if (mipLevel == ~0u)
+        mipLevel = view._mipRange._min;
+    return vk::ImageSubresourceLayers{
+        GetImageAspect(view._format),
+        mipLevel,
+        (uint32_t)view._region._min[3],
+        (uint32_t)view._region.GetSize()[3],
+    };
+}
+
 }

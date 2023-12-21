@@ -128,7 +128,7 @@ ptrdiff_t TypeInfo::GetBaseOffset(TypeInfo const *base) const
 {
 	if (base == this)
 		return 0;
-	if (_isPointer != base->_isPointer || _isArray != base->_isArray)
+	if (!base || _isPointer != base->_isPointer || _isArray != base->_isArray)
 		return -1;
 	if (_isArray) // arrays need to match exactly
 		return -1;
