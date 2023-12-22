@@ -50,10 +50,10 @@ struct ComputePass : public Pass {
 struct CopyPass : public Pass {
 	union CopyType {
 		struct {
-			int8_t srcTex : 1;
-			int8_t dstTex : 1;
+			uint8_t srcTex : 1;
+			uint8_t dstTex : 1;
 		};
-		int8_t _flags = 0;
+		uint8_t _flags = 0;
 	};
 	struct CopyData {
 		ResourceRef _src, _dst;

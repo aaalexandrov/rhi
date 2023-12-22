@@ -81,11 +81,59 @@ static bool s_testTypes = [] {
 	auto tpArrInt2 = TypeInfo::Get<std::array<int, 2>>();
 	auto tVoid = TypeInfo::Get<void>();
 
+	auto tvec4 = TypeInfo::Get<glm::vec4>();
+
 	AnyValue aInt = AnyValue::New<int>(5);
 
 	return true;
 }();
 
+
+void *AnyRef::Get(TypeInfo const *type)
+{
+	if (!_type || !_instance)
+		return nullptr;
+	if (!type)
+		type = _type;
+	ptrdiff_t typeOffs = _type->GetBaseOffset(type);
+	if (typeOffs < 0)
+		return nullptr;
+	return (uint8_t *)_instance + typeOffs;
+}
+
+size_t AnyRef::GetArraySize() const
+{
+	if (!_type || !_instance)
+		return 0;
+	return _type->GetArraySize();
+}
+
+AnyRef AnyRef::GetArrayElement(size_t index)
+{
+	if (!_type || !_instance)
+		return AnyRef();
+	if (index >= _type->GetArraySize())
+		return AnyRef();
+	ASSERT(_type->_bases[0]._offset == 0);
+	TypeInfo const *elemType = _type->_bases[0]._type;
+	return AnyRef{
+		._type = elemType,
+		._instance = (uint8_t*)_instance + index * elemType->_size,
+	};
+}
+
+AnyRef AnyRef::GetMember(std::string name)
+{
+	if (!_type || !_instance)
+		return AnyRef();
+	TypeInfo::Variable member = _type->GetMemberData(name);
+	if (!member._type)
+		return AnyRef();
+	return AnyRef{
+		._type = member._type,
+		._instance = (uint8_t*)_instance + member._offset,
+	};
+}
 
 void AnyValue::Clear()
 {
@@ -108,7 +156,7 @@ void *AnyValue::Get(TypeInfo const *type)
 	if (typeOffs < 0)
 		return nullptr;
 	uint8_t *ptr = nullptr;
-	if (_type->_size <= _storage.size() && ((size_t)_storage.data() % _type->_align) == 0)
+	if (CanUseInternalStorage())
 		ptr = _storage.data();
 	else
 		ptr = *(uint8_t **)_storage.data();
@@ -257,5 +305,6 @@ inline void TypeInfo::Registry::ClearTypes()
 	}
 	_typesByName.clear();
 }
+
 
 }

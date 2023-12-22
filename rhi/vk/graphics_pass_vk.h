@@ -8,6 +8,7 @@ namespace rhi {
 struct GraphicsPassVk : public GraphicsPass {
 	~GraphicsPassVk() override;
 
+	bool InitRhi(Rhi *rhi, std::string name) override;
 	bool Init(std::span<TargetData> rts) override;
 
 	bool Prepare(Submission *sub) override;

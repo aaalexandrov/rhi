@@ -28,6 +28,17 @@ bool Resource::Init(ResourceDescriptor const &desc)
 	return true;
 }
 
+bool Buffer::Init(ResourceDescriptor const &desc)
+{
+	if (!Resource::Init(desc))
+		return false;
+	ASSERT(_descriptor._dimensions[0] > 0);
+	_descriptor._dimensions = glm::ivec4(_descriptor._dimensions[0], 0, 0, 0);
+	_descriptor._mipLevels = 0;
+
+	return true;
+}
+
 bool Texture::Init(ResourceDescriptor const &desc)
 {
 	if (!Resource::Init(desc))
@@ -48,7 +59,7 @@ bool Sampler::Init(SamplerDescriptor const &desc)
 bool Swapchain::Init(SwapchainDescriptor const &desc)
 {
 	_descriptor = desc;
-	_descriptor._dimensions[3] = std::max(_descriptor._dimensions[3], 1);
+	_descriptor._dimensions[3] = std::max(_descriptor._dimensions[3], 0);
 	_descriptor._usage.present = 1;
 	if (!_descriptor._window) {
 		ASSERT(0);

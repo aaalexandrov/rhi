@@ -24,9 +24,16 @@ bool ResourceDescriptor::IsCube(glm::ivec4 dims)
 }
 
 
-bool ResourceView::IsEmpty() const
+bool ResourceView::IsValidFor(ResourceDescriptor const &desc) const
 {
-	return _region.IsEmpty() || _mipRange.IsEmpty();
+	glm::bvec4 descEmptyDims = lessThanEqual(desc._dimensions, glm::ivec4(0));
+	glm::bvec4 regionEmptyDims = lessThanEqual(_region.GetSize(), glm::ivec4(0));
+	if (descEmptyDims != regionEmptyDims)
+		return false;
+	if (_mipRange.IsEmpty() != (desc._mipLevels <= 0))
+		return false;
+
+	return true;
 }
 
 ResourceView ResourceView::GetIntersection(ResourceView const &other) const
@@ -83,10 +90,14 @@ bool ResourceRef::ValidateView()
 
 	_view = _view.GetIntersection(_resource->_descriptor);
 
-	if (_view.IsEmpty())
-		return false;
+	return IsViewValid();
+}
 
-	return true;
+bool ResourceRef::IsViewValid()
+{
+	if (!_resource)
+		return false;
+	return _view.IsValidFor(_resource->_descriptor);
 }
 
 uint32_t GetFormatSize(Format fmt)

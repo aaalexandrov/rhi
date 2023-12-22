@@ -114,7 +114,7 @@ bool CopyPass::Copy(CopyData copy)
 	copy._src._view._mipRange.SetSize(mipRange);
 	copy._dst._view._mipRange.SetSize(mipRange);
 
-	if (copy._src._view.IsEmpty() || copy._dst._view.IsEmpty())
+	if (!copy._src.IsViewValid() || !copy._dst.IsViewValid())
 		return false;
 
 	_copies.push_back(std::move(copy));
@@ -136,8 +136,8 @@ auto CopyPass::CopyData::GetCopyType() const -> CopyType
 		.srcTex = Cast<Texture>(_src._resource.get()) != nullptr,
 		.dstTex = Cast<Texture>(_dst._resource.get()) != nullptr,
 	};
-	ASSERT(cpType.srcTex == int8_t(Cast<Buffer>(_src._resource.get()) == nullptr));
-	ASSERT(cpType.dstTex == int8_t(Cast<Buffer>(_dst._resource.get()) == nullptr));
+	ASSERT(cpType.srcTex == (Cast<Buffer>(_src._resource.get()) == nullptr));
+	ASSERT(cpType.dstTex == (Cast<Buffer>(_dst._resource.get()) == nullptr));
 
 	return cpType;
 }

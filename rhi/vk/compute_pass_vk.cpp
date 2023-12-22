@@ -12,6 +12,18 @@ static auto s_regTypes = TypeInfo::AddInitializer("compute_pass_vk", [] {
 });
 
 
+bool ComputePassVk::InitRhi(Rhi *rhi, std::string name)
+{
+	if (!ComputePass::InitRhi(rhi, name))
+		return false;
+
+	auto rhiVk = static_cast<RhiVk *>(_rhi);
+	if (!_recorder.Init(rhiVk, rhiVk->_universalQueue._family))
+		return false;
+
+	return true;
+}
+
 bool ComputePassVk::Prepare(Submission *sub)
 {
 	ASSERT(all(greaterThan(_pipeline->GetComputeGroupSize(), glm::ivec3(0))));
@@ -33,7 +45,7 @@ bool ComputePassVk::Prepare(Submission *sub)
 
 	cmds.dispatch(_numGroups.x, _numGroups.y, _numGroups.z);
 
-	if (_recorder.EndCmds(cmds))
+	if (!_recorder.EndCmds(cmds))
 		return false;
 
 	return true;

@@ -85,8 +85,6 @@ bool ResourceSet::Update()
 
 bool ResourceSet::Update(std::initializer_list<ResourceRef> resRefs)
 {
-	ASSERT(_resourceRefs.empty());
-
 	if (resRefs.size() != _resourceRefs.size()) {
 		ASSERT(0);
 		return false;

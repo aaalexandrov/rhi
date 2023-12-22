@@ -19,13 +19,21 @@ GraphicsPassVk::~GraphicsPassVk()
 	rhi->_device.destroyRenderPass(_renderPass, rhi->AllocCallbacks());
 }
 
+bool GraphicsPassVk::InitRhi(Rhi *rhi, std::string name)
+{
+	if (!GraphicsPass::InitRhi(rhi, name))
+		return false;
+
+	auto rhiVk = static_cast<RhiVk *>(_rhi);
+	if (!_recorder.Init(rhiVk, rhiVk->_universalQueue._family))
+		return false;
+
+	return true;
+}
+
 bool GraphicsPassVk::Init(std::span<TargetData> rts)
 {
 	if (!GraphicsPass::Init(rts))
-		return false;
-
-	auto rhi = static_cast<RhiVk*>(_rhi);
-	if (!_recorder.Init(rhi, rhi->_universalQueue._family))
 		return false;
 
 	if (!InitRenderPass())

@@ -84,10 +84,11 @@ int main()
 	ASSERT(res);
 
 	auto mapped = genUniform->Map();
-	auto *blockSize = uniformParam._type->GetMemberPtr<glm::ivec2>(mapped.data(), "blockSize");
+	utl::AnyRef block{ uniformParam._type, mapped.data() };
+	auto *blockSize = block.GetMember("blockSize").Get<glm::ivec2>();
 	*blockSize = glm::ivec2(16, 32);
-	glm::vec4 *blockColors = uniformParam._type->GetMemberPtr<glm::vec4>(mapped.data(), "blockColors", 0);
-	ASSERT(uniformParam._type->GetMemberArraySize("blockColors") == 2);
+	glm::vec4 *blockColors = block.GetMember("blockColors").GetArrayElement(0).Get<glm::vec4>();
+	ASSERT(block.GetMember("blockColors").GetArraySize() == 2);
 	blockColors[0] = glm::vec4(1, 0, 0, 1);
 	blockColors[1] = glm::vec4(0, 1, 0, 1);
 	genUniform->Unmap();

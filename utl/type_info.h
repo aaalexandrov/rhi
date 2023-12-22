@@ -6,7 +6,31 @@
 namespace utl {
 
 struct TypeInfo;
-struct alignas(std::max_align_t) AnyValue {
+struct AnyRef {
+	TypeInfo const *_type = nullptr;
+	void *_instance = nullptr;
+
+	operator bool() const {
+		return _type && _instance;
+	}
+
+	void *Get(TypeInfo const *type = nullptr);
+	template <typename T>
+	T *Get();
+
+	template <typename T>
+	void Set(T &val);
+
+	size_t GetArraySize() const;
+
+	AnyRef GetArrayElement(size_t index);
+	AnyRef GetMember(std::string name);
+
+	template <typename T>
+	static AnyRef From(T &val);
+};
+
+struct alignas(16) AnyValue {
 	static constexpr size_t StorageSize = 16;
 	std::array<uint8_t, StorageSize> _storage = {};
 	TypeInfo const *_type = nullptr;
@@ -37,6 +61,8 @@ struct alignas(std::max_align_t) AnyValue {
 
 	template <typename T>
 	AnyValue &Set(T &&val);
+
+	bool CanUseInternalStorage() const;
 
 	template <typename T>
 	static AnyValue New(T &&val) {
@@ -163,34 +189,6 @@ struct TypeInfo {
 	template <typename T>
 	T *CastAs(void *instance) const {
 		return (T*)CastAs(Get<T>(), instance);
-	}
-
-	size_t GetMemberArraySize(std::string name) const {
-		Variable member = GetMemberData(name);
-		return member._type ? member._type->GetArraySize() : 0;
-	}
-
-	void *GetMemberPtr(TypeInfo const *type, void *instance, std::string name, size_t index = ~0ull) const {
-		Variable member = GetMemberData(name);
-		if (!member._type || !instance)
-			return nullptr;
-		if (member._type->_isArray) {
-			TypeInfo const *elemType = member._type->_bases[0]._type;
-			ptrdiff_t typeOffs = type ? elemType->GetBaseOffset(type) : 0;
-			if (typeOffs < 0)
-				return nullptr;
-			if (index >= member._type->GetArraySize())
-				return nullptr;
-			return (uint8_t *)instance + member._offset + index * elemType->_size + typeOffs;
-		}
-		ptrdiff_t typeOffs = type ? member._type->GetBaseOffset(type) : 0;
-		if (typeOffs < 0)
-			return nullptr;
-		return (uint8_t *)instance + member._offset + typeOffs;
-	}
-	template <typename T>
-	T *GetMemberPtr(void *instance, std::string name, size_t index = ~0ull) const {
-		return (T*)GetMemberPtr(Get<T>(), instance, name);
 	}
 
 	void *Construct(void *at, bool allocate) const;
@@ -368,10 +366,38 @@ inline auto TypeInfo::AddInitializer(char const *id, Initializer fnInitializer)
 	return s_registry.AddInitializer(id, fnInitializer);
 }
 
+
+template<typename T>
+inline T *AnyRef::Get()
+{
+	return (T *)Get(TypeInfo::Get<T>());
+}
+
+template<typename T>
+inline void AnyRef::Set(T &val)
+{
+	_type = TypeInfo::Get<T>();
+	_instance = &val;
+}
+
+template<typename T>
+inline AnyRef AnyRef::From(T &val)
+{
+	return AnyRef{
+		._type = TypeInfo::Get<T>(),
+		._instance = &val 
+	};
+}
+
 template<typename T>
 inline T *AnyValue::Get()
 {
 	return (T*)Get(TypeInfo::Get<T>());
+}
+
+inline bool AnyValue::CanUseInternalStorage() const 
+{
+	return _type->_isTrivial && _type->_size <= _storage.size() && ((size_t)_storage.data() % _type->_align) == 0; 
 }
 
 template<typename T>
@@ -381,7 +407,7 @@ inline AnyValue &AnyValue::Set(T &&val)
 	Clear();
 	_type = TypeInfo::Get<T>();
 	T *ptr = nullptr;
-	if (_type->_size <= _storage.size() && ((size_t)_storage.data() % _type->_align) == 0) {
+	if (CanUseInternalStorage()) {
 		ptr = (T *)_storage.data();
 	} else {
 		ptr = (T*)malloc(_type->_size);

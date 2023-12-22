@@ -104,7 +104,7 @@ struct ResourceView {
 	utl::Box4I _region = utl::Box4I::GetMaximum();
 	utl::IntervalI8 _mipRange = utl::IntervalI8::GetMaximum();
 
-	bool IsEmpty() const;
+	bool IsValidFor(ResourceDescriptor const &desc) const;
 	ResourceView GetIntersection(ResourceView const &other) const;
 	ResourceView GetIntersection(ResourceDescriptor &desc) const;
 	static ResourceView FromDescriptor(ResourceDescriptor const &desc);
@@ -117,6 +117,7 @@ struct ResourceRef {
 	ResourceView _view;
 
 	bool ValidateView();
+	bool IsViewValid();
 };
 
 inline bool IsDepth(Format fmt) {

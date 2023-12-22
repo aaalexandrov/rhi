@@ -195,7 +195,7 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 				0,
 				(uint32_t)texture->_descriptor._mipLevels,
 				0,
-				(uint32_t)texture->_descriptor._dimensions[3]
+				std::max((uint32_t)texture->_descriptor._dimensions[3], 1u)
 			};
 			imageSubResRanges.push_back(subResRange);
 			vk::ImageMemoryBarrier imgBarrier{

@@ -76,7 +76,7 @@ vk::ImageLayout GetImageLayout(ResourceUsage usage)
 	if (usage.copySrc)
 		return vk::ImageLayout::eTransferSrcOptimal;
 	if (usage.copyDst)
-		return vk::ImageLayout::eTransferSrcOptimal;
+		return vk::ImageLayout::eTransferDstOptimal;
 	if (usage.present)
 		return vk::ImageLayout::ePresentSrcKHR;
 	ASSERT(0);
@@ -107,14 +107,13 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 		return false;
 	auto rhi = static_cast<RhiVk*>(_rhi); 
 	auto queueFamilies = rhi->GetQueueFamilyIndices(_descriptor._usage);
-	auto dimNatural = glm::max(_descriptor._dimensions, glm::ivec4(1));
 	vk::ImageCreateInfo imgInfo{
 		GetImageCreateFlags(_descriptor),
 		GetImageType(_descriptor._dimensions),
 		s_vk2Format.ToSrc(_descriptor._format, vk::Format::eUndefined),
-		GetExtent3D(dimNatural),
+		GetExtent3D(_descriptor._dimensions),
 		(uint32_t)_descriptor._mipLevels,
-		(uint32_t)dimNatural[3],
+		glm::max((uint32_t)_descriptor._dimensions[3], 1u),
 		vk::SampleCountFlagBits::e1,
 		_descriptor._usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal,
 		GetImageUsage(_descriptor._usage, _descriptor._format),
@@ -125,6 +124,10 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 	};
 	VmaAllocationCreateInfo allocInfo = rhi->GetVmaAllocCreateInfo(this);
 	if ((vk::Result)vmaCreateImage(rhi->_vma, (VkImageCreateInfo *)&imgInfo, &allocInfo, (VkImage *)&_image, &_vmaAlloc, nullptr) != vk::Result::eSuccess)
+		return false;
+
+	_view = CreateView(ResourceView::FromDescriptor(_descriptor));
+	if (!_view)
 		return false;
 
 	return true;

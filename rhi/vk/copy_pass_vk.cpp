@@ -12,6 +12,18 @@ static auto s_regTypes = TypeInfo::AddInitializer("copy_pass_vk", [] {
 });
 
 
+bool CopyPassVk::InitRhi(Rhi *rhi, std::string name)
+{
+	if (!CopyPass::InitRhi(rhi, name))
+		return false;
+
+	auto rhiVk = static_cast<RhiVk *>(_rhi);
+	if (!_recorder.Init(rhiVk, rhiVk->_universalQueue._family))
+		return false;
+
+	return true;
+}
+
 bool CopyPassVk::Prepare(Submission *sub)
 {
 	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
@@ -64,6 +76,8 @@ void CopyPassVk::CopyTexToTex(CopyData &copy)
 	vk::CommandBuffer cmds = _recorder._cmdBuffers.back();
 	std::vector<vk::ImageCopy> regions;
 	ASSERT(copy._src._view._region.GetSize() == copy._dst._view._region.GetSize());
+	ASSERT(copy._src._view._mipRange.GetSize() == copy._dst._view._mipRange.GetSize());
+	ASSERT(copy._src._view._mipRange.GetSize() > 0);
 	for (uint32_t mipLevel = copy._src._view._mipRange._min; mipLevel <= copy._src._view._mipRange._max; ++mipLevel) {
 		int32_t reduction = mipLevel - copy._src._view._mipRange._min;
 		glm::ivec3 srcOffs = GetMipLevelSize(copy._src._view._region._min, reduction);

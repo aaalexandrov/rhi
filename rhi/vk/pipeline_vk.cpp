@@ -424,6 +424,8 @@ bool ResourceSetVk::Update()
 	if (!ResourceSet::Update())
 		return false;
 
+	ASSERT(_descSet);
+
 	auto pipeVk = static_cast<PipelineVk *>(_pipeline);
 	ResourceSetDescription const *setDescription = GetSetDescription();
 	ASSERT(_resourceRefs.size() == setDescription->GetNumEntries());
@@ -463,6 +465,7 @@ bool ResourceSetVk::Update()
 				auto &imgInfo = imgInfos[curImgInfoCount + e];
 				// TO DO: handle resource ref views
 				imgInfo.imageView = texVk->_view;
+				ASSERT(imgInfo.imageView);
 				ASSERT(res._kind == ShaderParam::UAVTexture || res._kind == ShaderParam::Texture);
 				imgInfo.imageLayout = res._kind == ShaderParam::UAVTexture ? vk::ImageLayout::eGeneral : vk::ImageLayout::eShaderReadOnlyOptimal;
 			}
@@ -473,8 +476,8 @@ bool ResourceSetVk::Update()
 			0,
 			res._numEntries,
 			GetDescriptorType(res._kind),
-			&imgInfos[curImgInfoCount],
-			&bufInfos[curBufInfoCount],
+			res.IsImage() ? &imgInfos[curImgInfoCount] : nullptr,
+			res.IsBuffer() ? &bufInfos[curBufInfoCount] : nullptr,
 			nullptr,
 		};
 		writeRes.push_back(write);
@@ -587,8 +590,8 @@ bool PipelineVk::InitLayout()
 std::shared_ptr<ResourceSet> PipelineVk::AllocResourceSet(uint32_t setIndex)
 {
 	auto resSet = std::make_shared<ResourceSetVk>();
-	resSet->_pipeline = this;
-	resSet->_setIndex = setIndex;
+	if (!resSet->Init(this, setIndex))
+		return std::shared_ptr<ResourceSet>();
 	return resSet;
 }
 

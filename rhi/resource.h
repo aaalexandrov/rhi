@@ -34,6 +34,8 @@ struct Resource : public RhiOwned {
 
 struct Buffer : public Resource {
 
+	bool Init(ResourceDescriptor const &desc) override;
+
 	size_t GetSize() const { return _descriptor._dimensions[0]; }
 
 	virtual std::span<uint8_t> Map() = 0;

@@ -141,9 +141,6 @@ vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage)
     if (usage.srv)
         flags |=
             vk::PipelineStageFlagBits::eVertexShader |
-            vk::PipelineStageFlagBits::eTessellationControlShader |
-            vk::PipelineStageFlagBits::eTessellationEvaluationShader |
-            vk::PipelineStageFlagBits::eGeometryShader |
             vk::PipelineStageFlagBits::eFragmentShader |
             vk::PipelineStageFlagBits::eComputeShader;
     if (usage.copySrc | usage.copyDst | usage.present)
@@ -219,7 +216,7 @@ vk::ImageSubresourceLayers GetImageSubresourceLayers(ResourceView const &view, u
         GetImageAspect(view._format),
         mipLevel,
         (uint32_t)view._region._min[3],
-        (uint32_t)view._region.GetSize()[3],
+        std::max((uint32_t)view._region.GetSize()[3], 1u),
     };
 }
 
