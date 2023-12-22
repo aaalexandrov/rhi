@@ -5,7 +5,7 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout (set = 0, binding = 0, std140) uniform UniformData {
     vec4 blockColors[2];
     ivec2 blockSize;
-};
+} Uniforms;
 
 layout (set = 0, binding = 1, rgba8) uniform image2D Output;
 
@@ -13,8 +13,8 @@ void main() {
     ivec2 pixCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outputSize = imageSize(Output);
 
-    ivec2 block = pixCoord / blockSize;
-    vec4 color = blockColors[(block.x + block.y) % 2];
+    ivec2 block = pixCoord / Uniforms.blockSize;
+    vec4 color = Uniforms.blockColors[(block.x + block.y) % 2];
 
     imageStore(Output, pixCoord, color);
 }

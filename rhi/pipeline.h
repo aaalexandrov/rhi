@@ -94,6 +94,7 @@ struct Pipeline : public RhiOwned {
 
 	std::vector<std::shared_ptr<Shader>> _shaders;
 	std::vector<ResourceSetDescription> _resourceSetDescriptions;
+	std::unique_ptr<RenderState> _renderState;
 };
 
 inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {

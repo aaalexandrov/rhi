@@ -86,9 +86,41 @@ auto &GetFromVec(Vec &vec, size_t ind) {
 	return vec[ind];
 }
 
+template <typename Type>
+size_t GetHash(Type const &val, size_t prevHash = 0)
+{
+	return 31 * prevHash + std::hash<Type>()(val);
+}
+
 } // utl
 
 namespace std {
+
+template <typename ElemType, size_t Size>
+struct hash<array<ElemType, Size>> {
+	auto operator() (array<ElemType, Size> const &key) const
+	{
+		std::hash<ElemType> hasher;
+		size_t result = 0;
+		for (size_t i = 0; i < Size; ++i) {
+			result = result * 31 + hasher(key[i]);
+		}
+		return result;
+	}
+};
+
+template <typename ElemType>
+struct hash<vector<ElemType>> {
+	auto operator() (vector<ElemType> const &key) const
+	{
+		std::hash<ElemType> hasher;
+		size_t result = 0;
+		for (size_t i = 0; i < key.size(); ++i) {
+			result = result * 31 + hasher(key[i]);
+		}
+		return result;
+	}
+};
 
 template <typename A, typename B>
 struct hash<pair<A, B>> {

@@ -5,6 +5,7 @@
 namespace rhi {
 
 struct Resource;
+struct Buffer;
 struct Texture;
 struct Submission;
 struct Pipeline;
@@ -26,13 +27,25 @@ struct GraphicsPass : public Pass {
 		glm::vec4 _clearValue{ -1 };
 	};
 
+	struct DrawData {
+		Pipeline *_pipeline;
+		std::span<std::shared_ptr<ResourceSet>> _resourceSets;
+		std::span<std::shared_ptr<Buffer>> _vertexStreams;
+		std::shared_ptr<Buffer> _indices;
+	};
+
 	virtual bool Init(std::span<TargetData> rts);
+
+	virtual bool Draw(DrawData const &draw);
 
 	void EnumResources(ResourceEnum enumFn) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<GraphicsPass>(); }
 
 	std::vector<TargetData> _renderTargets;
+	std::unordered_set<std::shared_ptr<Pipeline>> _pipelines;
+	std::unordered_set<std::shared_ptr<ResourceSet>> _resourceSets;
+
 };
 
 struct ComputePass : public Pass {

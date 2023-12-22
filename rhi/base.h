@@ -177,6 +177,156 @@ enum class CompareOp : int8_t {
 	Always,
 };
 
+enum class StencilOp {
+	Keep,
+	Zero,
+	Replace,
+	IncrementAndClamp,
+	DecrementAndClamp,
+	Invert,
+	IncrementAndWrap,
+	DecrementAndWrap,
+};
+
+enum class BlendOp
+{
+	Add,
+	Subtract,
+	ReverseSubtract,
+	Min,
+	Max,
+};
+
+enum class BlendFactor
+{
+	Zero,
+	One,
+	SrcColor,
+	OneMinusSrcColor,
+	DstColor,
+	OneMinusDstColor,
+	SrcAlpha,
+	OneMinusSrcAlpha,
+	DstAlpha,
+	OneMinusDstAlpha,
+	ConstantColor,
+	OneMinusConstantColor,
+	ConstantAlpha,
+	OneMinusConstantAlpha,
+	SrcAlphaSaturate,
+	Src1Color,
+	OneMinusSrc1Color,
+	Src1Alpha,
+	OneMinusSrc1Alpha,
+};
+
+enum class ColorComponentMask
+{
+	None,
+	R = 1,
+	G = 2,
+	B = 4,
+	A = 8,
+	RGBA = 15,
+};
+
+DEFINE_ENUM_BIT_OPERATORS(ColorComponentMask)
+
+
+enum class FrontFaceMode {
+	CCW,
+	CW,
+};
+
+enum class CullMask {
+	None,
+	Front = 1,
+	Back = 2,
+	FrontAndBack = 3,
+};
+
+
+struct Viewport {
+	utl::RectF _rect{ glm::vec2(0), glm::vec2(-1) };
+	float _minDepth = 0, _maxDepth = 0;
+
+	size_t GetHash() const;
+	bool operator==(Viewport const &other) const;
+};
+
+struct CullState {
+	FrontFaceMode _front = FrontFaceMode::CCW;
+	CullMask _cullMask = CullMask::None;
+
+	size_t GetHash() const;
+	bool operator==(CullState const &other) const;
+};
+
+struct DepthBias {
+	bool _enable = false;
+	float _constantFactor = 0;
+	float _clamp = 0;
+	float _slopeFactor = 0;
+
+	size_t GetHash() const;
+	bool operator==(DepthBias const &other) const;
+};
+
+struct DepthState {
+	bool _depthTestEnable = false;
+	bool _depthWriteEnable = false;
+	CompareOp _depthCompareFunc = CompareOp::Less;
+	bool _depthBoundsTestEnable = false;
+	float _minDepthBounds = 0.0f;
+	float _maxDepthBounds = 1.0f;
+
+	size_t GetHash() const;
+	bool operator==(DepthState const &other) const;
+};
+
+struct StencilFuncState {
+	StencilOp _failFunc = StencilOp::Keep;
+	StencilOp _passFunc = StencilOp::Keep;
+	StencilOp _depthFailFunc = StencilOp::Keep;
+	CompareOp _compareFunc = CompareOp::Never;
+	uint32_t _compareMask = 0;
+	uint32_t _writeMask = 0;
+	uint32_t _reference = 0;
+
+	size_t GetHash() const;
+	bool operator==(StencilFuncState const &other) const;
+};
+
+struct BlendFuncState {
+	bool _blendEnable = false;
+	BlendFactor _srcColorBlendFactor = BlendFactor::SrcAlpha;
+	BlendFactor _dstColorBlendFactor = BlendFactor::OneMinusSrcAlpha;
+	BlendOp _colorBlendFunc = BlendOp::Add;
+	BlendFactor _srcAlphaBlendFactor = BlendFactor::SrcAlpha;
+	BlendFactor _dstAlphaBlendFactor = BlendFactor::OneMinusSrcAlpha;
+	BlendOp _alphaBlendFunc = BlendOp::Add;
+	ColorComponentMask _colorWriteMask = ColorComponentMask::RGBA;
+
+	size_t GetHash() const;
+	bool operator==(BlendFuncState const &other) const;
+};
+
+struct RenderState {
+	Viewport _viewport;
+	utl::RectI _scissor;
+	CullState _cullState;
+	DepthBias _depthBias;
+	DepthState _depthState;
+	bool _stencilEnable = false;
+	std::array<StencilFuncState, 2> _stencilState;
+	std::vector<BlendFuncState> _blendStates{ BlendFuncState() };
+	glm::vec4 _blendColor{};
+
+	size_t GetHash() const;
+	bool operator==(RenderState const &other) const;
+};
+
+
 struct WindowData : public utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowData>(); }
 };
@@ -207,5 +357,14 @@ struct hash<rhi::ResourceUsage> {
 		return h;
 	}
 };
+
+template<>
+struct hash<rhi::StencilFuncState> { size_t operator()(rhi::StencilFuncState const &s) { return s.GetHash(); } };
+
+template<>
+struct hash<rhi::BlendFuncState> { size_t operator()(rhi::BlendFuncState const &b) { return b.GetHash(); } };
+
+template<>
+struct hash<rhi::RenderState> { size_t operator()(rhi::RenderState const &r) { return r.GetHash(); } };
 
 }

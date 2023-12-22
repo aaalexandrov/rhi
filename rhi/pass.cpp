@@ -26,12 +26,24 @@ bool GraphicsPass::Init(std::span<TargetData> rts)
 	return true;
 }
 
+bool GraphicsPass::Draw(DrawData const &draw)
+{
+	_pipelines.insert(std::static_pointer_cast<Pipeline>(draw._pipeline->shared_from_this()));
+	for (auto &set : draw._resourceSets) {
+		_resourceSets.insert(set);
+	}
+	return true;
+}
+
 void GraphicsPass::EnumResources(ResourceEnum enumFn)
 {
 	for (auto &target : _renderTargets) {
 		ResourceUsage usage{ target._texture->_descriptor._usage & ResourceUsage{.rt=1, .ds=1} | ResourceUsage{.write=1} };
 		ASSERT(bool(usage & ResourceUsage{ .rt = 1, .ds = 1 }));
 		enumFn(target._texture.get(), usage);
+	}
+	for (auto &set : _resourceSets) {
+		set->EnumResources(enumFn);
 	}
 }
 

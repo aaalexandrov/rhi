@@ -174,7 +174,7 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 	std::vector<vk::ImageMemoryBarrier> imageBarriers;
 	vk::PipelineStageFlags srcStages, dstStages;
 	for (ResourceTransition &transition : transitions) {
-		ASSERT(transition._prevUsage != transition._usage);
+		ASSERT(transition._prevUsage != transition._usage || transition._prevUsage.write && transition._usage.write);
 
 		auto *resourceVk = Cast<ResourceVk>(transition._resource);
 		ResourceTransitionVk transitionData = resourceVk->GetTransitionData(transition._prevUsage, transition._usage);

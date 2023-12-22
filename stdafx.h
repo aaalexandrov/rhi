@@ -7,6 +7,7 @@
 #include <memory>
 #include <atomic>
 #include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <functional>
 #include <utility>

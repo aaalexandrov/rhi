@@ -74,7 +74,7 @@ PassResourceTransitions Submission::ExtractResourceUse()
 	for (auto [res, lastUse] : lastUses) {
 		for (ResourceUse *use = lastUse; use; use = use->_prevUse) {
 			ResourceUsage prevUsage = use->_prevUse ? use->_prevUse->_usage : use->_resource->_state;
-			if (prevUsage == use->_usage)
+			if (prevUsage == use->_usage && !(prevUsage.write && use->_usage.write))
 				continue;
 			passTransitions[use->_pass].push_back(ResourceTransition{
 				._resource = use->_resource,

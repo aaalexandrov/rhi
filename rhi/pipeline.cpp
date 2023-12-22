@@ -114,9 +114,12 @@ void ResourceSet::EnumResources(ResourceEnum enumFn)
 bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 {
 	ASSERT(_shaders.empty());
+	bool graphics = false;
 	for (auto &shader : shaders) {
 		ASSERT(GetShader(shader->_kind) == nullptr);
 		_shaders.push_back(shader);
+
+		graphics = graphics || shader->_kind == ShaderKind::Vertex || shader->_kind == ShaderKind::Fragment;
 
 		for (auto &param : shader->_params) {
 			if (param._kind == ShaderParam::VertexLayout)
@@ -138,6 +141,9 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 			paramDesc._shaderKindsMask |= 1u << (int8_t)shader->_kind;
 		}
 	}
+
+	if (graphics)
+		_renderState = std::make_unique<RenderState>();
 
 	return true;
 }

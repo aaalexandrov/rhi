@@ -174,7 +174,7 @@ vk::AccessFlags GetAllAccess(ResourceUsage usage)
     if (usage.cpuAccess)
         flags |= vk::AccessFlagBits::eHostRead | vk::AccessFlagBits::eHostWrite;
 
-    return vk::AccessFlags();
+    return flags;
 }
 
 ResourceUsage GetUsageFromFormatFeatures(vk::FormatFeatureFlags fmtFlags)
