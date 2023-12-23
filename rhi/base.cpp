@@ -9,6 +9,9 @@ static auto s_regTypes = TypeInfo::AddInitializer("type_info", [] {
 
 	TypeInfo::Register<RhiOwned>().Name("RhiOwned")
 		.Base<utl::Any>();
+
+	TypeInfo::Register<Bindable>().Name("Bindable")
+		.Base<RhiOwned>();
 });
 
 
@@ -220,23 +223,30 @@ bool RhiOwned::InitRhi(Rhi *rhi, std::string name)
 
 bool ResourceRef::ValidateView()
 {
-	if (!_resource)
+	if (!_bindable)
+		return true;
+
+	Resource *resource = Cast<Resource>(_bindable.get());
+	if (!resource)
 		return true;
 	if (_view._format == Format::Invalid)
-		_view._format = _resource->_descriptor._format;
+		_view._format = resource->_descriptor._format;
 
 	// TO DO: check view format compatibility
 
-	_view = _view.GetIntersection(_resource->_descriptor);
+	_view = _view.GetIntersection(resource->_descriptor);
 
 	return IsViewValid();
 }
 
 bool ResourceRef::IsViewValid()
 {
-	if (!_resource)
+	if (!_bindable)
 		return false;
-	return _view.IsValidFor(_resource->_descriptor);
+	Resource *resource = Cast<Resource>(_bindable.get());
+	if (!resource)
+		return true;
+	return _view.IsValidFor(resource->_descriptor);
 }
 
 uint32_t GetFormatSize(Format fmt)

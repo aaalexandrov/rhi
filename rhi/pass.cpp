@@ -95,7 +95,9 @@ void ComputePass::EnumResources(ResourceEnum enumFn)
 
 bool CopyPass::Copy(CopyData copy)
 {
-	if (!copy._src._resource || !copy._dst._resource)
+	Resource *srcRes = Cast<Resource>(copy._src._bindable.get());
+	Resource *dstRes = Cast<Resource>(copy._dst._bindable.get());
+	if (!srcRes || !dstRes)
 		return false;
 	if (!copy._src.ValidateView() || !copy._dst.ValidateView())
 		return false;
@@ -137,19 +139,19 @@ bool CopyPass::Copy(CopyData copy)
 void CopyPass::EnumResources(ResourceEnum enumFn)
 {
 	for (auto &copy : _copies) {
-		enumFn(copy._src._resource.get(), ResourceUsage{ .copySrc = 1, .read = 1  });
-		enumFn(copy._dst._resource.get(), ResourceUsage{ .copyDst = 1, .write = 1 });
+		enumFn(static_cast<Resource *>(copy._src._bindable.get()), ResourceUsage{ .copySrc = 1, .read = 1  });
+		enumFn(static_cast<Resource *>(copy._dst._bindable.get()), ResourceUsage{ .copyDst = 1, .write = 1 });
 	}
 }
 
 auto CopyPass::CopyData::GetCopyType() const -> CopyType
 {
 	CopyType cpType{
-		.srcTex = Cast<Texture>(_src._resource.get()) != nullptr,
-		.dstTex = Cast<Texture>(_dst._resource.get()) != nullptr,
+		.srcTex = Cast<Texture>(_src._bindable.get()) != nullptr,
+		.dstTex = Cast<Texture>(_dst._bindable.get()) != nullptr,
 	};
-	ASSERT(cpType.srcTex == (Cast<Buffer>(_src._resource.get()) == nullptr));
-	ASSERT(cpType.dstTex == (Cast<Buffer>(_dst._resource.get()) == nullptr));
+	ASSERT(cpType.srcTex == (Cast<Buffer>(_src._bindable.get()) == nullptr));
+	ASSERT(cpType.dstTex == (Cast<Buffer>(_dst._bindable.get()) == nullptr));
 
 	return cpType;
 }

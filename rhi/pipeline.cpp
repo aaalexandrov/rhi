@@ -73,6 +73,11 @@ bool ResourceSetDescription::Param::IsBuffer() const
 	return _kind == ShaderParam::UniformBuffer || _kind == ShaderParam::UAVBuffer;
 }
 
+bool ResourceSetDescription::Param::IsSampler() const 
+{
+	return _kind == ShaderParam::Sampler;
+}
+
 ResourceUsage ResourceSetDescription::Param::GetUsage() const
 {
 	switch (_kind) {
@@ -128,7 +133,10 @@ void ResourceSet::EnumResources(ResourceEnum enumFn)
 		ResourceUsage paramUsage = param.GetUsage();
 		if (paramUsage) {
 			for (uint32_t e = 0; e < param._numEntries; ++e) {
-				enumFn(_resourceRefs[resIndex + e]._resource.get(), paramUsage);
+				Resource *resource = Cast<Resource>(_resourceRefs[resIndex + e]._bindable.get());
+				if (!resource)
+					continue;
+				enumFn(resource, paramUsage);
 			}
 		}
 		resIndex += param._numEntries;

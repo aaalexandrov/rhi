@@ -23,7 +23,7 @@ struct SwapchainDescriptor {
 	std::shared_ptr<WindowData> _window;
 };
 
-struct Resource : public RhiOwned {
+struct Resource : public Bindable {
 	ResourceDescriptor _descriptor;
 	ResourceUsage _state{};
 
@@ -53,7 +53,7 @@ struct Texture : public Resource {
 	std::weak_ptr<RhiOwned> _owner;
 };
 
-struct Sampler : public RhiOwned {
+struct Sampler : public Bindable {
 	SamplerDescriptor _descriptor;
 
 	virtual bool Init(SamplerDescriptor const &desc);

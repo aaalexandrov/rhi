@@ -2,6 +2,7 @@
 #include "rhi_vk.h"
 #include "buffer_vk.h"
 #include "texture_vk.h"
+#include "sampler_vk.h"
 #include "graphics_pass_vk.h"
 
 #include "utl/mathutl.h"
@@ -624,18 +625,12 @@ bool ResourceSetVk::Update()
 	std::vector<vk::DescriptorBufferInfo> bufInfos(_resourceRefs.size());
 	std::array<vk::BufferView, 0> noTexelInfos;
 	uint32_t resRefIdx = 0;
-	uint32_t curImgInfoCount = 0, curBufInfoCount = 0;
 	for (uint32_t i = 0; i < setDescription->_params.size(); ++i) {
 		auto &res = setDescription->_params[i];
 		for (uint32_t e = 0; e < res._numEntries; ++e) {
 			auto &resRef = _resourceRefs[resRefIdx + e];
-			if (res.IsBuffer()) {
-				BufferVk *bufVk = Cast<BufferVk>(resRef._resource.get());
-				if (!bufVk) {
-					ASSERT(0);
-					return false;
-				}
-				auto &bufInfo = bufInfos[curBufInfoCount + e];
+			if (BufferVk *bufVk = Cast<BufferVk>(resRef._bindable.get())) {
+				auto &bufInfo = bufInfos[resRefIdx + e];
 				bufInfo.buffer = bufVk->_buffer;
 				bufInfo.offset = resRef._view._region._min[0];
 				bufInfo.range = resRef._view._region.GetSize()[0];
@@ -643,18 +638,20 @@ bool ResourceSetVk::Update()
 					ASSERT(0);
 					return false;
 				}
-			} else if (res.IsImage()) {
-				TextureVk *texVk = Cast<TextureVk>(resRef._resource.get());
-				if (!texVk) {
-					ASSERT(0);
-					return false;
-				}
-				auto &imgInfo = imgInfos[curImgInfoCount + e];
+			} else if (TextureVk *texVk = Cast<TextureVk>(resRef._bindable.get())) {
+				auto &imgInfo = imgInfos[resRefIdx + e];
 				// TO DO: handle resource ref views
 				imgInfo.imageView = texVk->_view;
 				ASSERT(imgInfo.imageView);
 				ASSERT(res._kind == ShaderParam::UAVTexture || res._kind == ShaderParam::Texture);
 				imgInfo.imageLayout = res._kind == ShaderParam::UAVTexture ? vk::ImageLayout::eGeneral : vk::ImageLayout::eShaderReadOnlyOptimal;
+			} else if (SamplerVk *sampler = Cast<SamplerVk>(resRef._bindable.get())) {
+				ASSERT(res._kind == ShaderParam::Sampler);
+				auto &imgInfo = imgInfos[resRefIdx + e];
+				imgInfo.sampler = sampler->_sampler;
+			} else {
+				ASSERT(0);
+				return false;
 			}
 		}
 		vk::WriteDescriptorSet write{
@@ -663,14 +660,12 @@ bool ResourceSetVk::Update()
 			0,
 			res._numEntries,
 			GetDescriptorType(res._kind),
-			res.IsImage() ? &imgInfos[curImgInfoCount] : nullptr,
-			res.IsBuffer() ? &bufInfos[curBufInfoCount] : nullptr,
+			res.IsImage() || res.IsSampler() ? &imgInfos[resRefIdx] : nullptr,
+			res.IsBuffer() ? &bufInfos[resRefIdx] : nullptr,
 			nullptr,
 		};
 		writeRes.push_back(write);
 
-		curImgInfoCount += res.IsImage() * res._numEntries;
-		curBufInfoCount += res.IsBuffer() * res._numEntries;
 		resRefIdx += res._numEntries;
 	}
 

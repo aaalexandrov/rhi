@@ -8,14 +8,14 @@ namespace rhi {
 
 static auto s_regTypes = TypeInfo::AddInitializer("resource", [] {
 	TypeInfo::Register<Resource>().Name("Resource")
-		.Base<RhiOwned>()
+		.Base<Bindable>()
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<Rhi>());
 	TypeInfo::Register<Buffer>().Name("Buffer")
 		.Base<Resource>();
 	TypeInfo::Register<Texture>().Name("Texture")
 		.Base<Resource>();
 	TypeInfo::Register<Sampler>().Name("Sampler")
-		.Base<RhiOwned>();
+		.Base<Bindable>();
 	TypeInfo::Register<Swapchain>().Name("Swapchain")
 		.Base<RhiOwned>();
 });

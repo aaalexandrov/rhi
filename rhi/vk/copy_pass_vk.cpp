@@ -65,8 +65,8 @@ void CopyPassVk::CopyBufToBuf(CopyData &copy)
 		(vk::DeviceSize)copy._src._view._region.GetSize()[0],
 	};
 	ASSERT(copy._src._view._region.GetSize()[0] == copy._dst._view._region.GetSize()[0]);
-	auto *srcBuf = static_cast<BufferVk *>(copy._src._resource.get());
-	auto *dstBuf = static_cast<BufferVk *>(copy._dst._resource.get());
+	auto *srcBuf = static_cast<BufferVk *>(copy._src._bindable.get());
+	auto *dstBuf = static_cast<BufferVk *>(copy._dst._bindable.get());
 
 	cmds.copyBuffer(srcBuf->_buffer, dstBuf->_buffer, region);
 }
@@ -93,8 +93,8 @@ void CopyPassVk::CopyTexToTex(CopyData &copy)
 		};
 		regions.push_back(region);
 	}
-	auto *srcTex = static_cast<TextureVk *>(copy._src._resource.get());
-	auto *dstTex = static_cast<TextureVk *>(copy._dst._resource.get());
+	auto *srcTex = static_cast<TextureVk *>(copy._src._bindable.get());
+	auto *dstTex = static_cast<TextureVk *>(copy._dst._bindable.get());
 	cmds.copyImage(srcTex->_image, vk::ImageLayout::eTransferSrcOptimal, dstTex->_image, vk::ImageLayout::eTransferDstOptimal, regions);
 }
 
@@ -111,8 +111,8 @@ void CopyPassVk::CopyTexToBuf(CopyData &copy)
 		GetOffset3D(copy._src._view._region._min),
 		GetExtent3D(copy._src._view._region.GetSize()),
 	};
-	auto *srcTex = static_cast<TextureVk *>(copy._src._resource.get());
-	auto *dstBuf = static_cast<BufferVk *>(copy._dst._resource.get());
+	auto *srcTex = static_cast<TextureVk *>(copy._src._bindable.get());
+	auto *dstBuf = static_cast<BufferVk *>(copy._dst._bindable.get());
 	cmds.copyImageToBuffer(srcTex->_image, vk::ImageLayout::eTransferSrcOptimal, dstBuf->_buffer, region);
 }
 
@@ -129,8 +129,8 @@ void CopyPassVk::CopyBufToTex(CopyData &copy)
 		GetOffset3D(copy._dst._view._region._min),
 		GetExtent3D(copy._dst._view._region.GetSize()),
 	};
-	auto *srcBuf = static_cast<BufferVk *>(copy._src._resource.get());
-	auto *dstTex = static_cast<TextureVk *>(copy._dst._resource.get());
+	auto *srcBuf = static_cast<BufferVk *>(copy._src._bindable.get());
+	auto *dstTex = static_cast<TextureVk *>(copy._dst._bindable.get());
 	cmds.copyBufferToImage(srcBuf->_buffer, dstTex->_image, vk::ImageLayout::eTransferDstOptimal, region);
 }
 

@@ -8,6 +8,7 @@ using utl::TypeInfo;
 using utl::Enum;
 
 struct Resource;
+struct Bindable;
 
 union ResourceUsage {
 	struct {
@@ -118,7 +119,7 @@ struct ResourceView {
 using ResourceEnum = std::function<void(Resource *, ResourceUsage)>;
 
 struct ResourceRef {
-	std::shared_ptr<Resource> _resource;
+	std::shared_ptr<Bindable> _bindable;
 	ResourceView _view;
 
 	bool ValidateView();
@@ -353,6 +354,10 @@ struct RhiOwned : public std::enable_shared_from_this<RhiOwned>, public utl::Any
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RhiOwned>(); }
 
 	static inline std::string s_rhiTagType{ "rhi" };
+};
+
+struct Bindable : public RhiOwned {
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Bindable>(); }
 };
 
 } // rhi

@@ -37,7 +37,7 @@ struct Shader : public RhiOwned {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Shader>(); }
 
 	uint32_t GetNumParams(ShaderParam::Kind kind) const;
-	ShaderParam const *GetParam(ShaderParam::Kind kind, uint32_t index) const;
+	ShaderParam const *GetParam(ShaderParam::Kind kind, uint32_t index = 0) const;
 
 	ShaderKind _kind = ShaderKind::Invalid;
 	std::vector<ShaderParam> _params;
@@ -54,6 +54,7 @@ struct ResourceSetDescription {
 
 		bool IsImage() const;
 		bool IsBuffer() const;
+		bool IsSampler() const;
 
 		ResourceUsage GetUsage() const;
 	};

@@ -82,6 +82,47 @@ int main()
 	res = solidPipe->Init(solidData);
 	ASSERT(res);
 
+	auto *vertLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::VertexLayout);
+	auto triBuf = device->Create<rhi::Buffer>("triangle", rhi::ResourceDescriptor{
+		._usage = rhi::ResourceUsage{.vb = 1, .cpuAccess = 1},
+		._dimensions = glm::ivec4(vertLayout->_type->_size * 3),
+	});
+
+	{
+		auto triMapped = triBuf->Map();
+		utl::AnyRef vert{ vertLayout->_type, triMapped.data() };
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.25, 0.25, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(0.0, 0.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(1, 0, 0, 1);
+
+		vert._instance = triMapped.data() + vert._type->_size * 1;
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.25, 0.75, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(0.0, 1.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(0, 1, 0, 1);
+
+		vert._instance = triMapped.data() + vert._type->_size * 2;
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.75, 0.75, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(1.0, 1.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(0, 0, 1, 1);
+		triBuf->Unmap();
+	}
+
+	auto *solidUniformLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
+	auto solidUniform = device->Create<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
+		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
+		._dimensions = glm::ivec4(solidUniformLayout->_type->_size),
+	});
+
+	{
+		auto solidMapped = solidUniform->Map();
+		utl::AnyRef uni{ solidUniformLayout->_type, solidMapped.data() };
+		*uni.GetMember("view_proj").Get<glm::mat4>() = glm::mat4(1);
+		solidUniform->Unmap();
+	}
+
+	auto sampler = device->Create<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
+
+	auto solidResSet = solidPipe->AllocResourceSet(0);
 
 	auto genShader = device->Create<rhi::Shader>();
 	res = genShader->Load("data/gen.comp", rhi::ShaderKind::Compute);
@@ -91,28 +132,27 @@ int main()
 	res = genPipe->Init(std::span(&genShader, 1));
 	ASSERT(res);
 
-	auto it = std::find_if(genShader->_params.begin(), genShader->_params.end(), [](auto &p) {
-		return p._kind == rhi::ShaderParam::UniformBuffer;
-	});
-	ASSERT(it != genShader->_params.end());
-	rhi::ShaderParam &uniformParam = *it;
+	rhi::ShaderParam const *uniformParam = genShader->GetParam(rhi::ShaderParam::UniformBuffer);
+	ASSERT(uniformParam);
 
 	auto genUniform = device->Create<rhi::Buffer>("gen Uniforms");
 	res = genUniform->Init(rhi::ResourceDescriptor{
 		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
-		._dimensions = glm::ivec4{(int32_t)uniformParam._type->_size, 0, 0, 0},
+		._dimensions = glm::ivec4{(int32_t)uniformParam->_type->_size, 0, 0, 0},
 	});
 	ASSERT(res);
 
-	auto mapped = genUniform->Map();
-	utl::AnyRef block{ uniformParam._type, mapped.data() };
-	auto *blockSize = block.GetMember("blockSize").Get<glm::ivec2>();
-	*blockSize = glm::ivec2(16, 32);
-	glm::vec4 *blockColors = block.GetMember("blockColors").GetArrayElement(0).Get<glm::vec4>();
-	ASSERT(block.GetMember("blockColors").GetArraySize() == 2);
-	blockColors[0] = glm::vec4(1, 0, 0, 1);
-	blockColors[1] = glm::vec4(0, 1, 0, 1);
-	genUniform->Unmap();
+	{
+		auto mapped = genUniform->Map();
+		utl::AnyRef block{ uniformParam->_type, mapped.data() };
+		auto *blockSize = block.GetMember("blockSize").Get<glm::ivec2>();
+		*blockSize = glm::ivec2(16, 32);
+		glm::vec4 *blockColors = block.GetMember("blockColors").GetArrayElement(0).Get<glm::vec4>();
+		ASSERT(block.GetMember("blockColors").GetArraySize() == 2);
+		blockColors[0] = glm::vec4(1, 0, 0, 1);
+		blockColors[1] = glm::vec4(0, 1, 0, 1);
+		genUniform->Unmap();
+	}
 
 	std::shared_ptr<rhi::Texture> genOutput;
 	std::shared_ptr<rhi::ResourceSet> genResources;
@@ -132,7 +172,7 @@ int main()
 			if (!genOutput || glm::ivec2(genOutput->_descriptor._dimensions) != swapchainSize) {
 				genOutput = device->Create<rhi::Texture>("gen Output");
 				res = genOutput->Init(rhi::ResourceDescriptor{
-					._usage = rhi::ResourceUsage{.uav = 1, .copySrc = 1},
+					._usage = rhi::ResourceUsage{.srv = 1, .uav = 1, .copySrc = 1},
 					._format = rhi::Format::R8G8B8A8,
 					._dimensions{swapchainSize, 0, 0},
 				});
@@ -140,6 +180,9 @@ int main()
 
 				genResources = genPipe->AllocResourceSet(0);
 				res = genResources->Update({ {genUniform}, {genOutput} });
+				ASSERT(res);
+
+				res = solidResSet->Update({ {solidUniform}, {sampler}, {genOutput} });
 				ASSERT(res);
 			}
 
@@ -152,23 +195,31 @@ int main()
 			passes.push_back(genPass);
 
 			auto swapchainTexture = swapchain->AcquireNextImage();
-			auto copyPass = device->Create<rhi::CopyPass>("genCopy");
-			res = copyPass->Copy({ {genOutput}, {swapchainTexture} });
-			ASSERT(res);
-			passes.push_back(copyPass);
-
-
-			//std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
-			//	{
-			//		swapchainTexture,
-			//		glm::vec4(0, 0, 1 ,1),
-			//	},
-			//};
-			//ASSERT(renderTargets[0]._texture);
-			//auto renderPass = device->Create<rhi::GraphicsPass>("Render");
-			//res = renderPass->Init(renderTargets);
+			
+			//auto copyPass = device->Create<rhi::CopyPass>("genCopy");
+			//res = copyPass->Copy({ {genOutput}, {swapchainTexture} });
 			//ASSERT(res);
-			//passes.push_back(renderPass);
+			//passes.push_back(copyPass);
+
+
+			std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
+				{
+					swapchainTexture,
+					glm::vec4(0, 0, 1 ,1),
+				},
+			};
+			ASSERT(renderTargets[0]._texture);
+			auto renderPass = device->Create<rhi::GraphicsPass>("Render");
+			res = renderPass->Init(renderTargets);
+			ASSERT(res);
+			rhi::GraphicsPass::BufferStream solidVerts{ triBuf };
+			renderPass->Draw({
+				._pipeline = solidPipe,
+				._resourceSets = {std::span(&solidResSet, 1)},
+				._vertexStreams = {std::span(&solidVerts, 1)},
+				._indices = utl::IntervalU::FromMinAndSize(0, 3),
+			});
+			passes.push_back(renderPass);
 
 			auto presentPass = device->Create<rhi::PresentPass>("Present");
 			presentPass->SetSwapchainTexture(swapchainTexture);
