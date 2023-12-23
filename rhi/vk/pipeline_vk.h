@@ -81,6 +81,7 @@ struct PipelineVk : public Pipeline {
 	~PipelineVk() override;
 
 	bool Init(std::span<std::shared_ptr<Shader>> shaders) override;
+	bool Init(GraphicsPipelineData &pipelineData) override;
 
 	bool InitLayout();
 

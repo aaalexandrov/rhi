@@ -62,6 +62,23 @@ int main()
 	res = swapchain->Init(chainDesc);
 	ASSERT(res);
 
+	auto solidVert = device->Create<rhi::Shader>();
+	res = solidVert->Load("data/solid.vert", rhi::ShaderKind::Vertex);
+	ASSERT(res);
+
+	auto solidFrag = device->Create<rhi::Shader>();
+	res = solidFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
+	ASSERT(res);
+
+	auto solidPipe = device->Create<rhi::Pipeline>();
+	rhi::GraphicsPipelineData solidData{
+		._shaders = {{ solidVert, solidFrag }},
+		._vertexInputs = { rhi::VertexInputData{ ._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
+	};
+	res = solidPipe->Init(solidData);
+	ASSERT(res);
+
+
 	auto genShader = device->Create<rhi::Shader>();
 	res = genShader->Load("data/gen.comp", rhi::ShaderKind::Compute);
 	ASSERT(res);

@@ -313,7 +313,7 @@ struct BlendFuncState {
 
 struct RenderState {
 	Viewport _viewport;
-	utl::RectI _scissor;
+	utl::RectI _scissor{glm::ivec2(0), glm::ivec2(1024*1024)};
 	CullState _cullState;
 	DepthBias _depthBias;
 	DepthState _depthState;
@@ -326,6 +326,10 @@ struct RenderState {
 	bool operator==(RenderState const &other) const;
 };
 
+enum class PrimitiveKind {
+	TriangleList,
+	TriangleStrip,
+};
 
 struct WindowData : public utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowData>(); }

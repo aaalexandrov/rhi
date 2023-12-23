@@ -26,7 +26,7 @@ struct ShaderParam {
 	TypeInfo const *_type = nullptr;
 	Kind _kind = Invalid;
 	uint32_t _set = ~0u, _binding = ~0u;
-	std::vector<std::unique_ptr<TypeInfo>> _ownTypes;
+	std::vector<std::shared_ptr<TypeInfo>> _ownTypes;
 };
 
 struct Shader : public RhiOwned {
@@ -34,6 +34,9 @@ struct Shader : public RhiOwned {
 	virtual bool Load(std::string path, ShaderKind kind);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Shader>(); }
+
+	uint32_t GetNumParams(ShaderParam::Kind kind) const;
+	ShaderParam const *GetParam(ShaderParam::Kind kind, uint32_t index) const;
 
 	ShaderKind _kind = ShaderKind::Invalid;
 	std::vector<ShaderParam> _params;
@@ -80,9 +83,22 @@ struct ResourceSet : public utl::Any {
 	std::vector<ResourceRef> _resourceRefs;
 };
 
-struct Pipeline : public RhiOwned {
+struct VertexInputData {
+	std::shared_ptr<TypeInfo> _layout;
+	bool _perInstance = false;
+};
 
+struct GraphicsPipelineData {
+	std::vector<std::shared_ptr<Shader>> _shaders;
+	RenderState _renderState;
+	std::vector<Format> _renderTargetFormats;
+	std::vector<VertexInputData> _vertexInputs;
+	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
+};
+
+struct Pipeline : public RhiOwned {
 	virtual bool Init(std::span<std::shared_ptr<Shader>> shaders);
+	virtual bool Init(GraphicsPipelineData &pipelineData);
 
 	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
 
@@ -95,6 +111,8 @@ struct Pipeline : public RhiOwned {
 	std::vector<std::shared_ptr<Shader>> _shaders;
 	std::vector<ResourceSetDescription> _resourceSetDescriptions;
 	std::unique_ptr<RenderState> _renderState;
+	std::vector<VertexInputData> _vertexInputs;
+	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
 };
 
 inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {

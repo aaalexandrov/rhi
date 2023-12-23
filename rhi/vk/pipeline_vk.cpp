@@ -23,6 +23,192 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline_vk", [] {
 		.Metadata(RhiOwned::s_rhiTagType, TypeInfo::Get<RhiVk>());
 });
 
+utl::ValueRemapper<FrontFaceMode, vk::FrontFace> s_frontFace2Vk{ {
+		{FrontFaceMode::CCW, vk::FrontFace::eCounterClockwise},
+		{FrontFaceMode::CW, vk::FrontFace::eClockwise},
+	} };
+
+utl::ValueRemapper<CullMask, vk::CullModeFlagBits> s_cullMask2Vk{ {
+		{CullMask::None, vk::CullModeFlagBits::eNone},
+		{CullMask::Front, vk::CullModeFlagBits::eFront},
+		{CullMask::Back, vk::CullModeFlagBits::eBack},
+		{CullMask::FrontAndBack, vk::CullModeFlagBits::eFrontAndBack},
+	} };
+
+utl::ValueRemapper<CompareOp, vk::CompareOp> s_compareFunc2Vk{ {
+		{CompareOp::Never, vk::CompareOp::eNever},
+		{CompareOp::Less, vk::CompareOp::eLess},
+		{CompareOp::Equal, vk::CompareOp::eEqual},
+		{CompareOp::LessOrEqual, vk::CompareOp::eLessOrEqual},
+		{CompareOp::Greater, vk::CompareOp::eGreater},
+		{CompareOp::NotEqual, vk::CompareOp::eNotEqual},
+		{CompareOp::GreaterOrEqual, vk::CompareOp::eGreaterOrEqual},
+		{CompareOp::Always, vk::CompareOp::eAlways},
+	} };
+
+utl::ValueRemapper<StencilOp, vk::StencilOp> s_stencilFunc2Vk{ {
+		{StencilOp::Keep, vk::StencilOp::eKeep},
+		{StencilOp::Zero, vk::StencilOp::eZero},
+		{StencilOp::Replace, vk::StencilOp::eReplace},
+		{StencilOp::IncrementAndClamp, vk::StencilOp::eIncrementAndClamp},
+		{StencilOp::DecrementAndClamp, vk::StencilOp::eDecrementAndClamp},
+		{StencilOp::Invert, vk::StencilOp::eInvert},
+		{StencilOp::IncrementAndWrap, vk::StencilOp::eIncrementAndWrap},
+		{StencilOp::DecrementAndWrap, vk::StencilOp::eDecrementAndWrap},
+	} };
+
+utl::ValueRemapper<BlendOp, vk::BlendOp> s_blendFunc2Vk{ {
+		{BlendOp::Add,             vk::BlendOp::eAdd,             },
+		{BlendOp::Subtract,        vk::BlendOp::eSubtract,        },
+		{BlendOp::ReverseSubtract, vk::BlendOp::eReverseSubtract, },
+		{BlendOp::Min,             vk::BlendOp::eMin,             },
+		{BlendOp::Max,             vk::BlendOp::eMax,             },
+	} };
+
+utl::ValueRemapper<BlendFactor, vk::BlendFactor> s_blendFactor2Vk{ {
+		{BlendFactor::Zero,                     vk::BlendFactor::eZero,                  },
+		{BlendFactor::One,                      vk::BlendFactor::eOne,                   },
+		{BlendFactor::SrcColor,                 vk::BlendFactor::eSrcColor,              },
+		{BlendFactor::OneMinusSrcColor,         vk::BlendFactor::eOneMinusSrcColor,      },
+		{BlendFactor::DstColor,                 vk::BlendFactor::eDstColor,              },
+		{BlendFactor::OneMinusDstColor,         vk::BlendFactor::eOneMinusDstColor,      },
+		{BlendFactor::SrcAlpha,                 vk::BlendFactor::eSrcAlpha,              },
+		{BlendFactor::OneMinusSrcAlpha,         vk::BlendFactor::eOneMinusSrcAlpha,      },
+		{BlendFactor::DstAlpha,                 vk::BlendFactor::eDstAlpha,              },
+		{BlendFactor::OneMinusDstAlpha,         vk::BlendFactor::eOneMinusDstAlpha,      },
+		{BlendFactor::ConstantColor,            vk::BlendFactor::eConstantColor,         },
+		{BlendFactor::OneMinusConstantColor,    vk::BlendFactor::eOneMinusConstantColor, },
+		{BlendFactor::ConstantAlpha,            vk::BlendFactor::eConstantAlpha,         },
+		{BlendFactor::OneMinusConstantAlpha,    vk::BlendFactor::eOneMinusConstantAlpha, },
+		{BlendFactor::SrcAlphaSaturate,         vk::BlendFactor::eSrcAlphaSaturate,      },
+		{BlendFactor::Src1Color,                vk::BlendFactor::eSrc1Color,             },
+		{BlendFactor::OneMinusSrc1Color,        vk::BlendFactor::eOneMinusSrc1Color,     },
+		{BlendFactor::Src1Alpha,                vk::BlendFactor::eSrc1Alpha,             },
+		{BlendFactor::OneMinusSrc1Alpha,        vk::BlendFactor::eOneMinusSrc1Alpha,     },
+	} };
+
+utl::ValueRemapper<ColorComponentMask, vk::ColorComponentFlagBits, true> s_colorComponentMask2Vk{ {
+		{ ColorComponentMask::R, vk::ColorComponentFlagBits::eR	},
+		{ ColorComponentMask::G, vk::ColorComponentFlagBits::eG	},
+		{ ColorComponentMask::B, vk::ColorComponentFlagBits::eB	},
+		{ ColorComponentMask::A, vk::ColorComponentFlagBits::eA	},
+	} };
+
+utl::ValueRemapper<PrimitiveKind, vk::PrimitiveTopology> s_primitiveKind2VkTopology = { {
+		{ PrimitiveKind::TriangleList, vk::PrimitiveTopology::eTriangleList },
+		{ PrimitiveKind::TriangleStrip, vk::PrimitiveTopology::eTriangleStrip },
+	} };
+
+
+vk::Viewport GetVkViewport(Viewport const &viewport)
+{
+	vk::Viewport vkViewport;
+	vkViewport
+		.setX(viewport._rect._min.x)
+		.setY(viewport._rect._min.y)
+		.setWidth(viewport._rect.GetSize().x)
+		.setHeight(viewport._rect.GetSize().y)
+		.setMinDepth(viewport._minDepth)
+		.setMaxDepth(viewport._maxDepth);
+	return vk::Viewport();
+}
+
+void FillViewports(RenderState const &data, std::vector<vk::Viewport> &viewports)
+{
+	viewports.emplace_back(GetVkViewport(data._viewport));
+}
+
+void FillStencilOpState(StencilFuncState const &src, vk::StencilOpState &dst)
+{
+	dst
+		.setFailOp(s_stencilFunc2Vk.ToDst(src._failFunc))
+		.setPassOp(s_stencilFunc2Vk.ToDst(src._passFunc))
+		.setDepthFailOp(s_stencilFunc2Vk.ToDst(src._depthFailFunc))
+		.setCompareOp(s_compareFunc2Vk.ToDst(src._compareFunc))
+		.setWriteMask(src._writeMask)
+		.setReference(src._reference)
+		.setCompareMask(src._compareMask);
+}
+
+void FillViewportState(RenderState const &data, vk::PipelineViewportStateCreateInfo &viewportState, std::vector<vk::Viewport> &viewports, std::vector<vk::Rect2D> &scissors)
+{
+	FillViewports(data, viewports);
+
+	scissors.emplace_back();
+	scissors.back()
+		.setOffset(vk::Offset2D(data._scissor._min.x, data._scissor._min.y))
+		.setExtent(vk::Extent2D(data._scissor.GetSize().x, data._scissor.GetSize().y));
+
+	viewportState
+		.setViewportCount(1)
+		.setPViewports(&viewports.back())
+		.setScissorCount(1)
+		.setPScissors(&scissors.back());
+}
+
+void FillRasterizationState(RenderState const &data, vk::PipelineRasterizationStateCreateInfo &rasterState)
+{
+	rasterState
+		.setCullMode(s_cullMask2Vk.ToDst(data._cullState._cullMask))
+		.setFrontFace(s_frontFace2Vk.ToDst(data._cullState._front))
+		.setDepthBiasEnable(data._depthBias._enable)
+		.setDepthBiasConstantFactor(data._depthBias._constantFactor)
+		.setDepthBiasClamp(data._depthBias._clamp)
+		.setDepthBiasSlopeFactor(data._depthBias._slopeFactor)
+		.setLineWidth(1.0f);
+}
+
+void FillMultisampleState(RenderState const &data, vk::PipelineMultisampleStateCreateInfo &multisampleState, std::vector<uint32_t> &sampleMask)
+{
+	multisampleState
+		.setMinSampleShading(1.0f);
+}
+
+void FillDepthStencilState(RenderState const &data, vk::PipelineDepthStencilStateCreateInfo &depthState)
+{
+	depthState
+		.setDepthTestEnable(data._depthState._depthTestEnable)
+		.setDepthWriteEnable(data._depthState._depthWriteEnable)
+		.setDepthCompareOp(s_compareFunc2Vk.ToDst(data._depthState._depthCompareFunc))
+		.setDepthBoundsTestEnable(data._depthState._depthBoundsTestEnable)
+		.setMinDepthBounds(data._depthState._minDepthBounds)
+		.setMaxDepthBounds(data._depthState._maxDepthBounds)
+		.setStencilTestEnable(data._stencilEnable);
+	FillStencilOpState(data._stencilState[0], depthState.front);
+	FillStencilOpState(data._stencilState[1], depthState.back);
+}
+
+void FillBlendState(RenderState const &data, vk::PipelineColorBlendStateCreateInfo &blendState, std::vector<vk::PipelineColorBlendAttachmentState> &attachmentBlends)
+{
+	for (auto &blend : data._blendStates) {
+		attachmentBlends.resize(attachmentBlends.size() + 1);
+		attachmentBlends.back()
+			.setBlendEnable(blend._blendEnable)
+			.setSrcColorBlendFactor(s_blendFactor2Vk.ToDst(blend._srcColorBlendFactor))
+			.setDstColorBlendFactor(s_blendFactor2Vk.ToDst(blend._dstColorBlendFactor))
+			.setColorBlendOp(s_blendFunc2Vk.ToDst(blend._colorBlendFunc))
+			.setSrcAlphaBlendFactor(s_blendFactor2Vk.ToDst(blend._srcAlphaBlendFactor))
+			.setDstAlphaBlendFactor(s_blendFactor2Vk.ToDst(blend._dstAlphaBlendFactor))
+			.setAlphaBlendOp(s_blendFunc2Vk.ToDst(blend._alphaBlendFunc))
+			.setColorWriteMask(s_colorComponentMask2Vk.ToDst(blend._colorWriteMask));
+	}
+
+	blendState
+		.setAttachmentCount(static_cast<uint32_t>(attachmentBlends.size()))
+		.setPAttachments(attachmentBlends.data())
+		.setBlendConstants({ data._blendColor[0], data._blendColor[1], data._blendColor[2], data._blendColor[3] });
+}
+
+void FillDynamicState(RenderState const &data, vk::PipelineDynamicStateCreateInfo &dynamicState, std::vector<vk::DynamicState> &dynamicStates)
+{
+	dynamicStates.push_back(vk::DynamicState::eViewport);
+
+	dynamicState
+		.setDynamicStateCount(static_cast<uint32_t>(dynamicStates.size()))
+		.setPDynamicStates(dynamicStates.data());
+}
+
+
 vk::DescriptorType GetDescriptorType(ShaderParam::Kind kind)
 {
 	switch (kind) {
@@ -156,7 +342,7 @@ bool DescriptorSetAllocatorVk::AllocPool()
 }
 
 
-static std::unordered_map<ShaderKind, vk::ShaderStageFlags> s_shaderKind2Vk{
+static std::unordered_map<ShaderKind, vk::ShaderStageFlagBits> s_shaderKind2Vk{
 	{ ShaderKind::Vertex, vk::ShaderStageFlagBits::eVertex },
 	{ ShaderKind::Fragment, vk::ShaderStageFlagBits::eFragment },
 	{ ShaderKind::Compute, vk::ShaderStageFlagBits::eCompute },
@@ -211,7 +397,7 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 				typeInfo = TypeInfo::Get<Sampler>();
 				break;
 			case spirv_cross::SPIRType::Struct: {
-				param._ownTypes.emplace_back(std::make_unique<TypeInfo>());
+				param._ownTypes.emplace_back(std::make_shared<TypeInfo>());
 				TypeInfo *structInfo = param._ownTypes.back().get();
 				structInfo->_name = getName(type.self);
 				structInfo->_size = refl.get_declared_struct_size(type);
@@ -291,7 +477,7 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 		for (size_t i = 0; i < type.array.size(); ++i) {
 			ASSERT(type.array_size_literal[i] && "Arrays with specialization constants not supported");
 
-			param._ownTypes.emplace_back(std::make_unique<TypeInfo>());
+			param._ownTypes.emplace_back(std::make_shared<TypeInfo>());
 			TypeInfo *arrayType = param._ownTypes.back().get();
 
 			arrayType->_bases.push_back({ ._type = typeInfo, ._offset = 0 });
@@ -380,7 +566,7 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 			._name = "#VertexLayout",
 			._kind = ShaderParam::VertexLayout,
 		};
-		attribs._ownTypes.push_back(std::make_unique<TypeInfo>());
+		attribs._ownTypes.push_back(std::make_shared<TypeInfo>());
 		TypeInfo *attribsType = attribs._ownTypes.back().get();
 		attribs._type = attribsType;
 
@@ -503,6 +689,17 @@ PipelineVk::~PipelineVk()
 	}
 }
 
+vk::PipelineShaderStageCreateInfo GetShaderStageInfo(Shader *shader)
+{
+	auto shaderVk = static_cast<ShaderVk *>(shader);
+	return vk::PipelineShaderStageCreateInfo{
+			vk::PipelineShaderStageCreateFlags(),
+			s_shaderKind2Vk[shaderVk->_kind],
+			shaderVk->_shaderModule,
+			shaderVk->_entryPoint.c_str(),
+	};
+}
+
 bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
 {
 	if (!Pipeline::Init(shaders))
@@ -516,15 +713,9 @@ bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
 	auto rhi = static_cast<RhiVk *>(_rhi);
 
 	if (_shaders.size() == 1 && _shaders[0]->_kind == ShaderKind::Compute) {
-		auto shaderVk = static_cast<ShaderVk *>(_shaders[0].get());
 		vk::ComputePipelineCreateInfo pipeInfo{
 			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo{
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				shaderVk->_shaderModule,
-				shaderVk->_entryPoint.c_str(),
-			},
+			GetShaderStageInfo(shaders[0].get()),
 			_layout,
 		};
 		if (rhi->_device.createComputePipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
@@ -535,6 +726,140 @@ bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
 
 	ASSERT(0);
 	return false;
+}
+
+vk::Format GetVertexAttribFormat(TypeInfo::Member const &attribMember)
+{
+	static std::unordered_map<TypeInfo const *, vk::Format> s_type2VkFormat{
+		{ TypeInfo::Get<float>()      , vk::Format::eR32Sfloat          },
+		{ TypeInfo::Get<glm::vec2>()  , vk::Format::eR32G32Sfloat       },
+		{ TypeInfo::Get<glm::vec3>()  , vk::Format::eR32G32B32Sfloat    },
+		{ TypeInfo::Get<glm::vec4>()  , vk::Format::eR32G32B32A32Sfloat },
+
+		{ TypeInfo::Get<uint8_t>()    , vk::Format::eR8Unorm            },
+		{ TypeInfo::Get<glm::u8vec2>(), vk::Format::eR8G8Unorm          },
+		{ TypeInfo::Get<glm::u8vec3>(), vk::Format::eR8G8B8Unorm        },
+		{ TypeInfo::Get<glm::u8vec4>(), vk::Format::eR8G8B8A8Unorm      },
+	};
+
+	auto it = s_type2VkFormat.find(attribMember._var._type);
+	if (it != s_type2VkFormat.end())
+		return it->second;
+	ASSERT(0);
+	return vk::Format::eUndefined;
+}
+
+bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
+{
+	if (!Pipeline::Init(pipelineData))
+		return false;
+
+	if (!InitLayout())
+		return false;
+
+	Shader *vertexShader = GetShader(ShaderKind::Vertex);
+	if (!vertexShader)
+		return false;
+	ASSERT(vertexShader->GetNumParams(ShaderParam::Kind::VertexLayout) <= 1);
+	ShaderParam const *vertShaderLayout = vertexShader->GetParam(ShaderParam::Kind::VertexLayout, 0);
+
+	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
+	for (auto &shader : _shaders)
+		shaderStages.push_back(GetShaderStageInfo(shader.get()));
+
+	auto rhi = static_cast<RhiVk *>(_rhi);
+
+	std::vector<vk::VertexInputBindingDescription> vertInputBinds;
+	std::vector<vk::VertexInputAttributeDescription> vertInputAttrs;
+	if (vertShaderLayout) {
+		for (uint32_t binding = 0; binding < _vertexInputs.size(); ++binding) {
+			auto &vertInput = _vertexInputs[binding];
+			bool addedBind = false;
+			for (auto &inputAttrib : vertInput._layout->_members) {
+				int32_t indexInLayout = -1;
+				for (int32_t i = 0; i < vertShaderLayout->_type->_members.size(); ++i) {
+					if (vertShaderLayout->_type->_members[i]._name == inputAttrib._name) {
+						indexInLayout = i;
+						break;
+					}
+				}
+				if (indexInLayout < 0)
+					continue;
+				if (!addedBind) {
+					vertInputBinds.push_back(vk::VertexInputBindingDescription{
+						binding,
+						(uint32_t)vertInput._layout->_size,
+						vertInput._perInstance ? vk::VertexInputRate::eInstance : vk::VertexInputRate::eVertex
+					});
+					addedBind = true;
+				}
+				vertInputAttrs.push_back(vk::VertexInputAttributeDescription{
+					(uint32_t)indexInLayout,
+					binding,
+					GetVertexAttribFormat(inputAttrib),
+					(uint32_t)inputAttrib._var._offset
+				});
+			}
+		}
+	}
+
+	vk::PipelineVertexInputStateCreateInfo vertInputInfo{
+		vk::PipelineVertexInputStateCreateFlags(),
+		vertInputBinds,
+		vertInputAttrs,
+	};
+
+	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{
+		vk::PipelineInputAssemblyStateCreateFlags(),
+		s_primitiveKind2VkTopology.ToDst(_primitiveKind),
+		false,
+	};
+
+	std::vector<vk::Viewport> viewports;
+	std::vector<vk::Rect2D> scissors;
+	vk::PipelineViewportStateCreateInfo viewportState;
+	FillViewportState(*_renderState, viewportState, viewports, scissors);
+
+	vk::PipelineRasterizationStateCreateInfo rasterizationState;
+	FillRasterizationState(*_renderState, rasterizationState);
+
+	std::vector<uint32_t> sampleMask;
+	vk::PipelineMultisampleStateCreateInfo multisampleState;
+	FillMultisampleState(*_renderState, multisampleState, sampleMask);
+
+	vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+	FillDepthStencilState(*_renderState, depthStencilState);
+
+	std::vector<vk::PipelineColorBlendAttachmentState> attachmentBlends;
+	vk::PipelineColorBlendStateCreateInfo blendState;
+	FillBlendState(*_renderState, blendState, attachmentBlends);
+
+	std::vector<vk::DynamicState> dynamicStates;
+	vk::PipelineDynamicStateCreateInfo dynamicState;
+	FillDynamicState(*_renderState, dynamicState, dynamicStates);
+
+	vk::GraphicsPipelineCreateInfo pipeInfo{
+		vk::PipelineCreateFlags(),
+		shaderStages,
+		&vertInputInfo,
+		&inputAssemblyInfo,
+		nullptr,
+		&viewportState,
+		&rasterizationState,
+		&multisampleState,
+		&depthStencilState,
+		&blendState,
+		&dynamicState,
+		_layout,
+		nullptr,
+		0,
+		nullptr,
+		0,
+	};
+	if (rhi->_device.createGraphicsPipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
+		return false;
+
+	return true;
 }
 
 bool PipelineVk::InitLayout()

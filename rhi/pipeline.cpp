@@ -29,10 +29,33 @@ bool Shader::Load(std::string path, ShaderKind kind)
 	return Load(utl::GetPathFilenameExt(path), kind, utl::ReadFile(path));
 }
 
+uint32_t Shader::GetNumParams(ShaderParam::Kind kind) const
+{
+	uint32_t num = 0;
+	for (auto &param : _params) {
+		if (kind == ShaderParam::Kind::Invalid || param._kind == kind)
+			++num;
+	}
+	return num;
+}
+
+ShaderParam const *Shader::GetParam(ShaderParam::Kind kind, uint32_t index) const
+{
+	for (auto &param : _params) {
+		if (kind != ShaderParam::Kind::Invalid && param._kind != kind)
+			continue;
+		if (!index)
+			return &param;
+		--index;
+	}
+	return nullptr;
+}
+
 uint32_t ResourceSetDescription::GetNumEntries() const
 {
 	uint32_t numEntries = 0;
 	for (auto &res : _params) {
+		ASSERT((res._numEntries > 0) == (res._kind != ShaderParam::Kind::VertexLayout));
 		numEntries += res._numEntries;
 	}
 	return numEntries;
@@ -114,12 +137,9 @@ void ResourceSet::EnumResources(ResourceEnum enumFn)
 bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 {
 	ASSERT(_shaders.empty());
-	bool graphics = false;
 	for (auto &shader : shaders) {
 		ASSERT(GetShader(shader->_kind) == nullptr);
 		_shaders.push_back(shader);
-
-		graphics = graphics || shader->_kind == ShaderKind::Vertex || shader->_kind == ShaderKind::Fragment;
 
 		for (auto &param : shader->_params) {
 			if (param._kind == ShaderParam::VertexLayout)
@@ -142,8 +162,17 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 		}
 	}
 
-	if (graphics)
-		_renderState = std::make_unique<RenderState>();
+	return true;
+}
+
+bool Pipeline::Init(GraphicsPipelineData &pipelineData)
+{
+	if (!Pipeline::Init(pipelineData._shaders))
+		return false;
+
+	_renderState = std::make_unique<RenderState>(pipelineData._renderState);
+	_vertexInputs = pipelineData._vertexInputs;
+	_primitiveKind = pipelineData._primitiveKind;
 
 	return true;
 }
