@@ -878,6 +878,7 @@ struct BoxTraits {
 using IntervalU8 = Box<uint8_t>;
 using IntervalI8 = Box<int8_t>;
 using IntervalI = Box<int32_t>;
+using IntervalU = Box<uint32_t>;
 using IntervalF = Box<float>;
 using RectF = Box<glm::vec2>;
 using RectI = Box<glm::ivec2>;

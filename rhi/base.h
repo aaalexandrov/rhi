@@ -48,6 +48,9 @@ enum class Format : int32_t {
 
 	R8,
 
+	R16_u,
+	R32_u,
+
 	R8G8B8A8,
 	R8G8B8A8_srgb,
 	B8G8R8A8,
@@ -71,6 +74,8 @@ enum class Format : int32_t {
 
 static inline std::unordered_map<Format, TypeInfo const *> s_format2TypeInfo{ {
 		{ Format::R8, TypeInfo::Get<uint8_t>() },
+		{ Format::R16_u, TypeInfo::Get<uint16_t>() },
+		{ Format::R32_u, TypeInfo::Get<uint32_t>() },
 		{ Format::R8G8B8A8, TypeInfo::Get<glm::uvec4>() },
 		{ Format::R8G8B8A8_srgb, TypeInfo::Get<glm::uvec4>() },
 		{ Format::B8G8R8A8, TypeInfo::Get<uint32_t>() },

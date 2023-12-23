@@ -28,7 +28,7 @@ bool GraphicsPass::Init(std::span<TargetData> rts)
 
 bool GraphicsPass::Draw(DrawData const &draw)
 {
-	_pipelines.insert(std::static_pointer_cast<Pipeline>(draw._pipeline->shared_from_this()));
+	_pipelines.insert(draw._pipeline);
 	for (auto &set : draw._resourceSets) {
 		_resourceSets.insert(set);
 	}

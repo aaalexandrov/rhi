@@ -1,7 +1,9 @@
 #include "graphics_pass_vk.h"
 #include "rhi_vk.h"
+#include "buffer_vk.h"
 #include "texture_vk.h"
 #include "submit_vk.h"
+#include "pipeline_vk.h"
 
 namespace rhi {
 
@@ -41,6 +43,69 @@ bool GraphicsPassVk::Init(std::span<TargetData> rts)
 
 	if (!InitFramebuffer())
 		return false;
+
+	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
+	if (!cmds)
+		return false;
+
+	std::vector<vk::ClearValue> clearValues;
+	for (auto &rt : _renderTargets) {
+		if (rt._texture->_descriptor._usage.ds) {
+			clearValues.emplace_back(vk::ClearDepthStencilValue(rt._clearValue[0], (uint32_t)rt._clearValue[1]));
+		} else {
+			clearValues.emplace_back(vk::ClearColorValue(rt._clearValue[0], rt._clearValue[1], rt._clearValue[2], rt._clearValue[3]));
+		}
+	}
+	vk::RenderPassBeginInfo passInfo{
+		_renderPass,
+		_framebuffer,
+		vk::Rect2D(vk::Offset2D(0, 0), GetExtent2D(GetMinTargetSize())),
+		clearValues,
+	};
+	cmds.beginRenderPass(passInfo, vk::SubpassContents::eInline);
+
+	return true;
+}
+
+bool GraphicsPassVk::Draw(DrawData const &draw)
+{
+	if (!GraphicsPass::Draw(draw))
+		return false;
+
+	vk::CommandBuffer cmds = _recorder._cmdBuffers.back();
+
+	auto *pipeVk = static_cast<PipelineVk *>(draw._pipeline.get());
+	cmds.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeVk->_pipeline);
+
+	std::vector<vk::DescriptorSet> descSets;
+	for (auto &set : _resourceSets) {
+		auto *setVk = static_cast<ResourceSetVk *>(set.get());
+		descSets.push_back(setVk->_descSet._set);
+	}
+	std::array<uint32_t, 0> noDynamicOffsets;
+	cmds.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeVk->_layout, 0, descSets, noDynamicOffsets);
+
+	if (pipeVk->_vertexInputs.size() != draw._vertexStreams.size())
+		return false;
+
+	std::vector<vk::Buffer> vertBuffers;
+	std::vector<vk::DeviceSize> vertBufferOffsets;
+	for (auto &vertStream : draw._vertexStreams) {
+		auto *bufVk = static_cast<BufferVk *>(vertStream._buffer.get());
+		vertBuffers.push_back(bufVk->_buffer);
+		vertBufferOffsets.push_back(vertStream._offset);
+	}
+	cmds.bindVertexBuffers(0, vertBuffers, vertBufferOffsets);
+
+	if (draw._indexStream._buffer) {
+		auto *indBufVk = static_cast<BufferVk *>(draw._indexStream._buffer.get());
+		ASSERT(indBufVk->_descriptor._format == Format::R16_u || indBufVk->_descriptor._format == Format::R32_u);
+		cmds.bindIndexBuffer(indBufVk->_buffer, draw._indexStream._offset, indBufVk->_descriptor._format == Format::R16_u ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+
+		cmds.drawIndexed(draw._indices.GetSize(), draw._instances.GetSize(), draw._indices._min, draw._vertexOffset, draw._instances._min);
+	} else {
+		cmds.draw(draw._indices.GetSize(), draw._instances.GetSize(), draw._indices._min, draw._instances._min);
+	}
 
 	return true;
 }
@@ -138,7 +203,7 @@ bool GraphicsPassVk::InitFramebuffer()
 		attachViews,
 		commonSize.x,
 		commonSize.y,
-		commonSize.w,
+		std::max(commonSize.w, 1u),
 	};
 	if (rhi->_device.createFramebuffer(&frameInfo, rhi->AllocCallbacks(), &_framebuffer) != vk::Result::eSuccess)
 		return false;
@@ -157,26 +222,7 @@ glm::ivec4 GraphicsPassVk::GetMinTargetSize()
 
 bool GraphicsPassVk::Prepare(Submission *sub)
 {
-	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
-	if (!cmds)
-		return false;
-
-	std::vector<vk::ClearValue> clearValues;
-	for (auto &rt : _renderTargets) {
-		if (rt._texture->_descriptor._usage.ds) {
-			clearValues.emplace_back(vk::ClearDepthStencilValue(rt._clearValue[0], (uint32_t)rt._clearValue[1]));
-		} else {
-			clearValues.emplace_back(vk::ClearColorValue(rt._clearValue[0], rt._clearValue[1], rt._clearValue[2], rt._clearValue[3]));
-		}
-	}
-	vk::RenderPassBeginInfo passInfo{
-		_renderPass,
-		_framebuffer,
-		vk::Rect2D(vk::Offset2D(0, 0), GetExtent2D(GetMinTargetSize())),
-		clearValues,
-	};
-	cmds.beginRenderPass(passInfo, vk::SubpassContents::eInline);
-
+	vk::CommandBuffer cmds = _recorder._cmdBuffers.back();
 
 	cmds.endRenderPass();
 

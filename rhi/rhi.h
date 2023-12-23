@@ -27,6 +27,18 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 		return std::static_pointer_cast<R>(Create(TypeInfo::Get<R>(), name));
 	}
 
+	template <typename R, typename... ARGS>
+	std::shared_ptr<R> Create(std::string name, ARGS &&... args) {
+		auto obj = std::static_pointer_cast<R>(Create(TypeInfo::Get<R>(), name));
+		if (!obj)
+			return std::shared_ptr<R>();
+		if (!obj->Init(std::forward<ARGS>(args)...)) {
+			ASSERT(0);
+			return std::shared_ptr<R>();
+		}
+		return obj;
+	}
+
 	std::shared_ptr<Submission> Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name = "");
 
 	virtual bool WaitIdle() = 0;

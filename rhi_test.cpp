@@ -70,9 +70,13 @@ int main()
 	res = solidFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
 	ASSERT(res);
 
+	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	swapchain->_images[0] }};
+	auto solidPass = device->Create<rhi::GraphicsPass>("solidPass", std::span(solidRts));
+
 	auto solidPipe = device->Create<rhi::Pipeline>();
 	rhi::GraphicsPipelineData solidData{
 		._shaders = {{ solidVert, solidFrag }},
+		._renderPass = std::move(solidPass),
 		._vertexInputs = { rhi::VertexInputData{ ._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
 	};
 	res = solidPipe->Init(solidData);

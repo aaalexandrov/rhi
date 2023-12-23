@@ -11,6 +11,8 @@ struct GraphicsPassVk : public GraphicsPass {
 	bool InitRhi(Rhi *rhi, std::string name) override;
 	bool Init(std::span<TargetData> rts) override;
 
+	bool Draw(DrawData const &draw) override;
+
 	bool Prepare(Submission *sub) override;
 	bool Execute(Submission *sub) override;
 

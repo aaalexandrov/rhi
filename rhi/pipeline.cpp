@@ -1,4 +1,6 @@
 #include "pipeline.h"
+#include "pass.h"
+#include "resource.h"
 
 #include "utl/file.h"
 
@@ -170,9 +172,17 @@ bool Pipeline::Init(GraphicsPipelineData &pipelineData)
 	if (!Pipeline::Init(pipelineData._shaders))
 		return false;
 
+	if (!pipelineData._renderPass)
+		return false;
+
 	_renderState = std::make_unique<RenderState>(pipelineData._renderState);
 	_vertexInputs = pipelineData._vertexInputs;
 	_primitiveKind = pipelineData._primitiveKind;
+
+	ASSERT(_renderTargetFormats.empty());
+	for (auto &rt : pipelineData._renderPass->_renderTargets) {
+		_renderTargetFormats.push_back(rt._texture->_descriptor._format);
+	}
 
 	return true;
 }

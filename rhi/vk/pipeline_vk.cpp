@@ -2,6 +2,7 @@
 #include "rhi_vk.h"
 #include "buffer_vk.h"
 #include "texture_vk.h"
+#include "graphics_pass_vk.h"
 
 #include "utl/mathutl.h"
 
@@ -838,6 +839,7 @@ bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
 	vk::PipelineDynamicStateCreateInfo dynamicState;
 	FillDynamicState(*_renderState, dynamicState, dynamicStates);
 
+	auto *graphicsPassVk = static_cast<GraphicsPassVk *>(pipelineData._renderPass.get());
 	vk::GraphicsPipelineCreateInfo pipeInfo{
 		vk::PipelineCreateFlags(),
 		shaderStages,
@@ -851,7 +853,7 @@ bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
 		&blendState,
 		&dynamicState,
 		_layout,
-		nullptr,
+		graphicsPassVk->_renderPass,
 		0,
 		nullptr,
 		0,

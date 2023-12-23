@@ -27,11 +27,19 @@ struct GraphicsPass : public Pass {
 		glm::vec4 _clearValue{ -1 };
 	};
 
+	struct BufferStream {
+		std::shared_ptr<Buffer> _buffer;
+		size_t _offset = 0;
+	};
+
 	struct DrawData {
-		Pipeline *_pipeline;
+		std::shared_ptr<Pipeline> _pipeline;
 		std::span<std::shared_ptr<ResourceSet>> _resourceSets;
-		std::span<std::shared_ptr<Buffer>> _vertexStreams;
-		std::shared_ptr<Buffer> _indices;
+		std::span<BufferStream> _vertexStreams;
+		BufferStream _indexStream;
+		utl::IntervalU _indices{ 0, 2 };
+		utl::IntervalU _instances{ 0, 0 };
+		uint32_t _vertexOffset = 0;
 	};
 
 	virtual bool Init(std::span<TargetData> rts);

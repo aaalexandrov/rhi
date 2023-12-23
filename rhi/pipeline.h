@@ -5,6 +5,7 @@
 namespace rhi {
 
 struct Resource;
+struct GraphicsPass;
 
 struct ShaderParam {
 	enum Kind: int8_t {
@@ -91,7 +92,7 @@ struct VertexInputData {
 struct GraphicsPipelineData {
 	std::vector<std::shared_ptr<Shader>> _shaders;
 	RenderState _renderState;
-	std::vector<Format> _renderTargetFormats;
+	std::shared_ptr<GraphicsPass> _renderPass;
 	std::vector<VertexInputData> _vertexInputs;
 	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
 };
@@ -111,6 +112,7 @@ struct Pipeline : public RhiOwned {
 	std::vector<std::shared_ptr<Shader>> _shaders;
 	std::vector<ResourceSetDescription> _resourceSetDescriptions;
 	std::unique_ptr<RenderState> _renderState;
+	std::vector<Format> _renderTargetFormats;
 	std::vector<VertexInputData> _vertexInputs;
 	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
 };
