@@ -160,7 +160,7 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 			uint32_t numEntries = param.GetNumEntries();
 			if (paramDesc._numEntries) {
 				if (paramDesc._name != param._name || paramDesc._kind != param._kind || paramDesc._numEntries != numEntries) {
-					LOG("Pipeline '{}' contains shader '%s' with parameter '%s' (%d entries) that doesn't match previous definitions, can't build resource set for the pipeline", _name.c_str(), shader->_name.c_str(), param._name.c_str(), numEntries);
+					LOG("Pipeline '%s' contains shader '%s' with parameter '%s' (%d entries) that doesn't match previous definitions, can't build resource set for the pipeline", _name.c_str(), shader->_name.c_str(), param._name.c_str(), numEntries);
 					return false;
 				}
 			} else {

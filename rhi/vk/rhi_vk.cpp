@@ -92,7 +92,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
 {
     std::string flag = (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? "error" : "warning";
 
-    LOG("Vulkan debug {}, code: {}, layer: '{}', msg: '{}'", flag, msgCode, pLayerPrefix, pMsg);
+    LOG("Vulkan debug %s, code: %d, layer: '%s', msg: '%s'", flag.c_str(), msgCode, pLayerPrefix, pMsg);
 
     return false;
 }
