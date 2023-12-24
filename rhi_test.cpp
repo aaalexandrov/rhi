@@ -198,7 +198,9 @@ int main()
 			auto swapchainTexture = swapchain->AcquireNextImage();
 			
 			auto copyPass = device->Create<rhi::CopyPass>("genCopy");
-			res = copyPass->Copy({ {genOutput}, {swapchainTexture} });
+			rhi::ResourceView genView = rhi::ResourceView::FromDescriptor(genOutput->_descriptor);
+			genView._region._max.x /= 2;
+			res = copyPass->Copy({ {genOutput, genView}, {swapchainTexture} });
 			ASSERT(res);
 			passes.push_back(copyPass);
 

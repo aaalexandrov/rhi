@@ -23,6 +23,10 @@
 #undef Always
 #endif
 
+#if defined(None)
+#undef None
+#endif
+
 #include "vk_mem_alloc.h"
 
 #include "../base.h"

@@ -106,7 +106,7 @@ bool CopyPass::Copy(CopyData copy)
 		return false;
 
 	CopyType cpType = copy.GetCopyType();
-	if (cpType.srcTex == cpType.dstTex) {
+	if (!cpType.srcTex && !cpType.dstTex || cpType.srcTex && cpType.dstTex && NeedsMatchingTextures(copy)) {
 		glm::ivec4 regionSize = glm::min(copy._src._view._region.GetSize(), copy._dst._view._region.GetSize());
 		copy._src._view._region.SetSize(regionSize);
 		copy._dst._view._region.SetSize(regionSize);

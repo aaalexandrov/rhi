@@ -1,7 +1,6 @@
 #include "resource.h"
 #include "rhi.h"
 #include "utl/mathutl.h"
-#include <bit>
 
 
 namespace rhi {

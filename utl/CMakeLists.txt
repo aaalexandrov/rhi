@@ -25,6 +25,9 @@ set(dir_SOURCES
 
 	type_info.h
 	type_info.cpp
+
+	utl.h
+	utl.cpp
 )
 
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)

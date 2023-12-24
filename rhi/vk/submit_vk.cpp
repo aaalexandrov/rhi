@@ -170,7 +170,6 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 	ExecuteDataVk cmds;
 	std::vector<vk::MemoryBarrier> memoryBarriers;
 	std::vector<vk::BufferMemoryBarrier> bufferBarriers;
-	std::deque<vk::ImageSubresourceRange> imageSubResRanges;
 	std::vector<vk::ImageMemoryBarrier> imageBarriers;
 	vk::PipelineStageFlags srcStages, dstStages;
 	for (ResourceTransition &transition : transitions) {
@@ -197,7 +196,6 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 				0,
 				std::max((uint32_t)texture->_descriptor._dimensions[3], 1u)
 			};
-			imageSubResRanges.push_back(subResRange);
 			vk::ImageMemoryBarrier imgBarrier{
 				transitionData._srcState._access,
 				transitionData._dstState._access,
@@ -206,7 +204,7 @@ ExecuteDataVk SubmissionVk::RecordPassTransitionCmds(Pass *pass)
 				rhi->_universalQueue._family,
 				rhi->_universalQueue._family,
 				texture->_image,
-				imageSubResRanges.back(),
+				subResRange,
 			};
 			imageBarriers.push_back(imgBarrier);
 		} else if (BufferVk *buffer = Cast<BufferVk>(transition._resource)) {

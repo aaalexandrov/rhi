@@ -24,6 +24,11 @@ bool CopyPassVk::InitRhi(Rhi *rhi, std::string name)
 	return true;
 }
 
+bool CopyPassVk::NeedsMatchingTextures(CopyData &copy)
+{
+	return !CanBlit(copy);
+}
+
 bool CopyPassVk::Prepare(Submission *sub)
 {
 	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);

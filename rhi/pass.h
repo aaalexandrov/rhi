@@ -83,6 +83,8 @@ struct CopyPass : public Pass {
 
 	virtual bool Copy(CopyData copy);
 
+	virtual bool NeedsMatchingTextures(CopyData &copy) = 0;
+
 	void EnumResources(ResourceEnum enumFn) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPass>(); }

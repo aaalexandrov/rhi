@@ -523,7 +523,7 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 		shaderc_shader_kind shadercKind = s_shaderKind2Shaderc[_kind];
 		shadercResult = compiler.CompileGlslToSpv((char const *)content.data(), content.size(), shadercKind, _name.c_str(), _entryPoint.c_str(), options);
 		if (shadercResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-			LOG("Compilation of GLSL shader '{}' failed with error: {}", _name, shadercResult.GetErrorMessage());
+			LOG("Compilation of GLSL shader '%s' failed with error: %s", _name.c_str(), shadercResult.GetErrorMessage().c_str());
 			return false;
 		}
 		spirv = std::span(shadercResult.begin(), shadercResult.end());

@@ -8,7 +8,7 @@ std::vector<uint8_t> ReadFile(std::string const &path)
 {
 	std::ifstream file(path, std::ios::ate | std::ios::binary);
 	if (!file.is_open()) {
-		LOG("Failed to load file {}", path);
+		LOG("Failed to load file %s", path.c_str());
 		return std::vector<uint8_t>();
 	}
 

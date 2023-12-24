@@ -10,6 +10,8 @@ struct TextureVk;
 struct CopyPassVk : public CopyPass {
 	bool InitRhi(Rhi *rhi, std::string name) override;
 
+	bool NeedsMatchingTextures(CopyData &copy) override;
+
 	bool Prepare(Submission *sub) override;
 	bool Execute(Submission *sub) override;
 

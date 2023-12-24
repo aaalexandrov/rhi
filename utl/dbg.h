@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <format>
+#include "utl.h"
 
 namespace utl {
 
@@ -27,9 +27,9 @@ void AssertFailed(char const *message, char const *file, unsigned line);
 
 
 template <typename... ARGS>
-void LogLine(std::ostream &out, std::format_string<ARGS...> fmt, ARGS&&... args)
+void LogLine(std::ostream &out, char const *fmt, ARGS&&... args)
 {
-	out << std::format(fmt, std::forward<ARGS>(args)...) << std::endl;
+	out << strPrintf(fmt, std::forward<ARGS>(args)...) << std::endl;
 }
 
 }

@@ -1,5 +1,6 @@
 #include "base.h"
 #include "rhi.h"
+#include <bit>
 
 namespace rhi {
 
