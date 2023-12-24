@@ -68,13 +68,18 @@ struct ShaderVk : public Shader {
 };
 
 struct ResourceSetVk : public ResourceSet {
+	~ResourceSetVk() override;
+
 	bool Init(Pipeline *pipeline, uint32_t setIndex) override;
 
 	bool Update() override;
 
+	void ClearCreatedViews();
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ResourceSetVk>(); }
 
 	DescSetVk _descSet;
+	std::vector<vk::ImageView> _createdViews;
 };
 
 struct PipelineVk : public Pipeline {

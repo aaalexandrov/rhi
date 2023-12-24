@@ -592,6 +592,11 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 	return true;
 }
 
+ResourceSetVk::~ResourceSetVk()
+{
+	ClearCreatedViews();
+}
+
 bool ResourceSetVk::Init(Pipeline *pipeline, uint32_t setIndex)
 {
 	if (!ResourceSet::Init(pipeline, setIndex))
@@ -611,6 +616,8 @@ bool ResourceSetVk::Update()
 {
 	if (!ResourceSet::Update())
 		return false;
+
+	ClearCreatedViews();
 
 	ASSERT(_descSet);
 
@@ -641,7 +648,13 @@ bool ResourceSetVk::Update()
 			} else if (TextureVk *texVk = Cast<TextureVk>(resRef._bindable.get())) {
 				auto &imgInfo = imgInfos[resRefIdx + e];
 				// TO DO: handle resource ref views
-				imgInfo.imageView = texVk->_view;
+				ResourceView defaultView = ResourceView::FromDescriptor(texVk->_descriptor);
+				if (resRef._view == defaultView) {
+					imgInfo.imageView = texVk->_view;
+				} else {
+					imgInfo.imageView = texVk->CreateView(resRef._view);
+					_createdViews.push_back(imgInfo.imageView);
+				}
 				ASSERT(imgInfo.imageView);
 				ASSERT(res._kind == ShaderParam::UAVTexture || res._kind == ShaderParam::Texture);
 				imgInfo.imageLayout = res._kind == ShaderParam::UAVTexture ? vk::ImageLayout::eGeneral : vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -673,6 +686,16 @@ bool ResourceSetVk::Update()
 	rhi->_device.updateDescriptorSets(writeRes, noCopies);
 
 	return true;
+}
+
+void ResourceSetVk::ClearCreatedViews()
+{
+	if (!_descSet)
+		return;
+	auto *rhi = _descSet._allocator->_rhi;
+	for (auto view : _createdViews) {
+		rhi->_device.destroyImageView(view, rhi->AllocCallbacks());
+	}
 }
 
 PipelineVk::~PipelineVk()

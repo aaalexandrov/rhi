@@ -110,6 +110,12 @@ struct ResourceView {
 	utl::Box4I _region = utl::Box4I::GetMaximum();
 	utl::IntervalI8 _mipRange = utl::IntervalI8::GetMaximum();
 
+	bool operator==(ResourceView const &other) const {
+		return _format == other._format &&
+			_region == other._region &&
+			_mipRange == other._mipRange;
+	}
+
 	bool IsValidFor(ResourceDescriptor const &desc) const;
 	ResourceView GetIntersection(ResourceView const &other) const;
 	ResourceView GetIntersection(ResourceDescriptor &desc) const;
