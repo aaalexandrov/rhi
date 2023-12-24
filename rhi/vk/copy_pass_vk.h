@@ -18,6 +18,10 @@ struct CopyPassVk : public CopyPass {
 	void CopyTexToBuf(CopyData &copy);
 	void CopyBufToTex(CopyData &copy);
 
+	void BlitTexToTex(CopyData &copy);
+
+	bool CanBlit(CopyData &copy);
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPassVk>(); }
 
 	CmdRecorderVk _recorder;

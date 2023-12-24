@@ -115,7 +115,7 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 		(uint32_t)_descriptor._mipLevels,
 		glm::max((uint32_t)_descriptor._dimensions[3], 1u),
 		vk::SampleCountFlagBits::e1,
-		_descriptor._usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal,
+		GetImageTiling(_descriptor._usage),
 		GetImageUsage(_descriptor._usage, _descriptor._format),
 		vk::SharingMode::eExclusive,
 		(uint32_t)queueFamilies.size(),

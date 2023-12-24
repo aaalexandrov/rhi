@@ -41,7 +41,10 @@ bool CopyPassVk::Prepare(Submission *sub)
 			CopyTexToBuf(copy);
 		} else {
 			ASSERT(cpType.srcTex && cpType.dstTex);
-			CopyTexToTex(copy);
+			if (CanBlit(copy))
+				BlitTexToTex(copy);
+			else
+				CopyTexToTex(copy);
 		}
 	}
 
@@ -96,6 +99,43 @@ void CopyPassVk::CopyTexToTex(CopyData &copy)
 	auto *srcTex = static_cast<TextureVk *>(copy._src._bindable.get());
 	auto *dstTex = static_cast<TextureVk *>(copy._dst._bindable.get());
 	cmds.copyImage(srcTex->_image, vk::ImageLayout::eTransferSrcOptimal, dstTex->_image, vk::ImageLayout::eTransferDstOptimal, regions);
+}
+
+void CopyPassVk::BlitTexToTex(CopyData &copy)
+{
+	vk::CommandBuffer cmds = _recorder._cmdBuffers.back();
+	std::vector<vk::ImageBlit> regions;
+	ASSERT(copy._src._view._mipRange.GetSize() == copy._dst._view._mipRange.GetSize());
+	ASSERT(copy._src._view._mipRange.GetSize() > 0);
+	for (uint32_t mipLevel = copy._src._view._mipRange._min; mipLevel <= copy._src._view._mipRange._max; ++mipLevel) {
+		int32_t reduction = mipLevel - copy._src._view._mipRange._min;
+		glm::ivec3 srcOffs = GetMipLevelSize(copy._src._view._region._min, reduction);
+		glm::ivec3 srcSize = glm::max(GetMipLevelSize(copy._src._view._region.GetSize(), reduction), glm::ivec3(1));
+		glm::ivec3 dstOffs = GetMipLevelSize(copy._dst._view._region._min, reduction);
+		glm::ivec3 dstSize = glm::max(GetMipLevelSize(copy._dst._view._region.GetSize(), reduction), glm::ivec3(1));
+
+		vk::ImageBlit region{
+			GetImageSubresourceLayers(copy._src._view, mipLevel),
+			{GetOffset3D(srcOffs), GetOffset3D(srcOffs + srcSize)},
+			GetImageSubresourceLayers(copy._dst._view, mipLevel),
+			{GetOffset3D(dstOffs), GetOffset3D(dstOffs + dstSize)},
+		};
+		regions.push_back(region);
+	}
+	auto *srcTex = static_cast<TextureVk *>(copy._src._bindable.get());
+	auto *dstTex = static_cast<TextureVk *>(copy._dst._bindable.get());
+	cmds.blitImage(srcTex->_image, vk::ImageLayout::eTransferSrcOptimal, dstTex->_image, vk::ImageLayout::eTransferDstOptimal, regions, vk::Filter::eLinear);
+}
+
+bool CopyPassVk::CanBlit(CopyData &copy)
+{
+	auto rhi = static_cast<RhiVk *>(_rhi);
+	auto *srcTex = static_cast<TextureVk *>(copy._src._bindable.get());
+	auto *dstTex = static_cast<TextureVk *>(copy._dst._bindable.get());
+	vk::FormatFeatureFlags srcFeatures = rhi->GetFormatFeatures(srcTex->_descriptor._format, srcTex->_descriptor._usage);
+	vk::FormatFeatureFlags dstFeatures = rhi->GetFormatFeatures(dstTex->_descriptor._format, dstTex->_descriptor._usage);
+
+	return (srcFeatures & vk::FormatFeatureFlagBits::eBlitSrc) && (dstFeatures & vk::FormatFeatureFlagBits::eBlitDst);
 }
 
 void CopyPassVk::CopyTexToBuf(CopyData &copy)

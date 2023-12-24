@@ -96,6 +96,8 @@ struct ResourceVk {
 vk::PipelineStageFlags GetPipelineStages(ResourceUsage usage);
 vk::ImageAspectFlags GetImageAspect(Format fmt);
 vk::ImageSubresourceLayers GetImageSubresourceLayers(ResourceView const &view, uint32_t mipLevel = ~0u);
+vk::ImageTiling GetImageTiling(ResourceUsage usage);
+
 
 static inline constexpr vk::AccessFlags s_accessReadFlags = 
 	vk::AccessFlagBits::eIndirectCommandRead | 

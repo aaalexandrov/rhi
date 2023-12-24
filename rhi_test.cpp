@@ -116,7 +116,8 @@ int main()
 	{
 		auto solidMapped = solidUniform->Map();
 		utl::AnyRef uni{ solidUniformLayout->_type, solidMapped.data() };
-		*uni.GetMember("view_proj").Get<glm::mat4>() = glm::mat4(1);
+		glm::mat4 mat{ glm::vec4(2, 0, 0, 0), glm::vec4(0, 2, 0, 0), glm::vec4(0, 0, 1, 0), glm::vec4(-1, -1, 0, 1) };
+		*uni.GetMember("view_proj").Get<glm::mat4>() = mat;
 		solidUniform->Unmap();
 	}
 
@@ -196,30 +197,30 @@ int main()
 
 			auto swapchainTexture = swapchain->AcquireNextImage();
 			
-			//auto copyPass = device->Create<rhi::CopyPass>("genCopy");
-			//res = copyPass->Copy({ {genOutput}, {swapchainTexture} });
-			//ASSERT(res);
-			//passes.push_back(copyPass);
-
-
-			std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
-				{
-					swapchainTexture,
-					glm::vec4(0, 0, 1 ,1),
-				},
-			};
-			ASSERT(renderTargets[0]._texture);
-			auto renderPass = device->Create<rhi::GraphicsPass>("Render");
-			res = renderPass->Init(renderTargets);
+			auto copyPass = device->Create<rhi::CopyPass>("genCopy");
+			res = copyPass->Copy({ {genOutput}, {swapchainTexture} });
 			ASSERT(res);
-			rhi::GraphicsPass::BufferStream solidVerts{ triBuf };
-			renderPass->Draw({
-				._pipeline = solidPipe,
-				._resourceSets = {std::span(&solidResSet, 1)},
-				._vertexStreams = {std::span(&solidVerts, 1)},
-				._indices = utl::IntervalU::FromMinAndSize(0, 3),
-			});
-			passes.push_back(renderPass);
+			passes.push_back(copyPass);
+
+
+			//std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
+			//	{
+			//		swapchainTexture,
+			//		glm::vec4(0, 0, 1 ,1),
+			//	},
+			//};
+			//ASSERT(renderTargets[0]._texture);
+			//auto renderPass = device->Create<rhi::GraphicsPass>("Render");
+			//res = renderPass->Init(renderTargets);
+			//ASSERT(res);
+			//rhi::GraphicsPass::BufferStream solidVerts{ triBuf };
+			//renderPass->Draw({
+			//	._pipeline = solidPipe,
+			//	._resourceSets = {std::span(&solidResSet, 1)},
+			//	._vertexStreams = {std::span(&solidVerts, 1)},
+			//	._indices = utl::IntervalU::FromMinAndSize(0, 3),
+			//});
+			//passes.push_back(renderPass);
 
 			auto presentPass = device->Create<rhi::PresentPass>("Present");
 			presentPass->SetSwapchainTexture(swapchainTexture);

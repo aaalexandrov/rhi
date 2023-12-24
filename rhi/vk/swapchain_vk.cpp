@@ -124,7 +124,7 @@ bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
 	DestroySemaphores();
 
 	ResourceUsage imgUsage = s_vkImageUsage2ResourceUsage.ToDst((VkImageUsageFlags)surfCaps.supportedUsageFlags);
-	imgUsage &= rhi->GetFormatImageUsage(surfaceFormat) & _descriptor._usage;
+	imgUsage &= rhi->GetFormatImageUsage(surfaceFormat, ResourceUsage{.present=1}) & _descriptor._usage;
 	imgUsage.present = 1;
 
 	auto swapchain = [&] { 

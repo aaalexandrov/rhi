@@ -101,6 +101,9 @@ bool CopyPass::Copy(CopyData copy)
 		return false;
 	if (!copy._src.ValidateView() || !copy._dst.ValidateView())
 		return false;
+	// Only allow multiple copies per pass if they have the same source / destination resources
+	if (_copies.size() > 0 && (srcRes != _copies[0]._src._bindable.get() || dstRes != _copies[0]._dst._bindable.get()))
+		return false;
 
 	CopyType cpType = copy.GetCopyType();
 	if (cpType.srcTex == cpType.dstTex) {

@@ -220,4 +220,9 @@ vk::ImageSubresourceLayers GetImageSubresourceLayers(ResourceView const &view, u
     };
 }
 
+vk::ImageTiling GetImageTiling(ResourceUsage usage)
+{
+    return usage.cpuAccess ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
+}
+
 }
