@@ -52,7 +52,9 @@ struct RhiVk : public Rhi {
 
 	~RhiVk() override;
 
-	bool Init(Settings const &settings) override;
+	std::vector<DeviceDescription> GetDevices(Settings const &settings) override;
+
+	bool Init(Settings const &settings, int32_t deviceIndex = 0) override;
 
 	bool WaitIdle() override;
 
@@ -61,7 +63,7 @@ struct RhiVk : public Rhi {
 	vk::AllocationCallbacks *AllocCallbacks() { return _allocTracker ? &_allocTracker->_allocCallbacks : nullptr; }
 
 	bool InitInstance();
-	bool InitDevice();
+	bool InitDevice(int32_t deviceIndex);
 	bool InitVma();
 
 	std::span<uint32_t> GetQueueFamilyIndices(ResourceUsage usage);

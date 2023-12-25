@@ -12,7 +12,7 @@ Rhi::~Rhi()
 {
 }
 
-bool Rhi::Init(Settings const &settings)
+bool Rhi::Init(Settings const &settings, int32_t deviceIndex)
 {
     _settings = settings;
     if (!InitTypes())

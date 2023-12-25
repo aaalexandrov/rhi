@@ -108,7 +108,74 @@ RhiVk::~RhiVk()
     _instance.destroy(AllocCallbacks());
 }
 
-bool RhiVk::Init(Settings const &settings)
+struct DeviceCreateData {
+    vk::PhysicalDevice _physDevice;
+    int32_t _universalQueueFamily = -1;
+    std::vector<char const *> _layerNames, _extNames;
+};
+
+DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDev, Rhi::Settings const &settings)
+{
+    auto queueFamilyCanPresent = [&](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
+#if defined(_WIN32)
+        return physDev.getWin32PresentationSupportKHR(queueFamily);
+#elif defined(__linux__)
+        auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get());
+        ASSERT(winDataXlib);
+        return winDataXlib && physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
+#endif
+    };
+
+    DeviceCreateData devCreateData;
+
+    std::vector<char const *> extNames = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    auto devExts = physDev.enumerateDeviceExtensionProperties();
+    if (devExts.result != vk::Result::eSuccess)
+        return devCreateData;
+    for (auto &name : extNames) {
+        auto it = std::find_if(devExts.value.begin(), devExts.value.end(), [&](vk::ExtensionProperties const &ext) {
+            return strcmp(ext.extensionName, name) == 0;
+        });
+        if (it == devExts.value.end())
+            return devCreateData;
+    }
+
+    std::vector<vk::QueueFamilyProperties2> queueFamilies = physDev.getQueueFamilyProperties2();
+    vk::QueueFlags universalFlags = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer;
+    for (int32_t q = 0; q < queueFamilies.size(); ++q) {
+        if ((queueFamilies[q].queueFamilyProperties.queueFlags & universalFlags) != universalFlags ||
+            !queueFamilyCanPresent(physDev, q))
+            continue;
+        devCreateData._physDevice = physDev;
+        devCreateData._universalQueueFamily = q;
+        devCreateData._extNames = std::move(extNames);
+        break;
+    }
+    return devCreateData;
+}
+
+auto RhiVk::GetDevices(Settings const &settings) -> std::vector<DeviceDescription>
+{
+    std::vector<DeviceDescription> devices;
+    auto physicalDevices = _instance.enumeratePhysicalDevices().value;
+    for (auto &physDev : physicalDevices) {
+        DeviceCreateData devCreateData = CheckPhysicalDeviceSuitability(physDev, _settings);
+        if (!devCreateData._physDevice)
+            continue;
+        vk::PhysicalDeviceProperties props = devCreateData._physDevice.getProperties();
+        DeviceDescription deviceDesc{
+            ._name = props.deviceName,
+            ._vendorId = props.vendorID,
+            ._deviceId = props.deviceID,
+            ._driverVersion = props.driverVersion,
+            ._isIntegrated = props.deviceType != vk::PhysicalDeviceType::eDiscreteGpu,
+        };
+        devices.push_back(deviceDesc);
+    }
+    return devices;
+}
+
+bool RhiVk::Init(Settings const &settings, int32_t deviceIndex)
 {
     if (!Rhi::Init(settings))
         return false;
@@ -116,7 +183,7 @@ bool RhiVk::Init(Settings const &settings)
     if (!InitInstance())
         return false;
 
-    if (!InitDevice())
+    if (!InitDevice(deviceIndex))
         return false;
 
     if (!_timelineSemaphore.Init(this, 1))
@@ -185,58 +252,14 @@ bool RhiVk::InitInstance()
     return true;
 }
 
-struct DeviceCreateData {
-    vk::PhysicalDevice _physDevice;
-    int32_t _universalQueueFamily = -1;
-    std::vector<char const *> _layerNames, _extNames;
-};
-
-DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDev, Rhi::Settings const &settings) 
-{
-    auto queueFamilyCanPresent = [&](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
-#if defined(_WIN32)
-        return physDev.getWin32PresentationSupportKHR(queueFamily);
-#elif defined(__linux__)
-        auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get());
-        ASSERT(winDataXlib);
-        return winDataXlib && physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
-#endif
-    };
-
-    DeviceCreateData devCreateData;
-
-    std::vector<char const *> extNames = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-    auto devExts = physDev.enumerateDeviceExtensionProperties();
-    if (devExts.result != vk::Result::eSuccess)
-        return devCreateData;
-    for (auto &name : extNames) {
-        auto it = std::find_if(devExts.value.begin(), devExts.value.end(), [&](vk::ExtensionProperties const &ext) {
-            return strcmp(ext.extensionName, name) == 0;
-        });
-        if (it == devExts.value.end())
-            return devCreateData;
-    }
-
-    std::vector<vk::QueueFamilyProperties2> queueFamilies = physDev.getQueueFamilyProperties2();
-    vk::QueueFlags universalFlags = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eTransfer;
-    for (int32_t q = 0; q < queueFamilies.size(); ++q) {
-        if ((queueFamilies[q].queueFamilyProperties.queueFlags & universalFlags) != universalFlags ||
-            !queueFamilyCanPresent(physDev, q))
-            continue;
-        devCreateData._physDevice = physDev;
-        devCreateData._universalQueueFamily = q;
-        devCreateData._extNames = std::move(extNames);
-        break;
-    }
-    return devCreateData;
-}
-
-bool RhiVk::InitDevice()
+bool RhiVk::InitDevice(int32_t deviceIndex)
 {
     auto physicalDevices = _instance.enumeratePhysicalDevices().value;
     for (auto &physDev : physicalDevices) {
         DeviceCreateData devCreateData = CheckPhysicalDeviceSuitability(physDev, _settings);
         if (!devCreateData._physDevice)
+            continue;
+        if (deviceIndex-- > 0)
             continue;
         _physDevice = devCreateData._physDevice;
 

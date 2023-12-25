@@ -8,6 +8,14 @@ namespace rhi {
 
 struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 
+	struct DeviceDescription {
+		std::string _name;
+		uint32_t _vendorId = 0;
+		uint32_t _deviceId = 0;
+		uint32_t _driverVersion = 0;
+		bool _isIntegrated = false;
+	};
+
 	struct Settings {
 		char const *_appName = nullptr;
 		glm::uvec3 _appVersion{ 0 };
@@ -17,7 +25,9 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 
 	virtual ~Rhi();
 
-	virtual bool Init(Settings const &settings);
+	virtual std::vector<DeviceDescription> GetDevices(Settings const &settings) = 0;
+
+	virtual bool Init(Settings const &settings, int32_t deviceIndex = 0);
 
 	bool InitTypes();
 
