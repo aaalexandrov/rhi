@@ -171,7 +171,7 @@ int main()
 			if (!genOutput || glm::ivec2(genOutput->_descriptor._dimensions) != swapchainSize) {
 				genOutput = device->Create<rhi::Texture>("gen Output");
 				res = genOutput->Init(rhi::ResourceDescriptor{
-					._usage = rhi::ResourceUsage{.srv = 1, .uav = 1, .copySrc = 1},
+					._usage = rhi::ResourceUsage{.srv = 1, .uav = 1, .copySrc = 1, .copyDst = 1},
 					._format = rhi::Format::R8G8B8A8,
 					._dimensions{swapchainSize, 0, 0},
 					._mipLevels = 0
@@ -200,7 +200,7 @@ int main()
 			auto swapchainTexture = swapchain->AcquireNextImage();
 			
 			auto copyPass = device->Create<rhi::CopyPass>("genCopy");
-			rhi::ResourceView genView = rhi::ResourceView::FromDescriptor(genOutput->_descriptor);
+			rhi::ResourceView genView = rhi::ResourceView::FromDescriptor(genOutput->_descriptor, 0);
 			genView._region._max.x /= 2;
 			res = copyPass->Copy({ {genOutput, genView}, {swapchainTexture} });
 			ASSERT(res);

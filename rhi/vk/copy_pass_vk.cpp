@@ -31,24 +31,47 @@ bool CopyPassVk::NeedsMatchingTextures(CopyData &copy)
 
 void RecordTransferBarrier(vk::CommandBuffer cmds, uint32_t queueFamily, ResourceRef &ref, bool toDst)
 {
-	auto *texVk = static_cast<TextureVk *>(ref._bindable.get());
-	vk::ImageMemoryBarrier imgBarrier{
-		toDst ? vk::AccessFlagBits::eTransferWrite : vk::AccessFlagBits::eTransferRead,
-		toDst ? vk::AccessFlagBits::eTransferRead : vk::AccessFlagBits::eTransferWrite,
-		toDst ? vk::ImageLayout::eTransferDstOptimal : vk::ImageLayout::eTransferSrcOptimal,
-		toDst ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eTransferDstOptimal,
-		queueFamily,
-		queueFamily,
-		texVk->_image,
-		GetViewSubresourceRange(ref._view),
-	};
-	cmds.pipelineBarrier(
-		vk::PipelineStageFlagBits::eTransfer,
-		vk::PipelineStageFlagBits::eTransfer,
-		vk::DependencyFlags(),
-		nullptr,
-		nullptr,
-		imgBarrier);
+	vk::AccessFlags srcAccess = toDst ? vk::AccessFlagBits::eTransferRead : vk::AccessFlagBits::eTransferWrite;
+	vk::AccessFlags dstAccess = toDst ? vk::AccessFlagBits::eTransferWrite : vk::AccessFlagBits::eTransferRead;
+	if (auto *texVk = Cast<TextureVk>(ref._bindable.get())) {
+		vk::ImageMemoryBarrier imgBarrier{
+			srcAccess,
+			dstAccess,
+			toDst ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eTransferDstOptimal,
+			toDst ? vk::ImageLayout::eTransferDstOptimal : vk::ImageLayout::eTransferSrcOptimal,
+			queueFamily,
+			queueFamily,
+			texVk->_image,
+			GetViewSubresourceRange(ref._view),
+		};
+		cmds.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			nullptr,
+			nullptr,
+			imgBarrier);
+	} else if (auto *bufVk = Cast<BufferVk>(ref._bindable.get())) {
+		vk::BufferMemoryBarrier bufBarrier{
+			srcAccess,
+			dstAccess,
+			queueFamily,
+			queueFamily,
+			bufVk->_buffer,
+			(vk::DeviceSize)ref._view._region._min[0],
+			(vk::DeviceSize)ref._view._region.GetSize()[0],
+		};
+		cmds.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			nullptr,
+			bufBarrier,
+			nullptr);
+
+	} else {
+		ASSERT(0);
+	}
 }
 
 bool CopyPassVk::Prepare(Submission *sub)
@@ -60,6 +83,9 @@ bool CopyPassVk::Prepare(Submission *sub)
 	for (auto &copy : _copies) {
 		CopyType cpType = copy.GetCopyType();
 
+		if (copy._src._bindable == copy._dst._bindable) 
+			RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, true);
+
 		if (!cpType.srcTex && !cpType.dstTex) {
 			CopyBufToBuf(copy);
 		} else if (!cpType.srcTex && cpType.dstTex) {
@@ -69,19 +95,14 @@ bool CopyPassVk::Prepare(Submission *sub)
 		} else {
 			ASSERT(cpType.srcTex && cpType.dstTex);
 
-			if (copy._src._bindable == copy._dst._bindable) {
-				RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, true);
-			}
-
 			if (CanBlit(copy))
 				BlitTexToTex(copy);
 			else
 				CopyTexToTex(copy);
-
-			if (copy._src._bindable == copy._dst._bindable) {
-				RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, false);
-			}
 		}
+
+		if (copy._src._bindable == copy._dst._bindable)
+			RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, false);
 	}
 
 	if (!_recorder.EndCmds(cmds))
@@ -153,7 +174,7 @@ void CopyPassVk::BlitTexToTex(CopyData &copy)
 		vk::ImageBlit region{
 			GetImageSubresourceLayers(copy._src._view, mipLevel),
 			{GetOffset3D(srcOffs), GetOffset3D(srcOffs + srcSize)},
-			GetImageSubresourceLayers(copy._dst._view, mipLevel),
+			GetImageSubresourceLayers(copy._dst._view, mipLevel - copy._src._view._mipRange._min + copy._dst._view._mipRange._min),
 			{GetOffset3D(dstOffs), GetOffset3D(dstOffs + dstSize)},
 		};
 		regions.push_back(region);

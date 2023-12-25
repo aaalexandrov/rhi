@@ -194,24 +194,24 @@ ResourceView ResourceView::GetIntersection(ResourceView const &other) const
 	return view;
 }
 
-ResourceView ResourceView::GetIntersection(ResourceDescriptor &desc) const
+ResourceView ResourceView::GetIntersection(ResourceDescriptor &desc, int8_t minMip) const
 {
-	return GetIntersection(ResourceView::FromDescriptor(desc));
+	return GetIntersection(ResourceView::FromDescriptor(desc, minMip));
 }
 
 utl::IntervalI ResourceView::GetArrayRange() const
 {
-	utl::IntervalI arrayRange{ _region._min[3], _region._max[3] };
+	utl::IntervalI arrayRange{ _region._min[3], std::max(_region._min[3], _region._max[3]) };
 	ASSERT(!arrayRange.IsEmpty());
 	return arrayRange;
 }
 
-ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc)
+ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc, int8_t minMip)
 {
 	ResourceView view{
 		._format = desc._format,
-		._region = utl::Box4I::FromMinAndSize(glm::ivec4(0), desc._dimensions),
-		._mipRange = utl::IntervalI8::FromMinAndSize(0, desc._mipLevels),
+		._region = utl::Box4I::FromMinAndSize(glm::ivec4(0), desc.GetMipDims(minMip)),
+		._mipRange = utl::IntervalI8::FromMinAndSize(minMip, desc._mipLevels - minMip),
 	};
 	return view;
 }
@@ -247,7 +247,7 @@ bool ResourceRef::ValidateView()
 
 	// TO DO: check view format compatibility
 
-	_view = _view.GetIntersection(resource->_descriptor);
+	_view = _view.GetIntersection(resource->_descriptor, std::max(_view._mipRange._min, (int8_t)0));
 
 	return IsViewValid();
 }

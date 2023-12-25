@@ -138,7 +138,7 @@ bool TextureVk::Init(ResourceDescriptor const &desc)
 	if ((vk::Result)vmaCreateImage(rhi->_vma, (VkImageCreateInfo *)&imgInfo, &allocInfo, (VkImage *)&_image, &_vmaAlloc, nullptr) != vk::Result::eSuccess)
 		return false;
 
-	_view = CreateView(ResourceView::FromDescriptor(_descriptor));
+	_view = CreateView(ResourceView::FromDescriptor(_descriptor, 0));
 	if (!_view)
 		return false;
 
@@ -152,7 +152,7 @@ bool TextureVk::Init(vk::Image image, ResourceDescriptor &desc, RhiOwned *owner)
 	ASSERT(!_vmaAlloc);
 	_image = image;
 	_owner = owner->weak_from_this();
-	_view = CreateView(ResourceView::FromDescriptor(_descriptor));
+	_view = CreateView(ResourceView::FromDescriptor(_descriptor, 0));
 	if (!_view)
 		return false;
 	return true;

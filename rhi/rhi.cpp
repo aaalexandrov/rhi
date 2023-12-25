@@ -60,9 +60,8 @@ std::shared_ptr<CopyPass> Rhi::CreateMipGenPass(std::shared_ptr<Texture> &tex, s
         name = tex->_name + "MipGen";
     auto copyPass = Create<CopyPass>(name);
     auto getMipView = [&](int8_t mip) {
-        ResourceView view;
-        view._region = utl::Box4I::FromMinAndSize(glm::ivec4(0), tex->_descriptor.GetMipDims(mip - 1));
-        view._mipRange = utl::IntervalI8::FromMinAndSize(mip - 1, 1);
+        ResourceView view = ResourceView::FromDescriptor(tex->_descriptor, mip);
+        view._mipRange.SetSize(1);
         return view;
     };
 

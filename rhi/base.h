@@ -120,9 +120,9 @@ struct ResourceView {
 
 	bool IsValidFor(ResourceDescriptor const &desc) const;
 	ResourceView GetIntersection(ResourceView const &other) const;
-	ResourceView GetIntersection(ResourceDescriptor &desc) const;
+	ResourceView GetIntersection(ResourceDescriptor &desc, int8_t minMip) const;
 	utl::IntervalI GetArrayRange() const;
-	static ResourceView FromDescriptor(ResourceDescriptor const &desc);
+	static ResourceView FromDescriptor(ResourceDescriptor const &desc, int8_t minMip);
 };
 
 using ResourceEnum = std::function<void(Resource *, ResourceUsage)>;

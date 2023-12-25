@@ -648,7 +648,7 @@ bool ResourceSetVk::Update()
 			} else if (TextureVk *texVk = Cast<TextureVk>(resRef._bindable.get())) {
 				auto &imgInfo = imgInfos[resRefIdx + e];
 				// TO DO: handle resource ref views
-				ResourceView defaultView = ResourceView::FromDescriptor(texVk->_descriptor);
+				ResourceView defaultView = ResourceView::FromDescriptor(texVk->_descriptor, 0);
 				if (resRef._view == defaultView) {
 					imgInfo.imageView = texVk->_view;
 				} else {

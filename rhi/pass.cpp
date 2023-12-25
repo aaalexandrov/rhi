@@ -101,6 +101,8 @@ bool CopyPass::Copy(CopyData copy)
 		return false;
 	if (!copy._src.ValidateView() || !copy._dst.ValidateView())
 		return false;
+	if (!srcRes->_descriptor._usage.copySrc || !dstRes->_descriptor._usage.copyDst) 
+		return false;
 	// Only allow multiple copies per pass if they have the same source / destination resources
 	if (_copies.size() > 0 && (srcRes != _copies[0]._src._bindable.get() || dstRes != _copies[0]._dst._bindable.get()))
 		return false;
@@ -110,7 +112,8 @@ bool CopyPass::Copy(CopyData copy)
 		glm::ivec4 regionSize = glm::min(copy._src._view._region.GetSize(), copy._dst._view._region.GetSize());
 		copy._src._view._region.SetSize(regionSize);
 		copy._dst._view._region.SetSize(regionSize);
-	} else {
+	} else if (cpType.srcTex != cpType.dstTex) {
+		// texture and buffer
 		auto &refBuf = cpType.srcTex ? copy._dst : copy._src;
 		auto &refTex = cpType.srcTex ? copy._src : copy._dst;
 		uint32_t pixSize = GetFormatSize(refTex._view._format);
