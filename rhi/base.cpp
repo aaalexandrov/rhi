@@ -155,6 +155,11 @@ bool RenderState::operator==(RenderState const &other) const
 }
 
 
+glm::ivec4 ResourceDescriptor::GetMipDims(int8_t mip) const
+{
+	return glm::ivec4(GetMipLevelSize(_dimensions, mip), _dimensions[3]);
+}
+
 glm::ivec4 ResourceDescriptor::GetNaturalDims(glm::ivec4 dims)
 {
 	return IsCube(dims) ? glm::ivec4(dims.x, dims.y, 0, dims.w) : dims;
@@ -192,6 +197,13 @@ ResourceView ResourceView::GetIntersection(ResourceView const &other) const
 ResourceView ResourceView::GetIntersection(ResourceDescriptor &desc) const
 {
 	return GetIntersection(ResourceView::FromDescriptor(desc));
+}
+
+utl::IntervalI ResourceView::GetArrayRange() const
+{
+	utl::IntervalI arrayRange{ _region._min[3], _region._max[3] };
+	ASSERT(!arrayRange.IsEmpty());
+	return arrayRange;
 }
 
 ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc)

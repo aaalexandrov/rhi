@@ -28,7 +28,7 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 	}
 
 	template <typename R, typename... ARGS>
-	std::shared_ptr<R> Create(std::string name, ARGS &&... args) {
+	std::shared_ptr<R> New(std::string name, ARGS &&... args) {
 		auto obj = std::static_pointer_cast<R>(Create(TypeInfo::Get<R>(), name));
 		if (!obj)
 			return std::shared_ptr<R>();
@@ -40,6 +40,8 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 	}
 
 	std::shared_ptr<Submission> Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name = "");
+
+	std::shared_ptr<CopyPass> CreateMipGenPass(std::shared_ptr<Texture> &tex, std::string name = "");
 
 	virtual bool WaitIdle() = 0;
 

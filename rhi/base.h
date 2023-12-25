@@ -98,6 +98,8 @@ struct ResourceDescriptor {
 
 	void SetMaxMipLevels() { _mipLevels = GetMaxMipLevels(_dimensions); }
 
+	glm::ivec4 GetMipDims(int8_t mip) const;
+
 	glm::ivec4 GetNaturalDims() const { return GetNaturalDims(_dimensions); }
 	static glm::ivec4 GetNaturalDims(glm::ivec4 dims);
 
@@ -119,6 +121,7 @@ struct ResourceView {
 	bool IsValidFor(ResourceDescriptor const &desc) const;
 	ResourceView GetIntersection(ResourceView const &other) const;
 	ResourceView GetIntersection(ResourceDescriptor &desc) const;
+	utl::IntervalI GetArrayRange() const;
 	static ResourceView FromDescriptor(ResourceDescriptor const &desc);
 };
 

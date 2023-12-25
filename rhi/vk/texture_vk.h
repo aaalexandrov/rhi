@@ -30,5 +30,6 @@ vk::ImageLayout GetImageLayout(ResourceUsage usage);
 vk::ImageAspectFlags GetImageAspect(Format fmt);
 vk::ImageType GetImageType(glm::ivec4 dims);
 vk::ImageViewType GetImageViewType(glm::ivec4 dims);
+vk::ImageSubresourceRange GetViewSubresourceRange(ResourceView const &view);
 
 }

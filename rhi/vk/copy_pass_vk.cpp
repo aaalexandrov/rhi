@@ -29,6 +29,28 @@ bool CopyPassVk::NeedsMatchingTextures(CopyData &copy)
 	return !CanBlit(copy);
 }
 
+void RecordTransferBarrier(vk::CommandBuffer cmds, uint32_t queueFamily, ResourceRef &ref, bool toDst)
+{
+	auto *texVk = static_cast<TextureVk *>(ref._bindable.get());
+	vk::ImageMemoryBarrier imgBarrier{
+		toDst ? vk::AccessFlagBits::eTransferWrite : vk::AccessFlagBits::eTransferRead,
+		toDst ? vk::AccessFlagBits::eTransferRead : vk::AccessFlagBits::eTransferWrite,
+		toDst ? vk::ImageLayout::eTransferDstOptimal : vk::ImageLayout::eTransferSrcOptimal,
+		toDst ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eTransferDstOptimal,
+		queueFamily,
+		queueFamily,
+		texVk->_image,
+		GetViewSubresourceRange(ref._view),
+	};
+	cmds.pipelineBarrier(
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::DependencyFlags(),
+		nullptr,
+		nullptr,
+		imgBarrier);
+}
+
 bool CopyPassVk::Prepare(Submission *sub)
 {
 	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
@@ -46,10 +68,19 @@ bool CopyPassVk::Prepare(Submission *sub)
 			CopyTexToBuf(copy);
 		} else {
 			ASSERT(cpType.srcTex && cpType.dstTex);
+
+			if (copy._src._bindable == copy._dst._bindable) {
+				RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, true);
+			}
+
 			if (CanBlit(copy))
 				BlitTexToTex(copy);
 			else
 				CopyTexToTex(copy);
+
+			if (copy._src._bindable == copy._dst._bindable) {
+				RecordTransferBarrier(cmds, _recorder._queueFamily, copy._dst, false);
+			}
 		}
 	}
 

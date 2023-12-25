@@ -256,7 +256,7 @@ struct Box {
 	constexpr bool Contains(Box const &other) const { return glm::all(glm::lessThanEqual(_min, other._min) && glm::lessThanEqual(other._max, _max)) && !IsEmpty() && !other.IsEmpty(); }
 
 	constexpr Box GetIntersection(Box const &other) const { return Box(glm::max(_min, other._min), glm::min(_max, other._max)); }
-	constexpr bool Intersects(Box const &other) const { return !GetIntersection().IsEmpty(); }
+	constexpr bool Intersects(Box const &other) const { return !GetIntersection(other).IsEmpty(); }
 
 	constexpr Box GetUnion(Vec const &v) const { return Box(glm::min(_min, v), glm::max(_max, v)); }
 	constexpr Box GetUnion(Box const &other) const

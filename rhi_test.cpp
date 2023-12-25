@@ -71,19 +71,17 @@ int main()
 	ASSERT(res);
 
 	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	swapchain->_images[0] }};
-	auto solidPass = device->Create<rhi::GraphicsPass>("solidPass", std::span(solidRts));
+	auto solidPass = device->New<rhi::GraphicsPass>("solidPass", std::span(solidRts));
 
-	auto solidPipe = device->Create<rhi::Pipeline>();
 	rhi::GraphicsPipelineData solidData{
 		._shaders = {{ solidVert, solidFrag }},
 		._renderPass = std::move(solidPass),
-		._vertexInputs = { rhi::VertexInputData{ ._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
+		._vertexInputs = { rhi::VertexInputData{._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
 	};
-	res = solidPipe->Init(solidData);
-	ASSERT(res);
+	auto solidPipe = device->New<rhi::Pipeline>("", solidData);
 
 	auto *vertLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::VertexLayout);
-	auto triBuf = device->Create<rhi::Buffer>("triangle", rhi::ResourceDescriptor{
+	auto triBuf = device->New<rhi::Buffer>("triangle", rhi::ResourceDescriptor{
 		._usage = rhi::ResourceUsage{.vb = 1, .cpuAccess = 1},
 		._dimensions = glm::ivec4(vertLayout->_type->_size * 3),
 	});
@@ -108,7 +106,7 @@ int main()
 	}
 
 	auto *solidUniformLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
-	auto solidUniform = device->Create<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
+	auto solidUniform = device->New<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
 		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
 		._dimensions = glm::ivec4(solidUniformLayout->_type->_size),
 	});
@@ -121,7 +119,7 @@ int main()
 		solidUniform->Unmap();
 	}
 
-	auto sampler = device->Create<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
+	auto sampler = device->New<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
 
 	auto solidResSet = solidPipe->AllocResourceSet(0);
 
@@ -176,6 +174,7 @@ int main()
 					._usage = rhi::ResourceUsage{.srv = 1, .uav = 1, .copySrc = 1},
 					._format = rhi::Format::R8G8B8A8,
 					._dimensions{swapchainSize, 0, 0},
+					._mipLevels = 0
 				});
 				ASSERT(res);
 
@@ -194,6 +193,9 @@ int main()
 			res = genPass->Init(genPipe.get(), std::span(&genResources, 1), glm::ivec3((swapchainSize + genGroup - 1) / genGroup, 1));
 			ASSERT(res);
 			passes.push_back(genPass);
+
+			auto mipGenPass = device->CreateMipGenPass(genOutput);
+			passes.push_back(mipGenPass);
 
 			auto swapchainTexture = swapchain->AcquireNextImage();
 			

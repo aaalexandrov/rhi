@@ -134,6 +134,15 @@ bool CopyPass::Copy(CopyData copy)
 	if (!copy._src.IsViewValid() || !copy._dst.IsViewValid())
 		return false;
 
+	if (copy._src._bindable == copy._dst._bindable) {
+		utl::IntervalI srcArrRange = copy._src._view.GetArrayRange();
+		utl::IntervalI dstArrRange = copy._dst._view.GetArrayRange();
+		if (srcArrRange.Intersects(dstArrRange) && copy._src._view._mipRange.Intersects(copy._dst._view._mipRange)) {
+			ASSERT(0);
+			return false;
+		}
+	}
+
 	_copies.push_back(std::move(copy));
 
 	return true;
@@ -143,7 +152,8 @@ void CopyPass::EnumResources(ResourceEnum enumFn)
 {
 	for (auto &copy : _copies) {
 		enumFn(static_cast<Resource *>(copy._src._bindable.get()), ResourceUsage{ .copySrc = 1, .read = 1  });
-		enumFn(static_cast<Resource *>(copy._dst._bindable.get()), ResourceUsage{ .copyDst = 1, .write = 1 });
+		if (copy._dst._bindable != copy._src._bindable)
+			enumFn(static_cast<Resource *>(copy._dst._bindable.get()), ResourceUsage{ .copyDst = 1, .write = 1 });
 	}
 }
 

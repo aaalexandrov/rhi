@@ -52,6 +52,18 @@ vk::ImageViewType GetImageViewType(glm::ivec4 dims)
 	}
 }
 
+vk::ImageSubresourceRange GetViewSubresourceRange(ResourceView const &view)
+{
+	vk::ImageSubresourceRange range{
+			GetImageAspect(view._format),
+			(uint32_t)view._mipRange._min,
+			(uint32_t)view._mipRange.GetSize(),
+			(uint32_t)view._region._min[3],
+			(uint32_t)std::max(view._region.GetSize()[3], 1)
+	};
+	return range;
+}
+
 vk::ImageUsageFlags GetImageUsage(ResourceUsage usage, Format imgFormat)
 {
 	vk::ImageUsageFlags imgUsage = (vk::ImageUsageFlags)s_vkImageUsage2ResourceUsage.ToSrc(usage);
@@ -177,26 +189,18 @@ ResourceStateVk TextureVk::GetState(ResourceUsage usage)
 
 vk::ImageView TextureVk::CreateView(ResourceView const &view)
 {
-	glm::ivec4 viewDims = view._region.GetSize();
 	auto rhi = static_cast<RhiVk *>(_rhi);
 	vk::ImageViewCreateInfo viewInfo{
 		vk::ImageViewCreateFlags(),
 		_image,
-		GetImageViewType(viewDims),
+		GetImageViewType(view._region.GetSize()),
 		s_vk2Format.ToSrc(view._format, vk::Format::eUndefined),
 		vk::ComponentMapping{vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity},
-		vk::ImageSubresourceRange{
-			GetImageAspect(view._format),
-			(uint32_t)view._mipRange._min,
-			(uint32_t)view._mipRange.GetSize(),
-			(uint32_t)view._region._min[3],
-			(uint32_t)std::max(viewDims[3], 1)
-		},
+		GetViewSubresourceRange(view),
 	};
 	vk::ImageView imgView;
 	if (rhi->_device.createImageView(&viewInfo, rhi->AllocCallbacks(), &imgView) != vk::Result::eSuccess)
 		return vk::ImageView();
-
 
 	return imgView;
 }

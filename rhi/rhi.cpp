@@ -54,6 +54,28 @@ std::shared_ptr<Submission> Rhi::Submit(std::vector<std::shared_ptr<Pass>> &&pas
     return sub;
 }
 
+std::shared_ptr<CopyPass> Rhi::CreateMipGenPass(std::shared_ptr<Texture> &tex, std::string name)
+{
+    if (name.empty())
+        name = tex->_name + "MipGen";
+    auto copyPass = Create<CopyPass>(name);
+    auto getMipView = [&](int8_t mip) {
+        ResourceView view;
+        view._region = utl::Box4I::FromMinAndSize(glm::ivec4(0), tex->_descriptor.GetMipDims(mip - 1));
+        view._mipRange = utl::IntervalI8::FromMinAndSize(mip - 1, 1);
+        return view;
+    };
+
+    for (int8_t mip = 1; mip < tex->_descriptor._mipLevels; ++mip) {
+        bool res = copyPass->Copy({ {tex, getMipView(mip - 1)}, {tex, getMipView(mip)} });
+        ASSERT(res);
+        if (!res)
+            return {};
+    }
+
+    return copyPass;
+}
+
 TypeInfo const *Rhi::GetDerivedTypeWithTag(TypeInfo const *base)
 {
     {
