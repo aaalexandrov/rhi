@@ -15,6 +15,8 @@ endif()
 set(VK_SDK_PATH $ENV{VULKAN_SDK})
 
 if (WIN32)
+	set(VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+
 	#in order for this to work, in the vulkan sdk the cmake/sdl2/* files need to be copied to cmake/*
 	set(SDL2_DIR ${VK_SDK_PATH}/cmake)
 endif()

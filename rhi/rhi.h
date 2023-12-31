@@ -26,6 +26,7 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 	virtual ~Rhi();
 
 	virtual std::vector<DeviceDescription> GetDevices(Settings const &settings) = 0;
+	DeviceDescription GetInitializedDevice();
 
 	virtual bool Init(Settings const &settings, int32_t deviceIndex = 0);
 
@@ -64,6 +65,7 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 	}
 
 	Settings _settings;
+	int32_t _deviceIndex = -1;
 protected:
 	std::shared_mutex _rwLock;
 	std::unordered_map<TypeInfo const *, TypeInfo const *> _derivedTypes;

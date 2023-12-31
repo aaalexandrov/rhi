@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
@@ -10,6 +11,8 @@
 
 int main()
 {
+	std::cout << "Starting in " << std::filesystem::current_path() << std::endl;
+
 	utl::TypeInfo::Init();
 	utl::OnDestroy typesDone(utl::TypeInfo::Done);
 
@@ -51,6 +54,8 @@ int main()
 	auto device = std::make_shared<rhi::RhiVk>();
 	bool res = device->Init(deviceSettings);
 	ASSERT(res);
+
+	std::cout << "Created rhi device " << device->GetInitializedDevice()._name << std::endl;
 
 	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
 	rhi::SwapchainDescriptor chainDesc{

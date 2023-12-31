@@ -12,11 +12,19 @@ Rhi::~Rhi()
 {
 }
 
+auto Rhi::GetInitializedDevice() -> DeviceDescription
+{
+    return GetDevices(_settings).at(_deviceIndex);
+}
+
 bool Rhi::Init(Settings const &settings, int32_t deviceIndex)
 {
     _settings = settings;
     if (!InitTypes())
         return false;
+
+    _deviceIndex = deviceIndex;
+
     return true;
 }
 
