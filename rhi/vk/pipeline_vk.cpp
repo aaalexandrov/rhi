@@ -523,7 +523,7 @@ bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> cons
 		shaderc_shader_kind shadercKind = s_shaderKind2Shaderc[_kind];
 		shadercResult = compiler.CompileGlslToSpv((char const *)content.data(), content.size(), shadercKind, _name.c_str(), _entryPoint.c_str(), options);
 		if (shadercResult.GetCompilationStatus() != shaderc_compilation_status_success) {
-			LOG("Compilation of GLSL shader '%s' failed with error: %s", _name.c_str(), shadercResult.GetErrorMessage().c_str());
+			LOG("Compilation of GLSL shader '%s' failed with error: %s", _name, shadercResult.GetErrorMessage());
 			return false;
 		}
 		spirv = std::span(shadercResult.begin(), shadercResult.end());
@@ -740,6 +740,8 @@ bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
 		if (rhi->_device.createComputePipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
 			return false;
 
+		rhi->SetDebugName(vk::ObjectType::ePipeline, (uint64_t)(VkPipeline)_pipeline, _name.c_str());
+
 		return true;
 	} 
 
@@ -878,6 +880,8 @@ bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
 	};
 	if (rhi->_device.createGraphicsPipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
 		return false;
+
+	rhi->SetDebugName(vk::ObjectType::ePipeline, (uint64_t)(VkPipeline)_pipeline, _name.c_str());
 
 	return true;
 }

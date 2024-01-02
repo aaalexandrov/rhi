@@ -62,27 +62,6 @@ std::shared_ptr<Submission> Rhi::Submit(std::vector<std::shared_ptr<Pass>> &&pas
     return sub;
 }
 
-std::shared_ptr<CopyPass> Rhi::CreateMipGenPass(std::shared_ptr<Texture> &tex, std::string name)
-{
-    if (name.empty())
-        name = tex->_name + "MipGen";
-    auto copyPass = Create<CopyPass>(name);
-    auto getMipView = [&](int8_t mip) {
-        ResourceView view = ResourceView::FromDescriptor(tex->_descriptor, mip);
-        view._mipRange.SetSize(1);
-        return view;
-    };
-
-    for (int8_t mip = 1; mip < tex->_descriptor._mipLevels; ++mip) {
-        bool res = copyPass->Copy({ {tex, getMipView(mip - 1)}, {tex, getMipView(mip)} });
-        ASSERT(res);
-        if (!res)
-            return {};
-    }
-
-    return copyPass;
-}
-
 TypeInfo const *Rhi::GetDerivedTypeWithTag(TypeInfo const *base)
 {
     {

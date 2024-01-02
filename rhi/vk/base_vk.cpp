@@ -26,6 +26,7 @@ bool CmdRecorderVk::Init(RhiVk *rhi, uint32_t queueFamily)
     };
     if (_rhi->_device.createCommandPool(&poolInfo, _rhi->AllocCallbacks(), &_cmdPool) != vk::Result::eSuccess)
         return false;
+
     return true;
 }
 
@@ -45,6 +46,9 @@ vk::CommandBuffer CmdRecorderVk::AllocCmdBuffer(vk::CommandBufferLevel level, st
     vk::CommandBuffer buffer;
     if (_rhi->_device.allocateCommandBuffers(&bufInfo, &buffer) != vk::Result::eSuccess)
         return vk::CommandBuffer();
+
+    _rhi->SetDebugName(vk::ObjectType::eCommandBuffer, (uint64_t)(VkCommandBuffer)buffer, name.c_str());
+
     _cmdBuffers.push_back(buffer);
     return buffer;
 }
@@ -58,11 +62,22 @@ vk::CommandBuffer CmdRecorderVk::BeginCmds(std::string name)
     if (cmds.begin(cmdBegin) != vk::Result::eSuccess)
         return vk::CommandBuffer();
 
+    if (_rhi->_settings._enableValidation) {
+        vk::DebugUtilsLabelEXT cmdLabel{
+            name.c_str()
+        };
+        cmds.beginDebugUtilsLabelEXT(cmdLabel, _rhi->_dynamicDispatch);
+    }
+
     return cmds;
 }
 
 bool CmdRecorderVk::EndCmds(vk::CommandBuffer cmds)
 {
+    if (_rhi->_settings._enableValidation) {
+        cmds.endDebugUtilsLabelEXT(_rhi->_dynamicDispatch);
+    }
+
     if (cmds.end() != vk::Result::eSuccess)
         return false;
 
@@ -81,10 +96,11 @@ bool CmdRecorderVk::Execute(Submission *sub)
     return true;
 }
 
-bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
+bool TimelineSemaphoreVk::Init(RhiVk *rhi, std::string name, uint64_t initValue)
 {
     ASSERT(!_rhi);
     _rhi = rhi;
+    _name = name;
     vk::SemaphoreTypeCreateInfo semType{
         vk::SemaphoreType::eTimeline,
         0,
@@ -95,6 +111,8 @@ bool TimelineSemaphoreVk::Init(RhiVk *rhi, uint64_t initValue)
     };
     if (_rhi->_device.createSemaphore(&semInfo, _rhi->AllocCallbacks(), &_semaphore) != vk::Result::eSuccess)
         return false;
+
+    _rhi->SetDebugName(vk::ObjectType::eSemaphore, (uint64_t)(VkSemaphore)_semaphore, name.c_str());
 
     return true;
 }

@@ -60,7 +60,7 @@ struct TimelineSemaphoreVk {
 	~TimelineSemaphoreVk() {
 		Done();
 	}
-	bool Init(RhiVk *rhi, uint64_t initValue = 0);
+	bool Init(RhiVk *rhi, std::string name, uint64_t initValue = 0);
 	void Done();
 
 	uint64_t GetCurrentCounter();
@@ -69,6 +69,7 @@ struct TimelineSemaphoreVk {
 	RhiVk *_rhi = nullptr;
 	vk::Semaphore _semaphore;
 	std::atomic<uint64_t> _value;
+	std::string _name;
 };
 
 struct SemaphoreReferenceVk {

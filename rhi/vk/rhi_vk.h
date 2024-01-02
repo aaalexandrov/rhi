@@ -66,6 +66,8 @@ struct RhiVk : public Rhi {
 	bool InitDevice(int32_t deviceIndex);
 	bool InitVma();
 
+	bool SetDebugName(vk::ObjectType objType, uint64_t handle, char const *name);
+
 	std::span<uint32_t> GetQueueFamilyIndices(ResourceUsage usage);
 	ResourceUsage GetFormatImageUsage(Format fmt, ResourceUsage usage);
 	vk::FormatFeatureFlags GetFormatFeatures(Format fmt, ResourceUsage usage);
@@ -75,7 +77,7 @@ struct RhiVk : public Rhi {
 	// The host allocation tracker's callbacks will be called during destruction of Vulkan objects
 	// so the tracker has to appear before all those variables in the class, so it gets desroyed after them
 	std::unique_ptr<HostAllocationTrackerVk> _allocTracker;
-	vk::DebugReportCallbackEXT _debugReportCallback;
+	vk::DebugUtilsMessengerEXT _debugUtilsMessenger;
 
 	struct QueueData {
 		vk::Queue _queue;

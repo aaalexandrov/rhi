@@ -121,6 +121,15 @@ bool SubmissionVk::Execute(ExecuteDataVk &&execute)
 	return true;
 }
 
+bool SubmissionVk::Execute(vk::CommandBuffer cmds)
+{
+	ExecuteDataVk exec;
+	exec._cmds.push_back(cmds);
+	if (!Execute(std::move(exec)))
+		return false;
+	return true;
+}
+
 bool SubmissionVk::FlushToExecute()
 {
 	auto rhi = static_cast<RhiVk*>(_rhi);

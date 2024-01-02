@@ -39,6 +39,9 @@ bool SamplerVk::Init(SamplerDescriptor const &desc)
 	};
 	if ((vk::Result)rhi->_device.createSampler(&samplerInfo, rhi->AllocCallbacks(), &_sampler) != vk::Result::eSuccess)
 		return false;
+
+	rhi->SetDebugName(vk::ObjectType::eSampler, (uint64_t)(VkSampler)_sampler, _name.c_str());
+
 	return true;
 }
 

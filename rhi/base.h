@@ -122,7 +122,7 @@ struct ResourceView {
 	ResourceView GetIntersection(ResourceView const &other) const;
 	ResourceView GetIntersection(ResourceDescriptor &desc, int8_t minMip) const;
 	utl::IntervalI GetArrayRange() const;
-	static ResourceView FromDescriptor(ResourceDescriptor const &desc, int8_t minMip);
+	static ResourceView FromDescriptor(ResourceDescriptor const &desc, int8_t minMip, int8_t numMips = std::numeric_limits<int8_t>::max());
 };
 
 using ResourceEnum = std::function<void(Resource *, ResourceUsage)>;

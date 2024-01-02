@@ -126,13 +126,10 @@ bool CopyPass::Copy(CopyData copy)
 			return false;
 	}
 
-	int8_t mipRange = std::min(copy._src._view._mipRange.GetSize(), copy._dst._view._mipRange.GetSize());
-	if (!cpType.srcTex || !cpType.dstTex) {
-		ASSERT(mipRange == 1 || !cpType.srcTex && !cpType.dstTex);
-		mipRange = std::min(mipRange, (int8_t)1);
-	}
-	copy._src._view._mipRange.SetSize(mipRange);
-	copy._dst._view._mipRange.SetSize(mipRange);
+	if (copy._src._view._mipRange.GetSize() != 1)
+		return false;
+	if (copy._dst._view._mipRange.GetSize() != 1)
+		return false;
 
 	if (!copy._src.IsViewValid() || !copy._dst.IsViewValid())
 		return false;
@@ -147,6 +144,46 @@ bool CopyPass::Copy(CopyData copy)
 	}
 
 	_copies.push_back(std::move(copy));
+
+	return true;
+}
+
+bool CopyPass::CopyTopToLowerMips(std::shared_ptr<Texture> tex)
+{
+	if (_name.empty())
+		_name = tex->_name + "MipGen";
+
+	for (int8_t mip = 1; mip < tex->_descriptor._mipLevels; ++mip) {
+		bool res = Copy({ 
+			{tex, ResourceView::FromDescriptor(tex->_descriptor, mip - 1, 1)}, 
+			{tex, ResourceView::FromDescriptor(tex->_descriptor, mip - 0, 1)} 
+		});
+		if (!res)
+			return false;
+	}
+
+	return true;
+}
+
+bool CopyPass::CopyMips(std::shared_ptr<Texture> src, std::shared_ptr<Texture> dst, int8_t srcMip, int8_t dstMip, int8_t numMips)
+{
+	if (_name.empty())
+		_name = src->_name + "->" + dst->_name;
+
+	auto srcView = ResourceView::FromDescriptor(src->_descriptor, srcMip);
+	auto dstView = ResourceView::FromDescriptor(dst->_descriptor, dstMip);
+	if (srcView._region != dstView._region)
+		return false;
+
+	numMips = std::min(numMips, std::min(srcView._mipRange.GetSize(), dstView._mipRange.GetSize()));
+	for (int8_t m = 0; m < numMips; ++m) {
+		bool res = Copy({
+			{src, ResourceView::FromDescriptor(src->_descriptor, srcMip + m, 1)},
+			{dst, ResourceView::FromDescriptor(dst->_descriptor, dstMip + m, 1)}
+		});
+		if (!res)
+			return false;
+	}
 
 	return true;
 }

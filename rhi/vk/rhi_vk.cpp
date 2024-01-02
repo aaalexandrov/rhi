@@ -80,23 +80,40 @@ VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalFreeNotify(void *pUs
     tracker->_sizeAllocatedInternal -= size;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL DbgReportFunc(
-    VkFlags msgFlags,
-    VkDebugReportObjectTypeEXT objType,
-    uint64_t srcObject,
-    size_t location,
-    int32_t msgCode,
-    const char *pLayerPrefix,
-    const char *pMsg,
+VKAPI_ATTR VkBool32 DebugUtilsMessengerFunc(
+    VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
     void *pUserData)
 {
-    std::string flag = (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? "error" : "warning";
+    char const *severity, *type;
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        severity = "error";
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        severity = "warning";
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        severity = "info";
+    else {
+        ASSERT(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
+        severity = "verbose";
+    }
 
-    LOG("Vulkan debug %s, code: %d, layer: '%s', msg: '%s'", flag.c_str(), msgCode, pLayerPrefix, pMsg);
+    if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+        type = "general";
+    else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+        type = "validation";
+    else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+        type = "performance";
+    else {
+        ASSERT(messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT);
+        type = "device address binding";
+    }
+
+    LOG("Vulkan %s %s, id: '%s', msg: '%s'", type, severity, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+    // TO DO: print queue / cmd messages & anything else the message can signify
 
     return false;
 }
-
 
 RhiVk::~RhiVk()
 {
@@ -104,7 +121,7 @@ RhiVk::~RhiVk()
     vmaDestroyAllocator(_vma);
     _timelineSemaphore.Done();
     _device.destroy(AllocCallbacks());
-    _instance.destroyDebugReportCallbackEXT(_debugReportCallback, AllocCallbacks(), _dynamicDispatch);
+    _instance.destroyDebugUtilsMessengerEXT(_debugUtilsMessenger, AllocCallbacks(), _dynamicDispatch);
     _instance.destroy(AllocCallbacks());
 }
 
@@ -186,7 +203,7 @@ bool RhiVk::Init(Settings const &settings, int32_t deviceIndex)
     if (!InitDevice(deviceIndex))
         return false;
 
-    if (!_timelineSemaphore.Init(this, 1))
+    if (!_timelineSemaphore.Init(this, "RhiTimeline", 1))
         return false;
 
     if (!InitVma())
@@ -222,22 +239,24 @@ bool RhiVk::InitInstance()
 #endif
     };
 
-    vk::DebugReportCallbackCreateInfoEXT debugCBInfo{
-        vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eError,
-        DbgReportFunc,
+    vk::DebugUtilsMessengerCreateInfoEXT debugMessengerInfo{
+        vk::DebugUtilsMessengerCreateFlagsEXT(),
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,// | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose,
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
+        DebugUtilsMessengerFunc,
         this
     };
 
     if (_settings._enableValidation) {
         instLayerNames.push_back("VK_LAYER_KHRONOS_validation");
-        instExtNames.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+        instExtNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     vk::InstanceCreateInfo inst{
         vk::InstanceCreateFlags(),
         &appInfo,
         instLayerNames,
         instExtNames,
-        _settings._enableValidation ? &debugCBInfo : nullptr,
+        _settings._enableValidation ? &debugMessengerInfo : nullptr,
     };
     if (vk::createInstance(&inst, AllocCallbacks(), &_instance) != vk::Result::eSuccess)
         return false;
@@ -245,7 +264,7 @@ bool RhiVk::InitInstance()
     _dynamicDispatch.init(_instance, vkGetInstanceProcAddr);
 
     if (_settings._enableValidation) {
-        if (_instance.createDebugReportCallbackEXT(&debugCBInfo, AllocCallbacks(), &_debugReportCallback, _dynamicDispatch) != vk::Result::eSuccess)
+        if (_instance.createDebugUtilsMessengerEXT(&debugMessengerInfo, AllocCallbacks(), &_debugUtilsMessenger, _dynamicDispatch) != vk::Result::eSuccess)
             return false;
     }
 
@@ -292,6 +311,8 @@ bool RhiVk::InitDevice(int32_t deviceIndex)
         if (!_universalQueue._queue)
             return false;
 
+        SetDebugName(vk::ObjectType::eQueue, (uint64_t)(VkQueue)_universalQueue._queue, "UniversalQueue");
+
         return true;
     }
     return false;
@@ -306,6 +327,20 @@ bool RhiVk::InitVma()
     };
     if ((vk::Result)vmaCreateAllocator(&vmaInfo, &_vma) != vk::Result::eSuccess)
         return false;
+    return true;
+}
+
+bool RhiVk::SetDebugName(vk::ObjectType objType, uint64_t handle, char const *name)
+{
+    if (_settings._enableValidation) {
+        vk::DebugUtilsObjectNameInfoEXT objName{
+            objType,
+            handle,
+            name
+        };
+        if (_device.setDebugUtilsObjectNameEXT(objName, _dynamicDispatch) != vk::Result::eSuccess)
+            return false;
+    }
     return true;
 }
 

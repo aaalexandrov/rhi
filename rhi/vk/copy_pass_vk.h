@@ -8,8 +8,6 @@ namespace rhi {
 struct BufferVk;
 struct TextureVk;
 struct CopyPassVk : public CopyPass {
-	bool InitRhi(Rhi *rhi, std::string name) override;
-
 	bool NeedsMatchingTextures(CopyData &copy) override;
 
 	bool Prepare(Submission *sub) override;
@@ -26,7 +24,7 @@ struct CopyPassVk : public CopyPass {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CopyPassVk>(); }
 
-	CmdRecorderVk _recorder;
+	vk::CommandBuffer _cmds;
 };
 
 }

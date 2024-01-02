@@ -199,13 +199,15 @@ int main()
 			ASSERT(res);
 			passes.push_back(genPass);
 
-			auto mipGenPass = device->CreateMipGenPass(genOutput);
+			auto mipGenPass = device->Create<rhi::CopyPass>();
+			mipGenPass->CopyTopToLowerMips(genOutput);
 			passes.push_back(mipGenPass);
 
 			auto swapchainTexture = swapchain->AcquireNextImage();
 			
 			auto copyPass = device->Create<rhi::CopyPass>("genCopy");
-			rhi::ResourceView genView = rhi::ResourceView::FromDescriptor(genOutput->_descriptor, 0);
+			//res = copyPass->CopyMips(genOutput, swapchainTexture);
+			rhi::ResourceView genView = rhi::ResourceView::FromDescriptor(genOutput->_descriptor, 0, 1);
 			genView._region._max.x /= 2;
 			res = copyPass->Copy({ {genOutput, genView}, {swapchainTexture} });
 			ASSERT(res);

@@ -12,28 +12,18 @@ static auto s_regTypes = TypeInfo::AddInitializer("compute_pass_vk", [] {
 });
 
 
-bool ComputePassVk::InitRhi(Rhi *rhi, std::string name)
-{
-	if (!ComputePass::InitRhi(rhi, name))
-		return false;
-
-	auto rhiVk = static_cast<RhiVk *>(_rhi);
-	if (!_recorder.Init(rhiVk, rhiVk->_universalQueue._family))
-		return false;
-
-	return true;
-}
-
 bool ComputePassVk::Prepare(Submission *sub)
 {
 	ASSERT(all(greaterThan(_pipeline->GetComputeGroupSize(), glm::ivec3(0))));
 
-	vk::CommandBuffer cmds = _recorder.BeginCmds(_name);
-	if (!cmds)
+	auto subVk = static_cast<SubmissionVk *>(sub);
+
+	_cmds = subVk->_recorder.BeginCmds(_name);
+	if (!_cmds)
 		return false;
 
 	auto *pipeVk = static_cast<PipelineVk *>(_pipeline.get());
-	cmds.bindPipeline(vk::PipelineBindPoint::eCompute, pipeVk->_pipeline);
+	_cmds.bindPipeline(vk::PipelineBindPoint::eCompute, pipeVk->_pipeline);
 
 	std::vector<vk::DescriptorSet> descSets;
 	for (auto &set : _resourceSets) {
@@ -41,11 +31,11 @@ bool ComputePassVk::Prepare(Submission *sub)
 		descSets.push_back(setVk->_descSet._set);
 	}
 	std::array<uint32_t, 0> noDynamicOffsets;
-	cmds.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeVk->_layout, 0, descSets, noDynamicOffsets);
+	_cmds.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeVk->_layout, 0, descSets, noDynamicOffsets);
 
-	cmds.dispatch(_numGroups.x, _numGroups.y, _numGroups.z);
+	_cmds.dispatch(_numGroups.x, _numGroups.y, _numGroups.z);
 
-	if (!_recorder.EndCmds(cmds))
+	if (!subVk->_recorder.EndCmds(_cmds))
 		return false;
 
 	return true;
@@ -53,7 +43,8 @@ bool ComputePassVk::Prepare(Submission *sub)
 
 bool ComputePassVk::Execute(Submission *sub)
 {
-	return _recorder.Execute(sub);
+	auto subVk = static_cast<SubmissionVk *>(sub);
+	return subVk->Execute(_cmds);
 }
 
 }

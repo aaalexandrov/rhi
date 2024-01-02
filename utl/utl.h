@@ -7,7 +7,13 @@ namespace utl {
 template <typename... ARGS>
 std::string strPrintf(char const *fmt, ARGS &&... args)
 {
-    int size = snprintf(nullptr, 0, fmt, args...);
+    auto strToC = [](auto &a) {
+        if constexpr (std::is_same_v<std::remove_cvref_t<decltype(a)>, std::string>)
+            return a.c_str();
+        else
+            return a;
+    };
+    int size = snprintf(nullptr, 0, fmt, strToC(args)...);
     if (size <= 0)
         return std::string();
     std::string buf(size + 1, ' ');

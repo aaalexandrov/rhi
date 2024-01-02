@@ -82,6 +82,8 @@ struct CopyPass : public Pass {
 	};
 
 	virtual bool Copy(CopyData copy);
+	bool CopyTopToLowerMips(std::shared_ptr<Texture> tex);
+	bool CopyMips(std::shared_ptr<Texture> src, std::shared_ptr<Texture> dst, int8_t srcMip = 0, int8_t dstMip = 0, int8_t numMips = std::numeric_limits<int8_t>::max());
 
 	virtual bool NeedsMatchingTextures(CopyData &copy) = 0;
 

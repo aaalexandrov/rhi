@@ -206,12 +206,12 @@ utl::IntervalI ResourceView::GetArrayRange() const
 	return arrayRange;
 }
 
-ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc, int8_t minMip)
+ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc, int8_t minMip, int8_t numMips)
 {
 	ResourceView view{
 		._format = desc._format,
 		._region = utl::Box4I::FromMinAndSize(glm::ivec4(0), desc.GetMipDims(minMip)),
-		._mipRange = utl::IntervalI8::FromMinAndSize(minMip, desc._mipLevels - minMip),
+		._mipRange = utl::IntervalI8::FromMinAndSize(minMip, std::min<int8_t>(numMips, desc._mipLevels - minMip)),
 	};
 	return view;
 }

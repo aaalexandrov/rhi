@@ -30,6 +30,7 @@ struct SubmissionVk : public Submission {
 	bool WaitUntilFinished() override;
 
 	bool Execute(ExecuteDataVk &&execute);
+	bool Execute(vk::CommandBuffer cmds);
 	bool FlushToExecute();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<SubmissionVk>(); }

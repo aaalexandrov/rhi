@@ -57,6 +57,8 @@ bool BufferVk::Init(ResourceDescriptor const &desc)
 	if ((vk::Result)vmaCreateBuffer(rhi->_vma, (VkBufferCreateInfo*)&bufInfo, &allocInfo, (VkBuffer*)&_buffer, &_vmaAlloc, nullptr) != vk::Result::eSuccess)
 		return false;
 
+	rhi->SetDebugName(vk::ObjectType::eBuffer, (uint64_t)(VkBuffer)_buffer, _name.c_str());
+
 	return true;
 }
 
