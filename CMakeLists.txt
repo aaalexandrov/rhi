@@ -39,8 +39,11 @@ add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)
 
 add_executable(${BINARY} ${SOURCES})
 
+add_subdirectory(thirdparty)
+
 add_subdirectory(utl)
 add_subdirectory(rhi)
+add_subdirectory(eng)
 
 set_property(TARGET ${BINARY} PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
