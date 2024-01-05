@@ -53,7 +53,7 @@ struct RigidTransform {
 		return RotationV::Rotate(invRot, v * invScale) - Rot::Rotate(invRot, _position * invScale);
 	}
 
-	constexpr OBoxV TransformToOrientedBox(BoxV const &box) const { return OBoxV(TransformPoint(box.GetCenter()), box.GetSize() * _scale / 2, _orientation); }
+	constexpr OBoxV TransformToOrientedBox(BoxV const &box) const { return OBoxV(TransformPoint(box.GetCenter()), box.GetSize() * _scale / (Num)2, _orientation); }
 	constexpr BoxV Transform(BoxV const &box) const { return TransformToOrientedBox(box).GetBox(); }
 	constexpr OBoxV Transform(OBoxV const &ob) const { return OBoxV(TransformPoint(ob._center), ob._halfSize * _scale, RotationV::Compose(_orientation, ob._orientation)); }
 	constexpr SphereV Transform(SphereV const &sphere) const { return SphereV(TransformPoint(sphere._center), sphere._radius * _scale); }
@@ -245,7 +245,7 @@ struct Box {
 	constexpr Vec GetSize() const { return _max - _min + Num(std::numeric_limits<Num>::is_integer); }
 	Box &SetSize(Vec const &size) { _max = _min + size - Num(std::numeric_limits<Num>::is_integer); return *this; }
 
-	constexpr Vec GetCenter() const { return (_min + _max) / 2; }
+	constexpr Vec GetCenter() const { return (_min + _max) / (Num)2; }
 
 	constexpr bool IsEmpty() const { return !IsLessEqual(_min, _max); }
 	constexpr bool IsFinite() const { return IsFinite(GetSize()); }

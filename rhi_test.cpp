@@ -237,7 +237,7 @@ int main()
 
 		eng::ImguiNewFrame();
 
-		ImGui::Begin("Fps", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings /* | ImGuiWindowFlags_AlwaysAutoResize */);
+		ImGui::Begin("Fps", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground /* | ImGuiWindowFlags_AlwaysAutoResize */);
 		ImGui::SetWindowPos(ImVec2(10, 10), ImGuiCond_Once);
 		ImGui::SetWindowSize(ImVec2(100, 20), ImGuiCond_Once);
 		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);

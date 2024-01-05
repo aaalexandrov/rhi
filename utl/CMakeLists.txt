@@ -2,6 +2,9 @@ set(dir_SOURCES
 	algo.h 
 	algo.cpp
 
+	box_tree.h
+	box_tree.cpp
+
 	dbg.h
 	dbg.cpp
 
@@ -14,6 +17,9 @@ set(dir_SOURCES
 	geom.h
 	geom.cpp
 
+	geom_primitive.h
+	geom_primitive.cpp
+
 	mathutl.h
 	mathutl.cpp
 
@@ -22,6 +28,9 @@ set(dir_SOURCES
 
 	msg.h
 	msg.cpp
+
+	polytope.h
+	polytope.cpp
 
 	type_info.h
 	type_info.cpp

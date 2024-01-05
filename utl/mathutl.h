@@ -165,17 +165,26 @@ constexpr bool IsFinite(Num n) { return std::isfinite(n); }
 template <int D, typename T, glm::qualifier Q>
 constexpr bool IsFinite(glm::vec<D, T, Q> const &v) { return !glm::any(glm::isinf(v) || (glm::isnan(v))); }
 
+template <typename T, glm::qualifier Q>
+constexpr bool IsFinite(glm::qua<T, Q> const &q) { return !glm::any(glm::isinf(q) || (glm::isnan(q))); }
+
 template <typename Num>
 constexpr bool IsInfinite(Num n) { return std::isinf(n); }
 
 template <int D, typename T, glm::qualifier Q>
 constexpr bool IsInfinite(glm::vec<D, T, Q> const &v) { return glm::any(glm::isinf(v)); }
 
+template <typename T, glm::qualifier Q>
+constexpr bool IsInfinite(glm::qua<T, Q> const &q) { return glm::any(glm::isinf(q)); }
+
 template <typename Num>
 constexpr bool IsNan(Num n) { return std::isnan(n); }
 
 template <int D, typename T, glm::qualifier Q>
 constexpr bool IsNan(glm::vec<D, T, Q> const &v) { return glm::any(glm::isnan(v)); }
+
+template <typename T, glm::qualifier Q>
+constexpr bool IsNan(glm::qua<T, Q> const &q) { return glm::any(glm::isnan(q)); }
 
 template <typename Vec>
 struct VecTraits {

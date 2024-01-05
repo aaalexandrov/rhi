@@ -267,6 +267,9 @@ private:
 
 struct Any {
 	virtual TypeInfo const *GetTypeInfo() const = 0;
+	bool IsKindOf(TypeInfo const *type) const { return GetTypeInfo()->IsKindOf(type); }
+	template <typename T>
+	bool IsKindOf() const { return IsKindOf(TypeInfo::Get<T>()); }
 };
 
 inline void *Cast(TypeInfo const *dstType, TypeInfo const *valType, void *val) {
