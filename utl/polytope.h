@@ -134,4 +134,6 @@ struct PlaneEval<Polytope<VecType>> {
 	}
 };
 
+using Polytope3F = Polytope<glm::vec3>;
+
 }

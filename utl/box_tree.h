@@ -123,7 +123,7 @@ inline auto BoxTree<VecType, NodeDataType>::GetNode(uint32_t index, bool addMiss
 		return it->second.get();
 	if (!addMissing)
 		return nullptr;
-	Node *node = _nodes.emplace({ index, std::make_unique<Node>() }).first->second.get();
+	Node *node = _nodes.emplace(index, std::make_unique<Node>()).first->second.get();
 	uint32_t parentIndex = index >> Dim;
 	if (parentIndex) {
 		Node *parent = GetNode(parentIndex, true);
@@ -140,6 +140,9 @@ inline bool BoxTree<VecType, NodeDataType>::RemoveNode(uint32_t index)
 	auto it = _nodes.find(index);
 	if (it == _nodes.end())
 		return false;
+	if (index == 1)
+		return false; // we should always have a root node
+	ASSERT(it->second->_childMask == 0);
 	_nodes.erase(it);
 	uint32_t parentIndex = index >> Dim;
 	if (parentIndex) {

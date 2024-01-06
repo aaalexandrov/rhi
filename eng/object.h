@@ -7,7 +7,7 @@ namespace eng {
 using utl::TypeInfo;
 
 struct Object;
-struct Component : public utl::Any {
+struct Component : utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Component>(); }
 
 	Object *_parent = nullptr;
@@ -16,7 +16,7 @@ struct Component : public utl::Any {
 };
 
 struct World;
-struct Object : public utl::Any {
+struct Object : std::enable_shared_from_this<Object>, utl::Any {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Object>(); }
 
@@ -52,7 +52,7 @@ private:
 
 	World *_world = nullptr;
 	utl::Transform3F _transform;
-	utl::GeomPrimitive3F _localBound;
+	utl::GeomPrimitive3F _localBound{glm::vec3(0)};
 	std::vector<std::unique_ptr<Component>> _components;
 };
 
