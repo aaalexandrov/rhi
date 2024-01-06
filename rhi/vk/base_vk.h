@@ -163,6 +163,11 @@ inline vk::Offset3D GetOffset3D(glm::ivec3 v) {
 	return vk::Offset3D(v.x, v.y, v.z);
 }
 
+inline vk::Viewport GetViewport(utl::BoxF const &vp) {
+	glm::vec3 vpSize = vp.GetSize();
+	return vk::Viewport{vp._min.x, vp._min.y, vpSize.x, vpSize.y, vp._min.z, vp._max.z};
+}
+
 ResourceUsage GetUsageFromFormatFeatures(vk::FormatFeatureFlags fmtFlags);
 
 static inline const utl::ValueRemapper<vk::Format, Format> s_vk2Format{ {

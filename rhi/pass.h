@@ -42,7 +42,7 @@ struct GraphicsPass : public Pass {
 		uint32_t _vertexOffset = 0;
 	};
 
-	virtual bool Init(std::span<TargetData> rts);
+	virtual bool Init(std::span<TargetData> rts, utl::BoxF const &viewport = utl::BoxF::GetMaximum());
 
 	virtual bool Draw(DrawData const &draw);
 
@@ -51,6 +51,7 @@ struct GraphicsPass : public Pass {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<GraphicsPass>(); }
 
 	std::vector<TargetData> _renderTargets;
+	utl::BoxF _viewport;
 	std::unordered_set<std::shared_ptr<Pipeline>> _pipelines;
 	std::unordered_set<std::shared_ptr<ResourceSet>> _resourceSets;
 

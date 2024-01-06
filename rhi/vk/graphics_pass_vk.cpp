@@ -33,9 +33,9 @@ bool GraphicsPassVk::InitRhi(Rhi *rhi, std::string name)
 	return true;
 }
 
-bool GraphicsPassVk::Init(std::span<TargetData> rts)
+bool GraphicsPassVk::Init(std::span<TargetData> rts, utl::BoxF const &viewport)
 {
-	if (!GraphicsPass::Init(rts))
+	if (!GraphicsPass::Init(rts, viewport))
 		return false;
 
 	if (!InitRenderPass())
@@ -64,9 +64,7 @@ bool GraphicsPassVk::Init(std::span<TargetData> rts)
 	};
 	cmds.beginRenderPass(passInfo, vk::SubpassContents::eInline);
 
-	glm::ivec2 rtSize = _renderTargets[0]._texture->_descriptor._dimensions;
-	vk::Viewport viewport{	0.0f, 0.0f, (float)rtSize.x, (float)rtSize.y, 0.0f, 1.0f };
-	cmds.setViewport(0, viewport);
+	cmds.setViewport(0, GetViewport(_viewport));
 
 	return true;
 }
