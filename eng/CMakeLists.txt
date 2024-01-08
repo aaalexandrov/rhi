@@ -11,11 +11,10 @@ set(dir_SOURCES
 	sys.h
 	sys.cpp
 
-	use_imgui.h
-	use_imgui.cpp
-
 	world.h
 	world.cpp
 )
 
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)
+
+add_subdirectory(ui)
