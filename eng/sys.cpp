@@ -32,6 +32,8 @@ bool Sys::InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex)
     if (!_rhi->Init(rhiSettings, deviceIndex))
         return false;
 
+    LOG("Created rhi device '%s'", _rhi->GetInitializedDevice()._name);
+
     return true;
 }
 

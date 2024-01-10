@@ -1,5 +1,6 @@
 #pragma once
 #include "rhi/resource.h"
+#include "eng/ui/imgui_ctx.h"
 
 struct SDL_Window;
 
@@ -26,16 +27,17 @@ struct Window : std::enable_shared_from_this<Window>, utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Window>(); }
 
 	bool Init(Descriptor const &desc);
-	bool InitSwapchain(rhi::SwapchainDescriptor swapchainDesc);
+	bool InitRendering(rhi::SwapchainDescriptor swapchainDesc);
 
 	void Done();
-	void DoneSwapchain();
+	void DoneRendering();
 
 	std::shared_ptr<rhi::WindowData> GetWindowData();
 
 	Descriptor _desc;
 	SDL_Window *_window = nullptr;
 	std::shared_ptr<rhi::Swapchain> _swapchain;
+	std::unique_ptr<ImguiCtx> _imguiCtx;
 };
 
 }

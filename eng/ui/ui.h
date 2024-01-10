@@ -12,7 +12,14 @@ struct Ui {
 
 	bool Init();
 
-	void Done();
+	void HandleInput();
+
+	void UpdateWindows();
+
+	void RegisterWindow(Window *window);
+	void UnregisterWindow(Window *window);
+
+	std::vector<Window *> _windows;
 };
 
 }

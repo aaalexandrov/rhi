@@ -1,11 +1,14 @@
 #include "imgui_ctx.h"
+#include "eng/sys.h"
+
 #include "rhi/vk/rhi_vk.h"
 #include "rhi/vk/graphics_pass_vk.h"
-#include "eng/sys.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "backends/imgui_impl_sdl2.h"
+
+#include "SDL2/SDL_events.h"
 
 namespace eng {
 
@@ -49,14 +52,26 @@ ImguiCtx::~ImguiCtx()
 
         ImGui::DestroyContext(_ctx);
     }
+    delete _rhiData;
     _rhiData = nullptr;
 }
 
 bool ImguiCtx::Init(Window *window)
 {
-    _rhiData = std::make_unique<ImguiRhiData>();
+    ASSERT(!_rhiData);
+    _rhiData = new ImguiRhiData();
+    if (!_rhiData->Init()) {
+        delete _rhiData;
+        _rhiData = nullptr;
+        return false;
+    }
+
     ASSERT(!_ctx);
     _ctx = ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO(); (void)io;
+    io.IniFilename = nullptr;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -102,6 +117,8 @@ bool ImguiCtx::Init(Window *window)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != nullptr);
 
+    ImGui::SetCurrentContext(nullptr);
+
     return true;
 }
 
@@ -133,6 +150,38 @@ void ImguiCtx::Render(rhi::GraphicsPass *graphicsPass)
 
     // Record dear imgui primitives into command buffer
     ImGui_ImplVulkan_RenderDrawData(draw_data, passVk->_recorder._cmdBuffers.back());
+
+}
+
+void ImguiCtx::ProcessEvent(Window *window, SDL_Event const &event)
+{
+    auto *prevCtx = ImGui::GetCurrentContext();
+    ImGui::SetCurrentContext(_ctx);
+
+    ImGui_ImplSDL2_ProcessEvent(&event);
+
+    ImGuiIO &io = ImGui::GetIO();
+    bool shouldDispatch = true;
+    switch (event.type) {
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEWHEEL:
+            shouldDispatch = !io.WantCaptureMouse;
+            break;
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+        case SDL_KEYMAPCHANGED:
+        case SDL_TEXTEDITING:
+        case SDL_TEXTEDITING_EXT:
+        case SDL_TEXTINPUT:
+            shouldDispatch = !io.WantCaptureKeyboard;
+            break;
+    }
+
+    if (shouldDispatch && _fnInput) {
+        _fnInput(window, event);
+    }
 
     ImGui::SetCurrentContext(prevCtx);
 }

@@ -4,6 +4,7 @@
 
 #include "rhi/vk/rhi_vk.h"
 #include "eng/sys.h"
+#include "eng/ui/imgui_ctx.h"
 
 namespace eng {
 
@@ -36,33 +37,40 @@ bool Window::Init(Descriptor const &desc)
     if (!_window)
         return false;
 
+    Sys::Get()->_ui->RegisterWindow(this);
+
     return true;
 }
 
-bool Window::InitSwapchain(rhi::SwapchainDescriptor swapchainDesc)
+bool Window::InitRendering(rhi::SwapchainDescriptor swapchainDesc)
 {
     ASSERT(!_swapchain);
+    ASSERT(!_imguiCtx);
     swapchainDesc._window = GetWindowData();
-    _swapchain = Sys::Get()->_rhi->Create<rhi::Swapchain>();
-    if (!_swapchain->Init(swapchainDesc)) {
-        _swapchain = nullptr;
+    _swapchain = Sys::Get()->_rhi->New<rhi::Swapchain>(_desc._name, swapchainDesc);
+    if (!_swapchain) 
         return false;
-    }
+
+    _imguiCtx = std::make_unique<ImguiCtx>();
+    if (!_imguiCtx->Init(this))
+        return false;
 
     return true;
 }
 
 void Window::Done()
 {
-    DoneSwapchain();
+    Sys::Get()->_ui->UnregisterWindow(this);
+    DoneRendering();
     if (_window) {
         SDL_DestroyWindow(_window);
         _window = nullptr;
     }
 }
 
-void Window::DoneSwapchain()
+void Window::DoneRendering()
 {
+    _imguiCtx = nullptr;
     _swapchain = nullptr;
 }
 

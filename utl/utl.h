@@ -17,7 +17,7 @@ std::string strPrintf(char const *fmt, ARGS &&... args)
     if (size <= 0)
         return std::string();
     std::string buf(size + 1, ' ');
-    snprintf(const_cast<char *>(buf.c_str()), buf.size(), fmt, std::forward<ARGS>(args)...);
+    snprintf(const_cast<char *>(buf.c_str()), buf.size(), fmt, strToC(args)...);
     return buf;
 }
 

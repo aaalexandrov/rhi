@@ -1,15 +1,15 @@
 #include <iostream>
 #include <filesystem>
 
-#define SDL_MAIN_HANDLED
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_syswm.h"
+#include "eng/sys.h"
 
-#include "eng/ui/use_imgui.h"
-
-#include "rhi/vk/rhi_vk.h"
 #include "rhi/pass.h"
 #include "rhi/pipeline.h"
+
+#define SDL_MAIN_HANDLED
+#include "SDL2/SDL.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "backends/imgui_impl_sdl2.h"
 
 int main()
 {
@@ -18,71 +18,34 @@ int main()
 	utl::TypeInfo::Init();
 	utl::OnDestroy typesDone(utl::TypeInfo::Done);
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-		std::cout << "Failed to initialize SDL\n";
-		return -1;
-	}
+	eng::Sys::InitInstance();
+	utl::OnDestroy sysDone(eng::Sys::DoneInstance);
 
-	SDL_Window *window = SDL_CreateWindow("Testing", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-	if (!window) {
-		std::cout << "Failed to create window\n";
-		return -1;
-	}
+	auto window = std::make_shared<eng::Window>();
+	window->Init(eng::Window::Descriptor{
+		._name = "Eng Test",
+	});
 
-	SDL_SysWMinfo wmInfo;
-	SDL_VERSION(&wmInfo.version);
-	SDL_GetWindowWMInfo(window, &wmInfo);
-
-	rhi::Rhi::Settings deviceSettings{
-		._appName = "RhiTest",
-		._appVersion = glm::uvec3(0, 1, 0),
-#if !defined(NDEBUG)
-		._enableValidation = true,
-#endif
-	};
-
-#if defined(_WIN32)
-	deviceSettings._window = std::shared_ptr<rhi::WindowData>(
-		new rhi::WindowDataWin32{ wmInfo.info.win.hinstance, wmInfo.info.win.window }
-	);
-#elif defined(__linux__)	
-	deviceSettings._window = std::shared_ptr<rhi::WindowData>(
-		new rhi::WindowDataXlib{ wmInfo.info.x11.display,  wmInfo.info.x11.window }
-	);
-#else
-#	error Unsupported platform!
-#endif
-
-	auto device = std::make_shared<rhi::RhiVk>();
-	bool res = device->Init(deviceSettings);
-	ASSERT(res);
-
-	std::cout << "Created rhi device " << device->GetInitializedDevice()._name << std::endl;
-
-	auto swapchain = device->Create<rhi::Swapchain>("Swapchain");
+	eng::Sys::Get()->InitRhi(window);
 	rhi::SwapchainDescriptor chainDesc{
 		._usage{.rt = 1, .copySrc = 1, .copyDst = 1},
 		._format = rhi::Format::B8G8R8A8_srgb,
 		._presentMode = rhi::PresentMode::Fifo,
-		._window = deviceSettings._window,
 	};
-	res = swapchain->Init(chainDesc);
-	ASSERT(res);
+	window->InitRendering(chainDesc);
+
+	auto device = eng::Sys::Get()->_rhi.get();
 
 	auto solidVert = device->Create<rhi::Shader>();
-	res = solidVert->Load("data/solid.vert", rhi::ShaderKind::Vertex);
+	bool res = solidVert->Load("data/solid.vert", rhi::ShaderKind::Vertex);
 	ASSERT(res);
 
 	auto solidFrag = device->Create<rhi::Shader>();
 	res = solidFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
 	ASSERT(res);
 
-	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	swapchain->_images[0] }};
+	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	window->_swapchain->_images[0] }};
 	auto solidPass = device->New<rhi::GraphicsPass>("solidPass", std::span(solidRts));
-
-	res = eng::ImguiInit(window, solidPass.get());
-	ASSERT(res);
-	utl::OnDestroy imguiDone(eng::ImguiDone);
 
 	rhi::GraphicsPipelineData solidData{
 		._shaders = {{ solidVert, solidFrag }},
@@ -167,34 +130,35 @@ int main()
 	std::shared_ptr<rhi::Texture> genOutput;
 	std::shared_ptr<rhi::ResourceSet> genResources;
 
-	rhi::PresentMode presentMode = swapchain->_descriptor._presentMode;
+	rhi::PresentMode presentMode = window->_swapchain->_descriptor._presentMode;
 
-	for (bool running = true; running; ) {
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			ImGui_ImplSDL2_ProcessEvent(&event);
-
-			if (event.type == SDL_QUIT) {
+	bool running = true;
+	window->_imguiCtx->_fnInput = [&](eng::Window *win, SDL_Event const &event) {
+		if (event.type == SDL_WINDOWEVENT) {
+			if (event.window.event == SDL_WINDOWEVENT_CLOSE)
 				running = false;
-			}
-
-			if (event.type == SDL_KEYDOWN) {
-				if (event.key.keysym.sym == SDLK_v) {
-					uint32_t supportedModes = swapchain->GetSupportedPresentModeMask();
-					uint32_t clearMask = ~((1 << ((uint32_t)swapchain->_descriptor._presentMode + 1)) - 1);
-					uint32_t nextModes = supportedModes & clearMask;
-					if (!nextModes)
-						nextModes = supportedModes;
-					presentMode = (rhi::PresentMode)std::countr_zero(nextModes);
-				}
-			}
 		}
 
-		res = swapchain->Update(presentMode);
-		if (!res)
+		if (event.type == SDL_KEYDOWN) {
+			if (event.key.keysym.sym == SDLK_v) {
+				uint32_t supportedModes = win->_swapchain->GetSupportedPresentModeMask();
+				uint32_t clearMask = ~((1 << ((uint32_t)win->_swapchain->_descriptor._presentMode + 1)) - 1);
+				uint32_t nextModes = supportedModes & clearMask;
+				if (!nextModes)
+					nextModes = supportedModes;
+				presentMode = (rhi::PresentMode)std::countr_zero(nextModes);
+			}
+		}
+	};
+
+	for (; running; ) {
+		eng::Sys::Get()->_ui->HandleInput();
+		eng::Sys::Get()->_ui->UpdateWindows();
+
+		glm::ivec2 swapchainSize = glm::ivec2(window->_swapchain->_descriptor._dimensions);
+		if (any(equal(swapchainSize, glm::ivec2(0))))
 			continue;
 
-		glm::ivec2 swapchainSize = glm::ivec2(swapchain->_descriptor._dimensions);
 		if (!genOutput || glm::ivec2(genOutput->_descriptor._dimensions) != swapchainSize) {
 			genOutput = device->Create<rhi::Texture>("gen Output");
 			res = genOutput->Init(rhi::ResourceDescriptor{
@@ -225,7 +189,7 @@ int main()
 		mipGenPass->CopyTopToLowerMips(genOutput);
 		passes.push_back(mipGenPass);
 
-		auto swapchainTexture = swapchain->AcquireNextImage();
+		auto swapchainTexture = window->_swapchain->AcquireNextImage();
 			
 		//auto copyPass = device->Create<rhi::CopyPass>("genCopy");
 		////res = copyPass->CopyMips(genOutput, swapchainTexture);
@@ -235,15 +199,16 @@ int main()
 		//ASSERT(res);
 		//passes.push_back(copyPass);
 
-		eng::ImguiNewFrame();
+		window->_imguiCtx->LayoutUi([] {
+			ImGui::Begin("Fps", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground /* | ImGuiWindowFlags_AlwaysAutoResize */);
+			ImGui::SetWindowPos(ImVec2(10, 10), ImGuiCond_Once);
+			ImGui::SetWindowSize(ImVec2(100, 20), ImGuiCond_Once);
+			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+			ImGui::End();
 
-		ImGui::Begin("Fps", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground /* | ImGuiWindowFlags_AlwaysAutoResize */);
-		ImGui::SetWindowPos(ImVec2(10, 10), ImGuiCond_Once);
-		ImGui::SetWindowSize(ImVec2(100, 20), ImGuiCond_Once);
-		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
-		ImGui::End();
+			//ImGui::ShowDemoWindow();
+		});
 
-		//ImGui::ShowDemoWindow();
 
 		std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
 			{
@@ -263,7 +228,7 @@ int main()
 			._indices = utl::IntervalU::FromMinAndSize(0, 3),
 		});
 
-		eng::ImguiRender(renderPass.get());
+		window->_imguiCtx->Render(renderPass.get());
 
 		passes.push_back(renderPass);
 

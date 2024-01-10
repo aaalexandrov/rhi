@@ -1,6 +1,7 @@
 #pragma once
 
 struct ImGuiContext;
+union SDL_Event;
 
 namespace rhi {
 struct GraphicsPass;
@@ -26,8 +27,13 @@ struct ImguiCtx : utl::Any {
 
 	void Render(rhi::GraphicsPass *graphicsPass);
 
+	void ProcessEvent(Window *window, SDL_Event const &event);
+
+	using InputHandlerFn = std::function<void(Window *window, SDL_Event const &sdlEvent)>;
+
 	ImGuiContext *_ctx = nullptr;
-	std::unique_ptr<ImguiRhiData> _rhiData;
+	ImguiRhiData *_rhiData;
+	InputHandlerFn _fnInput;
 };
 
 }
