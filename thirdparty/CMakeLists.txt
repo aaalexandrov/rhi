@@ -9,7 +9,11 @@ set(dir_SOURCES
 	
 	imgui/backends/imgui_impl_vulkan.cpp
 	imgui/backends/imgui_impl_sdl2.cpp
+
+	stb/stb_impl.cpp
+	
+	tinygltf/tiny_gltf_impl.cpp
 )
 
-target_include_directories(${BINARY} PUBLIC imgui)
+target_include_directories(${BINARY} PUBLIC imgui stb tinygltf)
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)

@@ -13,13 +13,13 @@ bool Sys::Init()
     if (!_ui->Init())
         return false;
 
-    _rhi = std::static_pointer_cast<rhi::Rhi>(std::make_shared<rhi::RhiVk>());
-
     return true;
 }
 
 bool Sys::InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex)
 {
+    _rhi = std::static_pointer_cast<rhi::Rhi>(std::make_shared<rhi::RhiVk>());
+
     rhi::Rhi::Settings rhiSettings{
         ._appName = window->_desc._name.c_str(),
         ._appVersion = glm::uvec3(0, 1, 0),
@@ -33,6 +33,12 @@ bool Sys::InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex)
         return false;
 
     LOG("Created rhi device '%s'", _rhi->GetInitializedDevice()._name);
+
+    for (auto *win : _ui->_windows) {
+        ASSERT(!win->_swapchain);
+        if (!win->InitRendering())
+            return false;
+    }
 
     return true;
 }

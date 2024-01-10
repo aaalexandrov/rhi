@@ -121,7 +121,8 @@ RhiVk::~RhiVk()
     vmaDestroyAllocator(_vma);
     _timelineSemaphore.Done();
     _device.destroy(AllocCallbacks());
-    _instance.destroyDebugUtilsMessengerEXT(_debugUtilsMessenger, AllocCallbacks(), _dynamicDispatch);
+    if (_debugUtilsMessenger)
+        _instance.destroyDebugUtilsMessengerEXT(_debugUtilsMessenger, AllocCallbacks(), _dynamicDispatch);
     _instance.destroy(AllocCallbacks());
 }
 

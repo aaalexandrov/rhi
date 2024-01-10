@@ -8,8 +8,7 @@
 
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
-#include "backends/imgui_impl_vulkan.h"
-#include "backends/imgui_impl_sdl2.h"
+#include "imgui.h"
 
 int main()
 {
@@ -21,18 +20,16 @@ int main()
 	eng::Sys::InitInstance();
 	utl::OnDestroy sysDone(eng::Sys::DoneInstance);
 
-	auto window = std::make_shared<eng::Window>();
-	window->Init(eng::Window::Descriptor{
+	auto window = eng::Sys::Get()->_ui->NewWindow(eng::WindowDescriptor{
 		._name = "Eng Test",
+		._swapchainDesc{
+			._usage{.rt = 1, .copySrc = 1, .copyDst = 1},
+			._format = rhi::Format::B8G8R8A8_srgb,
+			._presentMode = rhi::PresentMode::Fifo,
+		},
 	});
 
 	eng::Sys::Get()->InitRhi(window);
-	rhi::SwapchainDescriptor chainDesc{
-		._usage{.rt = 1, .copySrc = 1, .copyDst = 1},
-		._format = rhi::Format::B8G8R8A8_srgb,
-		._presentMode = rhi::PresentMode::Fifo,
-	};
-	window->InitRendering(chainDesc);
 
 	auto device = eng::Sys::Get()->_rhi.get();
 
@@ -130,8 +127,6 @@ int main()
 	std::shared_ptr<rhi::Texture> genOutput;
 	std::shared_ptr<rhi::ResourceSet> genResources;
 
-	rhi::PresentMode presentMode = window->_swapchain->_descriptor._presentMode;
-
 	bool running = true;
 	window->_imguiCtx->_fnInput = [&](eng::Window *win, SDL_Event const &event) {
 		if (event.type == SDL_WINDOWEVENT) {
@@ -146,7 +141,8 @@ int main()
 				uint32_t nextModes = supportedModes & clearMask;
 				if (!nextModes)
 					nextModes = supportedModes;
-				presentMode = (rhi::PresentMode)std::countr_zero(nextModes);
+				auto presentMode = (rhi::PresentMode)std::countr_zero(nextModes);
+				win->_swapchain->Update(presentMode);
 			}
 		}
 	};

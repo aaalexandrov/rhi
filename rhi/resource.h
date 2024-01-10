@@ -17,7 +17,7 @@ struct SamplerDescriptor {
 
 struct SwapchainDescriptor {
 	ResourceUsage _usage{.rt = 1, .present = 1};
-	Format _format = Format::Invalid;
+	Format _format = Format::B8G8R8A8_srgb;
 	glm::ivec4 _dimensions{ 0 };
 	PresentMode _presentMode = PresentMode::Fifo;
 	std::shared_ptr<WindowData> _window;

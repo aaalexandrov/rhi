@@ -9,6 +9,7 @@
 #include "backends/imgui_impl_sdl2.h"
 
 #include "SDL2/SDL_events.h"
+#include "SDL2/SDL_version.h"
 
 namespace eng {
 
@@ -173,7 +174,9 @@ void ImguiCtx::ProcessEvent(Window *window, SDL_Event const &event)
         case SDL_KEYUP:
         case SDL_KEYMAPCHANGED:
         case SDL_TEXTEDITING:
+#if SDL_VERSION_ATLEAST(2, 0, 22)
         case SDL_TEXTEDITING_EXT:
+#endif        
         case SDL_TEXTINPUT:
             shouldDispatch = !io.WantCaptureKeyboard;
             break;

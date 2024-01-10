@@ -6,11 +6,14 @@ struct Rhi;
 
 namespace eng {
 
+struct WindowDescriptor;
 struct Window;
 struct Ui {
 	~Ui();
 
 	bool Init();
+
+	std::shared_ptr<Window> NewWindow(WindowDescriptor const &winDesc);
 
 	void HandleInput();
 

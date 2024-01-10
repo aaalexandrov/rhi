@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "window.h"
+#include "eng/sys.h"
 
 #include "SDL2/SDL.h"
 
@@ -19,6 +20,15 @@ bool Ui::Init()
 	return true;
 }
 
+std::shared_ptr<Window> Ui::NewWindow(WindowDescriptor const &winDesc)
+{
+	auto window = std::make_shared<Window>();
+	if (!window->Init(winDesc))
+		return nullptr;
+
+	return window;
+}
+
 void Ui::HandleInput()
 {
 	SDL_Event event;
@@ -36,9 +46,11 @@ void Ui::HandleInput()
 			case SDL_TEXTEDITING:
 				windowId = event.edit.windowID;
 				break;
+#if SDL_VERSION_ATLEAST(2, 0, 22)				
 			case SDL_TEXTEDITING_EXT:
 				windowId = event.editExt.windowID;
 				break;
+#endif				
 			case SDL_TEXTINPUT:
 				windowId = event.text.windowID;
 				break;
@@ -100,6 +112,11 @@ void Ui::UpdateWindows()
 void Ui::RegisterWindow(Window *window)
 {
 	_windows.push_back(window);
+	ASSERT(!window->_swapchain);
+	if (Sys::Get()->_rhi) {
+		bool res = window->InitRendering();
+		ASSERT(res);
+	}
 }
 
 void Ui::UnregisterWindow(Window *window)

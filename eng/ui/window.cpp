@@ -19,7 +19,7 @@ Window::~Window()
     Done();
 }
 
-bool Window::Init(Descriptor const &desc)
+bool Window::Init(WindowDescriptor const &desc)
 {
     ASSERT(!_window);
     _desc = desc;
@@ -37,17 +37,18 @@ bool Window::Init(Descriptor const &desc)
     if (!_window)
         return false;
 
+    _desc._swapchainDesc._window = GetWindowData();
+
     Sys::Get()->_ui->RegisterWindow(this);
 
     return true;
 }
 
-bool Window::InitRendering(rhi::SwapchainDescriptor swapchainDesc)
+bool Window::InitRendering()
 {
     ASSERT(!_swapchain);
     ASSERT(!_imguiCtx);
-    swapchainDesc._window = GetWindowData();
-    _swapchain = Sys::Get()->_rhi->New<rhi::Swapchain>(_desc._name, swapchainDesc);
+    _swapchain = Sys::Get()->_rhi->New<rhi::Swapchain>(_desc._name, _desc._swapchainDesc);
     if (!_swapchain) 
         return false;
 
