@@ -797,14 +797,8 @@ bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
 			auto &vertInput = _vertexInputs[binding];
 			bool addedBind = false;
 			for (auto &inputAttrib : vertInput._layout->_members) {
-				int32_t indexInLayout = -1;
-				for (int32_t i = 0; i < vertShaderLayout->_type->_members.size(); ++i) {
-					if (vertShaderLayout->_type->_members[i]._name == inputAttrib._name) {
-						indexInLayout = i;
-						break;
-					}
-				}
-				if (indexInLayout < 0)
+				uint32_t const *attrLocation = vertShaderLayout->_type->GetMemberMetadata<uint32_t>(inputAttrib._name);
+				if (!attrLocation)
 					continue;
 				if (!addedBind) {
 					vertInputBinds.push_back(vk::VertexInputBindingDescription{
@@ -815,7 +809,7 @@ bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
 					addedBind = true;
 				}
 				vertInputAttrs.push_back(vk::VertexInputAttributeDescription{
-					(uint32_t)indexInLayout,
+					*attrLocation,
 					binding,
 					GetVertexAttribFormat(inputAttrib),
 					(uint32_t)inputAttrib._var._offset

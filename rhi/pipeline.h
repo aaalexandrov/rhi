@@ -72,7 +72,11 @@ struct ResourceSet : public utl::Any {
 
 	virtual bool Update();
 
-	bool Update(std::initializer_list<ResourceRef> resRefs);
+	bool Update(std::initializer_list<ResourceRef> resRefs) { return Update<std::initializer_list>(resRefs); }
+	bool Update(std::span<ResourceRef> resRefs) { return Update<std::span>(resRefs); }
+
+	template <template<typename> typename Container>
+	bool Update(Container<ResourceRef> resRefs);
 
 	ResourceSetDescription const *GetSetDescription() const;
 
@@ -120,6 +124,19 @@ struct Pipeline : public RhiOwned {
 
 inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {
 	return &_pipeline->_resourceSetDescriptions[_setIndex];
+}
+
+template<template<typename> typename Container>
+inline bool ResourceSet::Update(Container<ResourceRef> resRefs)
+{
+	if (resRefs.size() != _resourceRefs.size()) {
+		ASSERT(0);
+		return false;
+	}
+
+	std::copy(resRefs.begin(), resRefs.end(), _resourceRefs.begin());
+
+	return Update();
 }
 
 }

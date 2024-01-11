@@ -23,6 +23,8 @@ struct RigidTransform {
 	using SphereV = Sphere<Vec>;
 	using PlaneV = Plane<Vec>;
 	using LineV = Line<Vec>;
+	using Mat = glm::mat<Dim + 1, Dim + 1, Num>;
+	using MatRot = glm::mat<Dim, Dim, Num>;
 
 	Vec _position;
 	Rot _orientation;
@@ -51,6 +53,14 @@ struct RigidTransform {
 		Rot invRot = RotationV::Inverse(_orientation);
 		Num invScale = 1 / _scale;
 		return RotationV::Rotate(invRot, v * invScale) - Rot::Rotate(invRot, _position * invScale);
+	}
+
+	constexpr Mat GetMatrix() const 
+	{
+		MatRot scale = MatRot(_scale);
+		MatRot rot = glm::mat3_cast(_orientation);
+		Mat trans = glm::translate(_position);
+		return trans * Mat(rot * scale);
 	}
 
 	constexpr OBoxV TransformToOrientedBox(BoxV const &box) const { return OBoxV(TransformPoint(box.GetCenter()), box.GetSize() * _scale / (Num)2, _orientation); }

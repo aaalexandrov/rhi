@@ -113,18 +113,6 @@ bool ResourceSet::Update()
 	return true;
 }
 
-bool ResourceSet::Update(std::initializer_list<ResourceRef> resRefs)
-{
-	if (resRefs.size() != _resourceRefs.size()) {
-		ASSERT(0);
-		return false;
-	}
-
-	std::copy(resRefs.begin(), resRefs.end(), _resourceRefs.begin());
-
-	return Update();
-}
-
 void ResourceSet::EnumResources(ResourceEnum enumFn)
 {
 	ResourceSetDescription const *setDesc = GetSetDescription();

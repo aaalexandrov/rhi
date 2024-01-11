@@ -206,6 +206,33 @@ auto TypeInfo::GetMemberData(std::string name) const -> Variable
 	return {};
 }
 
+std::vector<AnyValue> const *TypeInfo::GetMemberMetadata(std::string name) const
+{
+	for (auto &member : _members) {
+		if (member._name == name)
+			return &member._metadata;
+	}
+	if (_isArray || _isPointer)
+		return nullptr;
+	for (auto &base : _bases) {
+		if (auto *meta = base._type->GetMemberMetadata(name)) 
+			return meta;
+	}
+	return nullptr;
+}
+
+AnyValue const *TypeInfo::GetMemberMetadata(std::string name, TypeInfo const *metaType) const
+{
+	std::vector<AnyValue> const *metaArr = GetMemberMetadata(name);
+	if (!metaArr)
+		return nullptr;
+	for (AnyValue const &val : *metaArr) {
+		if (val._type->IsKindOf(metaType))
+			return &val;
+	}
+	return nullptr;
+}
+
 AnyValue const *TypeInfo::GetMetadata(std::string name) const
 {
 	AnyValue const *val = _metadata.Get(name);

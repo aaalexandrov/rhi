@@ -5,9 +5,6 @@ set(dir_SOURCES
 	ui.h
 	ui.cpp
 
-	use_imgui.h
-	use_imgui.cpp
-
 	window.h
 	window.cpp
 )

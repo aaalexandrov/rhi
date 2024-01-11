@@ -15,7 +15,7 @@ struct CameraCmp : public Component {
 	glm::mat4   GetProjMatrix(glm::vec2 viewportSize) const;
 	utl::Polytope3F GetFrustum() const;
 
-	float _fov = glm::pi<float>();
+	float _fovY = glm::pi<float>() / 3;
 	float _near = 0.1f, _far = 1000.0f;
 };
 
@@ -23,6 +23,7 @@ struct RenderingCmp : public Component {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RenderingCmp>(); }
 
 	std::vector<Model> _models;
+	std::shared_ptr<rhi::ResourceSet> _objParams;
 };
 
 }

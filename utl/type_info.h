@@ -157,6 +157,10 @@ struct TypeInfo {
 
 	ptrdiff_t GetBaseOffset(TypeInfo const *base) const;
 	Variable GetMemberData(std::string name) const;
+	std::vector<AnyValue> const *GetMemberMetadata(std::string name) const;
+	AnyValue const *GetMemberMetadata(std::string name, TypeInfo const *metaType) const;
+	template <typename T>
+	T const *GetMemberMetadata(std::string name) const;
 
 	size_t GetArraySize() const { return _arraySize; }
 
@@ -357,6 +361,14 @@ struct TypeInitializer {
 		return Metadata(name, AnyValue::New(std::move(val)));
 	}
 };
+
+template<typename T>
+inline T const *TypeInfo::GetMemberMetadata(std::string name) const
+{
+	AnyValue const *val = GetMemberMetadata(name, TypeInfo::Get<T>());
+	ASSERT(!val || val->Get<T>());
+	return val ? (T *)val->Get() : nullptr;
+}
 
 template<typename T>
 inline TypeInitializer<T> TypeInfo::Register()
