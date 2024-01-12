@@ -87,7 +87,7 @@ bool GraphicsPassVk::Draw(DrawData const &draw)
 	std::array<uint32_t, 0> noDynamicOffsets;
 	cmds.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeVk->_layout, 0, descSets, noDynamicOffsets);
 
-	if (pipeVk->_vertexInputs.size() != draw._vertexStreams.size())
+	if (pipeVk->_pipelineData._vertexInputs.size() != draw._vertexStreams.size())
 		return false;
 
 	std::vector<vk::Buffer> vertBuffers;

@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct SamplerVk : public Sampler {
+struct SamplerVk final : Sampler {
 	~SamplerVk() override;
 
 	bool Init(SamplerDescriptor const &desc) override;

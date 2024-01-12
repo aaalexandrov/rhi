@@ -76,7 +76,7 @@ bool ComputePass::Init(Pipeline *pipeline, std::span<std::shared_ptr<ResourceSet
 	ASSERT(!_pipeline);
 	ASSERT(_resourceSets.empty());
 
-	if (!pipeline || any(lessThanEqual(pipeline->GetComputeGroupSize(), glm::ivec3(0))))
+	if (!pipeline || any(lessThanEqual(pipeline->_pipelineData.GetComputeGroupSize(), glm::ivec3(0))))
 		return false;
 
 	_pipeline = static_pointer_cast<Pipeline>(pipeline->shared_from_this());

@@ -117,6 +117,8 @@ VKAPI_ATTR VkBool32 DebugUtilsMessengerFunc(
 
 RhiVk::~RhiVk()
 {
+    ClearCachedData();
+
     _device.destroyPipelineCache(_pipelineCache, AllocCallbacks());
     vmaDestroyAllocator(_vma);
     _timelineSemaphore.Done();

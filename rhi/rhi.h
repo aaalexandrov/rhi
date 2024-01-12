@@ -30,6 +30,8 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 
 	virtual bool Init(Settings const &settings, int32_t deviceIndex = 0);
 
+	void ClearCachedData();
+
 	bool InitTypes();
 
 	std::shared_ptr<RhiOwned> Create(TypeInfo const *type, std::string name = "");
@@ -50,6 +52,9 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 		return obj;
 	}
 
+	std::shared_ptr<Shader> GetShader(std::string path, ShaderKind kind);
+	std::shared_ptr<Pipeline> GetPipeline(PipelineData const &pipelineData, GraphicsPass *renderPass = nullptr);
+
 	std::shared_ptr<Submission> Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name = "");
 
 	virtual bool WaitIdle() = 0;
@@ -67,6 +72,8 @@ struct Rhi : public std::enable_shared_from_this<Rhi>, public utl::Any {
 protected:
 	std::shared_mutex _rwLock;
 	std::unordered_map<TypeInfo const *, TypeInfo const *> _derivedTypes;
+	std::unordered_map<ShaderData, std::shared_ptr<Shader>> _shaders;
+	std::unordered_map<PipelineData, std::shared_ptr<Pipeline>> _pipelines;
 };
 
 struct RhiVk;

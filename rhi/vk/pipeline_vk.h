@@ -56,10 +56,10 @@ struct DescriptorSetAllocatorVk {
 };
 using DescSetVk = DescriptorSetAllocatorVk::Set;
 
-struct ShaderVk : public Shader {
+struct ShaderVk final : Shader {
 	~ShaderVk() override;
 
-	bool Load(std::string name, ShaderKind kind, std::vector<uint8_t> const &content) override;
+	bool Load(ShaderData const &shaderData, std::vector<uint8_t> const &content) override;
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<ShaderVk>(); }
 
@@ -67,7 +67,7 @@ struct ShaderVk : public Shader {
 	std::string _entryPoint = "main";
 };
 
-struct ResourceSetVk : public ResourceSet {
+struct ResourceSetVk final : ResourceSet {
 	~ResourceSetVk() override;
 
 	bool Init(Pipeline *pipeline, uint32_t setIndex) override;
@@ -85,8 +85,7 @@ struct ResourceSetVk : public ResourceSet {
 struct PipelineVk : public Pipeline {
 	~PipelineVk() override;
 
-	bool Init(std::span<std::shared_ptr<Shader>> shaders) override;
-	bool Init(GraphicsPipelineData &pipelineData) override;
+	bool Init(PipelineData const &pipelineData, GraphicsPass *renderPass = nullptr) override;
 
 	bool InitLayout();
 

@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct SwapchainVk : public Swapchain {
+struct SwapchainVk final : Swapchain {
 	~SwapchainVk() override;
 
 	bool Init(SwapchainDescriptor const &desc) override;

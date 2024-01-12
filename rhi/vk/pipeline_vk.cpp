@@ -500,9 +500,9 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 	return param;
 }
 
-bool ShaderVk::Load(std::string name, ShaderKind kind, std::vector<uint8_t> const &content)
+bool ShaderVk::Load(ShaderData const &shaderData, std::vector<uint8_t> const &content)
 {
-	if (!Shader::Load(name, kind, content))
+	if (!Shader::Load(shaderData, content))
 		return false;
 
 	std::span<const uint32_t> spirv;
@@ -719,36 +719,6 @@ vk::PipelineShaderStageCreateInfo GetShaderStageInfo(Shader *shader)
 	};
 }
 
-bool PipelineVk::Init(std::span<std::shared_ptr<Shader>> shaders)
-{
-	if (!Pipeline::Init(shaders))
-		return false;
-
-	if (!InitLayout())
-		return false;
-
-	ASSERT(_layout);
-
-	auto rhi = static_cast<RhiVk *>(_rhi);
-
-	if (_shaders.size() == 1 && _shaders[0]->_kind == ShaderKind::Compute) {
-		vk::ComputePipelineCreateInfo pipeInfo{
-			vk::PipelineCreateFlags(),
-			GetShaderStageInfo(shaders[0].get()),
-			_layout,
-		};
-		if (rhi->_device.createComputePipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
-			return false;
-
-		rhi->SetDebugName(vk::ObjectType::ePipeline, (uint64_t)(VkPipeline)_pipeline, _name.c_str());
-
-		return true;
-	} 
-
-	ASSERT(0);
-	return false;
-}
-
 vk::Format GetVertexAttribFormat(TypeInfo::Member const &attribMember)
 {
 	static std::unordered_map<TypeInfo const *, vk::Format> s_type2VkFormat{
@@ -770,110 +740,123 @@ vk::Format GetVertexAttribFormat(TypeInfo::Member const &attribMember)
 	return vk::Format::eUndefined;
 }
 
-bool PipelineVk::Init(GraphicsPipelineData &pipelineData)
+bool PipelineVk::Init(PipelineData const &pipelineData, GraphicsPass *renderPass)
 {
-	if (!Pipeline::Init(pipelineData))
+	if (!Pipeline::Init(pipelineData, renderPass))
 		return false;
 
 	if (!InitLayout())
 		return false;
 
-	Shader *vertexShader = GetShader(ShaderKind::Vertex);
-	if (!vertexShader)
-		return false;
-	ASSERT(vertexShader->GetNumParams(ShaderParam::Kind::VertexLayout) <= 1);
-	ShaderParam const *vertShaderLayout = vertexShader->GetParam(ShaderParam::Kind::VertexLayout, 0);
-
-	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-	for (auto &shader : _shaders)
-		shaderStages.push_back(GetShaderStageInfo(shader.get()));
+	ASSERT(_layout);
 
 	auto rhi = static_cast<RhiVk *>(_rhi);
 
-	std::vector<vk::VertexInputBindingDescription> vertInputBinds;
-	std::vector<vk::VertexInputAttributeDescription> vertInputAttrs;
-	if (vertShaderLayout) {
-		for (uint32_t binding = 0; binding < _vertexInputs.size(); ++binding) {
-			auto &vertInput = _vertexInputs[binding];
-			bool addedBind = false;
-			for (auto &inputAttrib : vertInput._layout->_members) {
-				uint32_t const *attrLocation = vertShaderLayout->_type->GetMemberMetadata<uint32_t>(inputAttrib._name);
-				if (!attrLocation)
-					continue;
-				if (!addedBind) {
-					vertInputBinds.push_back(vk::VertexInputBindingDescription{
+	if (pipelineData.IsCompute()) {
+		vk::ComputePipelineCreateInfo pipeInfo{
+			vk::PipelineCreateFlags(),
+			GetShaderStageInfo(_pipelineData._shaders[0].get()),
+			_layout,
+		};
+		if (rhi->_device.createComputePipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
+			return false;
+
+	} else {
+		Shader *vertexShader = _pipelineData.GetShader(ShaderKind::Vertex);
+		if (!vertexShader)
+			return false;
+		ASSERT(vertexShader->GetNumParams(ShaderParam::Kind::VertexLayout) <= 1);
+		ShaderParam const *vertShaderLayout = vertexShader->GetParam(ShaderParam::Kind::VertexLayout, 0);
+
+		std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
+		for (auto &shader : _pipelineData._shaders)
+			shaderStages.push_back(GetShaderStageInfo(shader.get()));
+
+		std::vector<vk::VertexInputBindingDescription> vertInputBinds;
+		std::vector<vk::VertexInputAttributeDescription> vertInputAttrs;
+		if (vertShaderLayout) {
+			for (uint32_t binding = 0; binding < _pipelineData._vertexInputs.size(); ++binding) {
+				auto &vertInput = _pipelineData._vertexInputs[binding];
+				bool addedBind = false;
+				for (auto &inputAttrib : vertInput._layout->_members) {
+					uint32_t const *attrLocation = vertShaderLayout->_type->GetMemberMetadata<uint32_t>(inputAttrib._name);
+					if (!attrLocation)
+						continue;
+					if (!addedBind) {
+						vertInputBinds.push_back(vk::VertexInputBindingDescription{
+							binding,
+							(uint32_t)vertInput._layout->_size,
+							vertInput._perInstance ? vk::VertexInputRate::eInstance : vk::VertexInputRate::eVertex
+							});
+						addedBind = true;
+					}
+					vertInputAttrs.push_back(vk::VertexInputAttributeDescription{
+						*attrLocation,
 						binding,
-						(uint32_t)vertInput._layout->_size,
-						vertInput._perInstance ? vk::VertexInputRate::eInstance : vk::VertexInputRate::eVertex
-					});
-					addedBind = true;
+						GetVertexAttribFormat(inputAttrib),
+						(uint32_t)inputAttrib._var._offset
+						});
 				}
-				vertInputAttrs.push_back(vk::VertexInputAttributeDescription{
-					*attrLocation,
-					binding,
-					GetVertexAttribFormat(inputAttrib),
-					(uint32_t)inputAttrib._var._offset
-				});
 			}
 		}
+
+		vk::PipelineVertexInputStateCreateInfo vertInputInfo{
+			vk::PipelineVertexInputStateCreateFlags(),
+			vertInputBinds,
+			vertInputAttrs,
+		};
+
+		vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{
+			vk::PipelineInputAssemblyStateCreateFlags(),
+			s_primitiveKind2VkTopology.ToDst(_pipelineData._primitiveKind),
+			false,
+		};
+
+		std::vector<vk::Viewport> viewports;
+		std::vector<vk::Rect2D> scissors;
+		vk::PipelineViewportStateCreateInfo viewportState;
+		FillViewportState(_pipelineData._renderState, viewportState, viewports, scissors);
+
+		vk::PipelineRasterizationStateCreateInfo rasterizationState;
+		FillRasterizationState(_pipelineData._renderState, rasterizationState);
+
+		std::vector<uint32_t> sampleMask;
+		vk::PipelineMultisampleStateCreateInfo multisampleState;
+		FillMultisampleState(_pipelineData._renderState, multisampleState, sampleMask);
+
+		vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+		FillDepthStencilState(_pipelineData._renderState, depthStencilState);
+
+		std::vector<vk::PipelineColorBlendAttachmentState> attachmentBlends;
+		vk::PipelineColorBlendStateCreateInfo blendState;
+		FillBlendState(_pipelineData._renderState, blendState, attachmentBlends);
+
+		std::vector<vk::DynamicState> dynamicStates;
+		vk::PipelineDynamicStateCreateInfo dynamicState;
+		FillDynamicState(_pipelineData._renderState, dynamicState, dynamicStates);
+
+		auto *graphicsPassVk = static_cast<GraphicsPassVk *>(renderPass);
+		vk::GraphicsPipelineCreateInfo pipeInfo{
+			vk::PipelineCreateFlags(),
+			shaderStages,
+			&vertInputInfo,
+			&inputAssemblyInfo,
+			nullptr,
+			&viewportState,
+			&rasterizationState,
+			&multisampleState,
+			&depthStencilState,
+			&blendState,
+			&dynamicState,
+			_layout,
+			graphicsPassVk->_renderPass,
+			0,
+			nullptr,
+			0,
+		};
+		if (rhi->_device.createGraphicsPipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
+			return false;
 	}
-
-	vk::PipelineVertexInputStateCreateInfo vertInputInfo{
-		vk::PipelineVertexInputStateCreateFlags(),
-		vertInputBinds,
-		vertInputAttrs,
-	};
-
-	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{
-		vk::PipelineInputAssemblyStateCreateFlags(),
-		s_primitiveKind2VkTopology.ToDst(_primitiveKind),
-		false,
-	};
-
-	std::vector<vk::Viewport> viewports;
-	std::vector<vk::Rect2D> scissors;
-	vk::PipelineViewportStateCreateInfo viewportState;
-	FillViewportState(*_renderState, viewportState, viewports, scissors);
-
-	vk::PipelineRasterizationStateCreateInfo rasterizationState;
-	FillRasterizationState(*_renderState, rasterizationState);
-
-	std::vector<uint32_t> sampleMask;
-	vk::PipelineMultisampleStateCreateInfo multisampleState;
-	FillMultisampleState(*_renderState, multisampleState, sampleMask);
-
-	vk::PipelineDepthStencilStateCreateInfo depthStencilState;
-	FillDepthStencilState(*_renderState, depthStencilState);
-
-	std::vector<vk::PipelineColorBlendAttachmentState> attachmentBlends;
-	vk::PipelineColorBlendStateCreateInfo blendState;
-	FillBlendState(*_renderState, blendState, attachmentBlends);
-
-	std::vector<vk::DynamicState> dynamicStates;
-	vk::PipelineDynamicStateCreateInfo dynamicState;
-	FillDynamicState(*_renderState, dynamicState, dynamicStates);
-
-	auto *graphicsPassVk = static_cast<GraphicsPassVk *>(pipelineData._renderPass.get());
-	vk::GraphicsPipelineCreateInfo pipeInfo{
-		vk::PipelineCreateFlags(),
-		shaderStages,
-		&vertInputInfo,
-		&inputAssemblyInfo,
-		nullptr,
-		&viewportState,
-		&rasterizationState,
-		&multisampleState,
-		&depthStencilState,
-		&blendState,
-		&dynamicState,
-		_layout,
-		graphicsPassVk->_renderPass,
-		0,
-		nullptr,
-		0,
-	};
-	if (rhi->_device.createGraphicsPipelines(rhi->_pipelineCache, 1, &pipeInfo, rhi->AllocCallbacks(), &_pipeline) != vk::Result::eSuccess)
-		return false;
 
 	rhi->SetDebugName(vk::ObjectType::ePipeline, (uint64_t)(VkPipeline)_pipeline, _name.c_str());
 

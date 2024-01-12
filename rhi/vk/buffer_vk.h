@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct BufferVk : public Buffer, public ResourceVk {
+struct BufferVk final : Buffer, ResourceVk {
 	~BufferVk() override;
 
 	bool Init(ResourceDescriptor const &desc) override;

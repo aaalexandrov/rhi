@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct TextureVk : public Texture, public ResourceVk {
+struct TextureVk final : Texture, ResourceVk {
 	~TextureVk() override;
 
 	bool Init(ResourceDescriptor const &desc) override;

@@ -346,6 +346,41 @@ enum class PrimitiveKind {
 	TriangleStrip,
 };
 
+struct ShaderData {
+	std::string _name;
+	ShaderKind _kind = ShaderKind::Invalid;
+
+	bool operator ==(ShaderData const &other) const = default;
+	size_t GetHash() const;
+};
+
+struct VertexInputData {
+	std::shared_ptr<TypeInfo> _layout;
+	bool _perInstance = false;
+
+	bool operator ==(VertexInputData const &other) const = default;
+	size_t GetHash() const;
+};
+
+struct Shader;
+struct GraphicsPass;
+struct PipelineData {
+	std::vector<std::shared_ptr<Shader>> _shaders;
+	RenderState _renderState;
+	std::vector<Format> _renderTargetFormats;
+	std::vector<VertexInputData> _vertexInputs;
+	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
+
+	bool IsEmpty() const { return _shaders.empty(); }
+	bool IsCompute() const;
+	void FillRenderTargetFormats(GraphicsPass *renderPass);
+	Shader *GetShader(ShaderKind kind) const;
+	glm::ivec3 GetComputeGroupSize() const;
+
+	bool operator ==(PipelineData const &other) const = default;
+	size_t GetHash() const;
+};
+
 struct WindowData : public utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowData>(); }
 };
@@ -382,12 +417,21 @@ struct hash<rhi::ResourceUsage> {
 };
 
 template<>
-struct hash<rhi::StencilFuncState> { size_t operator()(rhi::StencilFuncState const &s) { return s.GetHash(); } };
+struct hash<rhi::StencilFuncState> { size_t operator()(rhi::StencilFuncState const &s) const { return s.GetHash(); } };
 
 template<>
-struct hash<rhi::BlendFuncState> { size_t operator()(rhi::BlendFuncState const &b) { return b.GetHash(); } };
+struct hash<rhi::BlendFuncState> { size_t operator()(rhi::BlendFuncState const &b) const { return b.GetHash(); } };
 
 template<>
-struct hash<rhi::RenderState> { size_t operator()(rhi::RenderState const &r) { return r.GetHash(); } };
+struct hash<rhi::RenderState> { size_t operator()(rhi::RenderState const &r) const { return r.GetHash(); } };
+
+template<>
+struct hash<rhi::ShaderData> { size_t operator()(rhi::ShaderData const &s) const { return s.GetHash(); } };
+
+template<>
+struct hash<rhi::VertexInputData> { size_t operator()(rhi::VertexInputData const &v) const { return v.GetHash(); } };
+
+template<>
+struct hash<rhi::PipelineData> { size_t operator()(rhi::PipelineData const &p) const { return p.GetHash(); } };
 
 }

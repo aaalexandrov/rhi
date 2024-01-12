@@ -1,4 +1,6 @@
 #include "rhi.h"
+#include "pipeline.h"
+#include "utl/file.h"
 
 namespace rhi {
 
@@ -28,6 +30,12 @@ bool Rhi::Init(Settings const &settings, int32_t deviceIndex)
     return true;
 }
 
+void Rhi::ClearCachedData()
+{
+    _pipelines.clear();
+    _shaders.clear();
+}
+
 bool Rhi::InitTypes()
 {
     bool res = true;
@@ -53,6 +61,38 @@ std::shared_ptr<RhiOwned> Rhi::Create(TypeInfo const *type, std::string name)
     if (!obj->InitRhi(this, name))
         obj = nullptr;
     return obj;
+}
+
+std::shared_ptr<Shader> Rhi::GetShader(std::string path, ShaderKind kind)
+{
+    ShaderData shaderData{
+        ._name = utl::GetPathFilenameExt(path),
+        ._kind = kind,
+    };
+
+    auto it = _shaders.find(shaderData);
+    if (it == _shaders.end()) {
+        auto shader = Create<Shader>();
+        if (!shader->Load(shaderData, utl::ReadFile(path)))
+            return nullptr;
+        it = _shaders.insert({ shaderData, std::move(shader) }).first;
+    }
+    return it->second;
+}
+
+std::shared_ptr<Pipeline> Rhi::GetPipeline(PipelineData const &pipelineData, GraphicsPass *renderPass)
+{
+    PipelineData pipeData = pipelineData;
+    pipeData.FillRenderTargetFormats(renderPass);
+
+    auto it = _pipelines.find(pipeData);
+    if (it == _pipelines.end()) {
+        auto pipeline = New<Pipeline>("", pipeData, renderPass);
+        if (!pipeline)
+            return nullptr;
+        it = _pipelines.insert({pipeData, std::move(pipeline)}).first;
+    }
+    return it->second;
 }
 
 std::shared_ptr<Submission> Rhi::Submit(std::vector<std::shared_ptr<Pass>> &&passes, std::string name)

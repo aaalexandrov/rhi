@@ -2,7 +2,6 @@
 #include "pass.h"
 #include "resource.h"
 
-#include "utl/file.h"
 
 namespace rhi {
 
@@ -17,18 +16,13 @@ static auto s_regTypes = TypeInfo::AddInitializer("pipeline", [] {
 		.Base<RhiOwned>();
 });
 
-bool Shader::Load(std::string name, ShaderKind kind, std::vector<uint8_t> const &content)
+bool Shader::Load(ShaderData const &shaderData, std::vector<uint8_t> const &content)
 {
 	ASSERT(_name.empty());
 	ASSERT(_kind == ShaderKind::Invalid);
-	_name = name;
-	_kind = kind;
+	_name = shaderData._name;
+	_kind = shaderData._kind;
 	return true;
-}
-
-bool Shader::Load(std::string path, ShaderKind kind)
-{
-	return Load(utl::GetPathFilenameExt(path), kind, utl::ReadFile(path));
 }
 
 uint32_t Shader::GetNumParams(ShaderParam::Kind kind) const
@@ -51,6 +45,11 @@ ShaderParam const *Shader::GetParam(ShaderParam::Kind kind, uint32_t index) cons
 		--index;
 	}
 	return nullptr;
+}
+
+ShaderData Shader::GetShaderData() const
+{
+	return ShaderData{ ._name = _name, ._kind = _kind };
 }
 
 uint32_t ResourceSetDescription::GetNumEntries() const
@@ -132,13 +131,13 @@ void ResourceSet::EnumResources(ResourceEnum enumFn)
 	ASSERT(resIndex == _resourceRefs.size());
 }
 
-bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
+bool Pipeline::Init(PipelineData const &pipelineData, GraphicsPass *renderPass)
 {
-	ASSERT(_shaders.empty());
-	for (auto &shader : shaders) {
-		ASSERT(GetShader(shader->_kind) == nullptr);
-		_shaders.push_back(shader);
-
+	ASSERT(_pipelineData.IsEmpty());
+	_pipelineData = pipelineData;
+	// FillRenderTargetFormats should already have been called
+	ASSERT(_pipelineData._renderTargetFormats.size() == (renderPass ? renderPass->_renderTargets.size() : 0));
+	for (auto &shader : _pipelineData._shaders) {
 		for (auto &param : shader->_params) {
 			if (param._kind == ShaderParam::VertexLayout)
 				continue;
@@ -161,38 +160,6 @@ bool Pipeline::Init(std::span<std::shared_ptr<Shader>> shaders)
 	}
 
 	return true;
-}
-
-bool Pipeline::Init(GraphicsPipelineData &pipelineData)
-{
-	if (!Pipeline::Init(pipelineData._shaders))
-		return false;
-
-	if (!pipelineData._renderPass)
-		return false;
-
-	_renderState = std::make_unique<RenderState>(pipelineData._renderState);
-	_vertexInputs = pipelineData._vertexInputs;
-	_primitiveKind = pipelineData._primitiveKind;
-
-	ASSERT(_renderTargetFormats.empty());
-	for (auto &rt : pipelineData._renderPass->_renderTargets) {
-		_renderTargetFormats.push_back(rt._texture->_descriptor._format);
-	}
-
-	return true;
-}
-
-glm::ivec3 Pipeline::GetComputeGroupSize() const
-{
-	Shader *compute = GetShader(ShaderKind::Compute);
-	return compute ? compute->_groupSize : glm::ivec3(0);
-}
-
-Shader *Pipeline::GetShader(ShaderKind kind) const
-{
-	auto it = std::find_if(_shaders.begin(), _shaders.end(), [=](auto &s) { return s->_kind == kind; });
-	return it != _shaders.end() ? it->get() : nullptr;
 }
 
 }

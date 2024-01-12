@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct GraphicsPassVk : public GraphicsPass {
+struct GraphicsPassVk final : GraphicsPass {
 	~GraphicsPassVk() override;
 
 	bool InitRhi(Rhi *rhi, std::string name) override;

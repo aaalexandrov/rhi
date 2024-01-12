@@ -7,7 +7,7 @@ namespace rhi {
 
 struct BufferVk;
 struct TextureVk;
-struct CopyPassVk : public CopyPass {
+struct CopyPassVk final : CopyPass {
 	bool NeedsMatchingTextures(CopyData &copy) override;
 
 	bool Prepare(Submission *sub) override;

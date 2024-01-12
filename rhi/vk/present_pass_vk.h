@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct PresentPassVk : public PresentPass {
+struct PresentPassVk final : PresentPass {
 
 	bool Prepare(Submission *sub) override;
 	bool Execute(Submission *sub) override;

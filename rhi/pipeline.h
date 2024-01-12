@@ -31,19 +31,19 @@ struct ShaderParam {
 };
 
 struct Shader : public RhiOwned {
-	virtual bool Load(std::string name, ShaderKind kind, std::vector<uint8_t> const &content);
-	virtual bool Load(std::string path, ShaderKind kind);
+	virtual bool Load(ShaderData const &shaderData, std::vector<uint8_t> const &content);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Shader>(); }
 
 	uint32_t GetNumParams(ShaderParam::Kind kind) const;
 	ShaderParam const *GetParam(ShaderParam::Kind kind, uint32_t index = 0) const;
 
+	ShaderData GetShaderData() const;
+
 	ShaderKind _kind = ShaderKind::Invalid;
 	std::vector<ShaderParam> _params;
 	glm::ivec3 _groupSize{ 0 };
 };
-
 
 struct ResourceSetDescription {
 	struct Param {
@@ -89,37 +89,15 @@ struct ResourceSet : public utl::Any {
 	std::vector<ResourceRef> _resourceRefs;
 };
 
-struct VertexInputData {
-	std::shared_ptr<TypeInfo> _layout;
-	bool _perInstance = false;
-};
-
-struct GraphicsPipelineData {
-	std::vector<std::shared_ptr<Shader>> _shaders;
-	RenderState _renderState;
-	std::shared_ptr<GraphicsPass> _renderPass;
-	std::vector<VertexInputData> _vertexInputs;
-	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
-};
-
 struct Pipeline : public RhiOwned {
-	virtual bool Init(std::span<std::shared_ptr<Shader>> shaders);
-	virtual bool Init(GraphicsPipelineData &pipelineData);
+	virtual bool Init(PipelineData const &pipelineData, GraphicsPass *renderPass = nullptr);
 
 	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
 
-	Shader *GetShader(ShaderKind kind) const;
-
-	glm::ivec3 GetComputeGroupSize() const;
-
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
 
-	std::vector<std::shared_ptr<Shader>> _shaders;
+	PipelineData _pipelineData;
 	std::vector<ResourceSetDescription> _resourceSetDescriptions;
-	std::unique_ptr<RenderState> _renderState;
-	std::vector<Format> _renderTargetFormats;
-	std::vector<VertexInputData> _vertexInputs;
-	PrimitiveKind _primitiveKind = PrimitiveKind::TriangleList;
 };
 
 inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {

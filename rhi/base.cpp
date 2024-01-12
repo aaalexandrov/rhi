@@ -1,5 +1,6 @@
 #include "base.h"
 #include "rhi.h"
+#include "pipeline.h"
 #include <bit>
 
 namespace rhi {
@@ -214,6 +215,57 @@ ResourceView ResourceView::FromDescriptor(ResourceDescriptor const &desc, int8_t
 		._mipRange = utl::IntervalI8::FromMinAndSize(minMip, std::min<int8_t>(numMips, desc._mipLevels - minMip)),
 	};
 	return view;
+}
+
+size_t ShaderData::GetHash() const
+{
+	size_t hash = utl::GetHash(_name);
+	hash = utl::GetHash(_kind, hash);
+	return hash;
+}
+
+size_t VertexInputData::GetHash() const
+{
+	size_t hash = utl::GetHash(_layout);
+	hash = utl::GetHash(_perInstance, hash);
+	return hash;
+}
+
+bool PipelineData::IsCompute() const 
+{ 
+	return _shaders.size() == 1 && _shaders[0]->_kind == ShaderKind::Compute; 
+}
+
+void PipelineData::FillRenderTargetFormats(GraphicsPass *renderPass)
+{
+	_renderTargetFormats.clear();
+	if (!renderPass)
+		return;
+	for (auto &rt : renderPass->_renderTargets) {
+		_renderTargetFormats.push_back(rt._texture->_descriptor._format);
+	}
+}
+
+glm::ivec3 PipelineData::GetComputeGroupSize() const
+{
+	Shader *compute = GetShader(ShaderKind::Compute);
+	return compute ? compute->_groupSize : glm::ivec3(0);
+}
+
+size_t PipelineData::GetHash() const
+{
+	size_t hash = utl::GetHash(_shaders);
+	hash = utl::GetHash(_renderState, hash);
+	hash = utl::GetHash(_renderTargetFormats, hash);
+	hash = utl::GetHash(_vertexInputs, hash);
+	hash = utl::GetHash(_primitiveKind, hash);
+	return hash;
+}
+
+Shader *PipelineData::GetShader(ShaderKind kind) const
+{
+	auto it = std::find_if(_shaders.begin(), _shaders.end(), [=](auto &s) { return s->_kind == kind; });
+	return it != _shaders.end() ? it->get() : nullptr;
 }
 
 

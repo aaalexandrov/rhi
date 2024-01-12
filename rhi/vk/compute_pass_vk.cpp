@@ -14,7 +14,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("compute_pass_vk", [] {
 
 bool ComputePassVk::Prepare(Submission *sub)
 {
-	ASSERT(all(greaterThan(_pipeline->GetComputeGroupSize(), glm::ivec3(0))));
+	ASSERT(all(greaterThan(_pipeline->_pipelineData.GetComputeGroupSize(), glm::ivec3(0))));
 
 	auto subVk = static_cast<SubmissionVk *>(sub);
 

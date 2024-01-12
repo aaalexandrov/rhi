@@ -33,25 +33,21 @@ int main()
 
 	auto device = eng::Sys::Get()->_rhi.get();
 
-	auto solidVert = device->Create<rhi::Shader>();
-	bool res = solidVert->Load("data/solid.vert", rhi::ShaderKind::Vertex);
-	ASSERT(res);
+	bool res;
 
-	auto solidFrag = device->Create<rhi::Shader>();
-	res = solidFrag->Load("data/solid.frag", rhi::ShaderKind::Fragment);
-	ASSERT(res);
+	auto solidVert = device->GetShader("data/solid.vert", rhi::ShaderKind::Vertex);
+	auto solidFrag = device->GetShader("data/solid.frag", rhi::ShaderKind::Fragment);
 
 	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	window->_swapchain->_images[0] }};
 	auto solidPass = device->New<rhi::GraphicsPass>("solidPass", std::span(solidRts));
 
-	rhi::GraphicsPipelineData solidData{
+	rhi::PipelineData solidData{
 		._shaders = {{ solidVert, solidFrag }},
-		._renderPass = std::move(solidPass),
 		._vertexInputs = { rhi::VertexInputData{._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
 	};
-	auto solidPipe = device->New<rhi::Pipeline>("", solidData);
+	auto solidPipe = device->GetPipeline(solidData, solidPass.get());
 
-	auto *vertLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::VertexLayout);
+	auto *vertLayout = solidPipe->_pipelineData.GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::VertexLayout);
 	auto triBuf = device->New<rhi::Buffer>("triangle", rhi::ResourceDescriptor{
 		._usage = rhi::ResourceUsage{.vb = 1, .cpuAccess = 1},
 		._dimensions = glm::ivec4(vertLayout->_type->_size * 3),
@@ -76,7 +72,7 @@ int main()
 		triBuf->Unmap();
 	}
 
-	auto *solidUniformLayout = solidPipe->GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
+	auto *solidUniformLayout = solidPipe->_pipelineData.GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
 	auto solidUniform = device->New<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
 		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
 		._dimensions = glm::ivec4(solidUniformLayout->_type->_size),
@@ -94,13 +90,12 @@ int main()
 
 	auto solidResSet = solidPipe->AllocResourceSet(0);
 
-	auto genShader = device->Create<rhi::Shader>();
-	res = genShader->Load("data/gen.comp", rhi::ShaderKind::Compute);
-	ASSERT(res);
+	auto genShader = device->GetShader("data/gen.comp", rhi::ShaderKind::Compute);
 
-	auto genPipe = device->Create<rhi::Pipeline>();
-	res = genPipe->Init(std::span(&genShader, 1));
-	ASSERT(res);
+	rhi::PipelineData genData{
+		._shaders = { genShader },
+	};
+	auto genPipe = device->GetPipeline(genData);
 
 	rhi::ShaderParam const *uniformParam = genShader->GetParam(rhi::ShaderParam::UniformBuffer);
 	ASSERT(uniformParam);
@@ -176,7 +171,7 @@ int main()
 		std::vector<std::shared_ptr<rhi::Pass>> passes;
 
 		auto genPass = device->Create<rhi::ComputePass>("gen");
-		glm::ivec2 genGroup = genPipe->GetComputeGroupSize();
+		glm::ivec2 genGroup = genPipe->_pipelineData.GetComputeGroupSize();
 		res = genPass->Init(genPipe.get(), std::span(&genResources, 1), glm::ivec3((swapchainSize + genGroup - 1) / genGroup, 1));
 		ASSERT(res);
 		passes.push_back(genPass);

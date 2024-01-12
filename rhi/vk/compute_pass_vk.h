@@ -5,7 +5,7 @@
 
 namespace rhi {
 
-struct ComputePassVk : public ComputePass {
+struct ComputePassVk final : ComputePass {
 	bool Prepare(Submission *sub) override;
 	bool Execute(Submission *sub) override;
 

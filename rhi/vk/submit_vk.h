@@ -19,7 +19,7 @@ struct ExecuteDataVk {
 	void Combine(ExecuteDataVk const &other);
 };
 
-struct SubmissionVk : public Submission {
+struct SubmissionVk final : Submission {
 	bool InitRhi(Rhi *rhi, std::string name) override;
 
 	bool Execute() override;

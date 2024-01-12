@@ -48,7 +48,7 @@ struct HostAllocationTrackerVk {
 	static VKAPI_ATTR void VKAPI_CALL InternalFreeNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
 };
 
-struct RhiVk : public Rhi {
+struct RhiVk final : public Rhi {
 
 	~RhiVk() override;
 
