@@ -247,9 +247,9 @@ Vec VecCardinal(int dim, typename VecTraits<Vec>::ElemType e = 1)
 template <typename Vec>
 Vec VecFromMask(int mask)
 {
-	using Num = typename Vec::Num;
+	using Num = typename Vec::value_type;
 	Vec res;
-	for (int d = 0; d < Vec::Dim; ++d) {
+	for (int d = 0; d < Vec::length(); ++d) {
 		res[d] = Num((mask >> d) & 1);
 	}
 	return res;

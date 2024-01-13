@@ -13,7 +13,7 @@ struct CameraCmp : public Component {
 
 	glm::mat3x4 GetViewMatrix() const;
 	glm::mat4   GetProjMatrix(glm::vec2 viewportSize) const;
-	utl::Polytope3F GetFrustum() const;
+	utl::Polytope3F GetFrustum(glm::vec2 viewportSize) const;
 
 	float _fovY = glm::pi<float>() / 3;
 	float _near = 0.1f, _far = 1000.0f;

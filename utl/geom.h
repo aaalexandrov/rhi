@@ -190,7 +190,7 @@ struct SatTest {
 			Vec point0 = shape0.GetPoint(p0);
 			for (int p1 = 0; p1 < numPoints1; ++p1) {
 				Vec point1 = shape1.GetPoint(p1);
-				Vec dir = p1 - p0;
+				Vec dir = point1 - point0;
 				if (IsZero(dir))
 					continue;
 				PlaneV axis(dir, p);
@@ -208,7 +208,7 @@ struct SatTest {
 		if (!CheckShapeSides(shape0, shape1))
 			return false;
 
-		if (!CheckShapeSides(shape1, shape0))
+		if (!SatTest<Shape1, Shape0>::CheckShapeSides(shape1, shape0))
 			return false;
 
 		if (!CheckEdgeDirectionCombinations(shape0, shape1))
@@ -217,7 +217,7 @@ struct SatTest {
 		if (Shape0::IsRound && !CheckPointEdgeCombinations(shape0, shape1))
 			return false;
 
-		if (Shape1::IsRound && !CheckPointEdgeCombinations(shape1, shape0))
+		if (Shape1::IsRound && !SatTest<Shape1, Shape0>::CheckPointEdgeCombinations(shape1, shape0))
 			return false;
 
 		if ((Shape0::IsRound || Shape1::IsRound) && !CheckPointCombinations(shape0, shape1))
@@ -258,7 +258,7 @@ struct Box {
 	constexpr Vec GetCenter() const { return (_min + _max) / (Num)2; }
 
 	constexpr bool IsEmpty() const { return !IsLessEqual(_min, _max); }
-	constexpr bool IsFinite() const { return IsFinite(GetSize()); }
+	constexpr bool IsFinite() const { return utl::IsFinite(GetSize()); }
 
 	constexpr bool GetClosestPoint(Vec const &v) const { return glm::clamp(v, _min, _max); }
 
@@ -296,10 +296,10 @@ struct Box {
 	}
 
 	constexpr int GetNumEdgeDirections() const { return Dim; }
-	constexpr int GetNumEdgeDirections(int dirInd) const { return VecCardinal<Vec>(dirInd); }
+	constexpr Vec GetEdgeDirection(int dirInd) const { return VecCardinal<Vec>(dirInd); }
 
 	constexpr int GetNumSideDirections() const { return Dim; }
-	constexpr int GetSideDirection(int dirInd) const { return VecCardinal<Vec>(dirInd); }
+	constexpr Vec GetSideDirection(int dirInd) const { return VecCardinal<Vec>(dirInd); }
 };
 
 template <typename VecType>
@@ -338,7 +338,7 @@ struct OrientedBox {
 	constexpr Vec FromBoxPointOffset(Vec const &v) const { return RotationV::Rotate(_orientation, v) + _center; }
 
 	constexpr Num GetNumPoints() const { return 1 << Dim; }
-	constexpr Vec GetPoint(int pointInd) const { FromBoxPointOffset(GetBoxPointOffset(pointInd)); }
+	constexpr Vec GetPoint(int pointInd) const { return FromBoxPointOffset(GetBoxPointOffset(pointInd)); }
 
 	constexpr int GetNumEdges() const { return BoxTraits<Dim>::NumEdges; }
 	constexpr LineV GetEdge(int edgeInd) const
@@ -348,10 +348,10 @@ struct OrientedBox {
 	}
 
 	constexpr int GetNumEdgeDirections() const { return Dim; }
-	constexpr int GetNumEdgeDirections(int dirInd) const { return RotationV::Rotate(_orientation, VecCardinal<Vec>(dirInd)); }
+	constexpr Vec GetEdgeDirection(int dirInd) const { return RotationV::Rotate(_orientation, VecCardinal<Vec>(dirInd)); }
 
 	constexpr int GetNumSideDirections() const { return Dim; }
-	constexpr int GetSideDirection(int dirInd) const { return RotationV::Rotate(_orientation, VecCardinal<Vec>(dirInd)); }
+	constexpr Vec GetSideDirection(int dirInd) const { return RotationV::Rotate(_orientation, VecCardinal<Vec>(dirInd)); }
 
 	constexpr BoxV GetUntransformedBox() const
 	{
@@ -584,7 +584,7 @@ struct Plane {
 		Num centerEval = Eval(ob._center);
 		Num extremaEval = 0;
 		for (int i = 0; i < (1 << (Dim - 1)); ++i) {
-			Vec extentDir = ob.GetBoxPoint(i);
+			Vec extentDir = ob.GetBoxPointOffset(i);
 			extentDir = RotationV::Rotate(ob._orientation, extentDir);
 			extremaEval = glm::max(extremaEval, glm::abs(glm::dot(extentDir, _normal)));
 		}
@@ -632,7 +632,7 @@ struct Line {
 
 	static constexpr Line FromPoints(Vec const &v0, Vec const &v1) { return Line(v0, v1 - v0); }
 
-	constexpr bool IsFinite() const { return IsFinite(_origin) && IsFinite(_direction); }
+	constexpr bool IsFinite() const { return utl::IsFinite(_origin) && utl::IsFinite(_direction); }
 	constexpr bool IsValid() const { return IsFinite() && !IsZero(_direction); }
 
 	constexpr Vec GetPoint(Num t) const { return _origin + t * _direction; }
@@ -659,7 +659,7 @@ struct Line {
 				return std::numeric_limits<Num>::infinity();
 			} else {
 				// no intersection
-				return std::numeric_limits<Num>::quiet_nan();
+				return std::numeric_limits<Num>::quiet_NaN();
 			}
 		}
 
@@ -871,6 +871,7 @@ struct BoxTraits {
 
 	static constexpr int NumPoints = 1 << Dim;
 	static constexpr int NumEdges = (1 << (Dim - 1)) * Dim;
+	static constexpr int NumSides = 2 * Dim;
 
 	static constexpr glm::ivec2 GetEdgePointIndices(int edgeInd)
 	{
@@ -883,6 +884,28 @@ struct BoxTraits {
 		ASSERT(!(pointInd & dimMask));
 		return glm::ivec2(pointInd, pointInd ^ dimMask);
 	}
+};
+
+template <typename BoxType>
+struct BoxSides {
+	using Box = BoxType;
+	using Vec = typename Box::Vec;
+	using Num = typename VecTraits<Vec>::ElemType;
+	static constexpr int Dim = VecTraits<Vec>::Length;
+	using PlaneV = Plane<Vec>;
+
+	static constexpr int NumSides = Dim * 2;
+
+	static constexpr PlaneV GetSide(Box const &box, int sideInd)
+	{
+		ASSERT(0 <= sideInd && sideInd < NumSides);
+		bool positiveSide = sideInd % 2;
+		Vec sideDir = box.GetSideDirection(sideInd / 2) * (positiveSide ? (Num)1 : (Num)-1);
+		Vec sidePoint = positiveSide ? box._max : box._min;
+		PlaneV side(sideDir, sidePoint);
+		return side;
+	}
+
 };
 
 using IntervalU8 = Box<uint8_t>;

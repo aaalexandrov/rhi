@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geom.h"
+#include "polytope.h"
 
 namespace utl {
 
@@ -14,6 +15,7 @@ struct GeomPrimitive {
 	using BoxV = Box<Vec>;
 	using OBoxV = OrientedBox<Vec>;
 	using SphereV = Sphere<Vec>;
+	using PolytopeV = Polytope<Vec>;
 	using Transform = RigidTransform<Vec>;
 
 	enum class Kind {
@@ -134,6 +136,109 @@ struct GeomPrimitive {
 				ASSERT(0);
 		}
 		return prim;
+	}
+
+	bool Intersects(Vec const &p) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return _center == p;
+			case Kind::Box:
+				return GetBox().Contains(p);
+			case Kind::OrientedBox:
+				return GetOrientedBox().Contains(p);
+			case Kind::Sphere:
+				return GetSphere().Contains(p);
+			default:
+				ASSERT(0);
+				return false;
+		}
+	}
+
+	bool Intersects(BoxV const &b) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return b.Contains(_center);
+			case Kind::Box:
+				return GetBox().Intersects(b);
+			case Kind::OrientedBox:
+				return GetOrientedBox().Intersects(b);
+			case Kind::Sphere:
+				return GetSphere().Intersects(b);
+			default:
+				ASSERT(0);
+				return false;
+		}
+	}
+
+	bool Intersects(OBoxV const &o) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return o.Contains(_center);
+			case Kind::Box:
+				return o.Intersects(GetBox());
+			case Kind::OrientedBox:
+				return GetOrientedBox().Intersects(o);
+			case Kind::Sphere:
+				return GetSphere().Intersects(o);
+			default:
+				ASSERT(0);
+				return false;
+		}
+	}
+
+	bool Intersects(SphereV const &s) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return s.Contains(_center);
+			case Kind::Box:
+				return s.Intersects(GetBox());
+			case Kind::OrientedBox:
+				return s.Intersects(GetOrientedBox());
+			case Kind::Sphere:
+				return GetSphere().Intersects(s);
+			default:
+				ASSERT(0);
+				return false;
+		}
+	}
+
+	bool Intersects(GeomPrimitive const &prim) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return prim.Intersects(_center);
+			case Kind::Box:
+				return prim.Intersects(GetBox());
+			case Kind::OrientedBox:
+				return prim.Intersects(GetOrientedBox());
+			case Kind::Sphere:
+				return prim.Intersects(GetSphere());
+			default:
+				ASSERT(0);
+				return false;
+		}
+	}
+
+	bool Intersects(PolytopeV const &poly) const
+	{
+		switch (_kind) {
+			case Kind::Point:
+				return poly.Contains(_center);
+			case Kind::Box:
+				return poly.Intersects(GetBox());
+			case Kind::OrientedBox:
+				return poly.Intersects(GetOrientedBox());
+			case Kind::Sphere:
+				return poly.Intersects(GetSphere());
+			default:
+				ASSERT(0);
+				return false;
+		}
+
 	}
 
 private:

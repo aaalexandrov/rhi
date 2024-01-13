@@ -38,7 +38,7 @@ struct Polytope {
 	std::vector<Vec> _sideDirections;
 	std::vector<Vec> _edgeDirections;
 
-	void Init(std::vector<PlaneV> const &sides)
+	void Init(const std::span<PlaneV> sides)
 	{
 		for (PlaneV &plane : sides) {
 			AddSide(plane);
@@ -53,7 +53,7 @@ struct Polytope {
 			Edge edge;
 			edge._line = _sides[s].GetIntersectionLine(side).Normalized();
 			ASSERT(edge._line.IsValid()); // otherwise we either have a repeating plane, or an empty polytope
-			edge._sideIndices = { s, _sides.size() };
+			edge._sideIndices = { s, (int)_sides.size() };
 			newEdges.push_back(edge);
 		}
 
@@ -63,13 +63,13 @@ struct Polytope {
 			IntersectEdges(newEdges, _sides[s]);
 		}
 
-		_sides.insert(_sides.end(), newEdges.begin(), newEdges.end());
+		_edges.insert(_edges.end(), newEdges.begin(), newEdges.end());
 	}
 
 	static void IntersectEdges(std::vector<Edge> &edges, PlaneV const &side)
 	{
 		for (int e = edges.size() - 1; e >= 0; --e) {
-			Interval intersect = edges[e]._line.GetIntersectionInterval(side);
+			Interval intersect = edges[e]._line.GetIntersection(side);
 			edges[e]._interval = edges[e]._interval.GetIntersection(intersect);
 			if (edges[e]._interval.IsEmpty())
 				RemoveElement(edges, e);
@@ -111,7 +111,17 @@ struct Polytope {
 	constexpr int GetNumEdgeDirections() const { return static_cast<int>(_edgeDirections.size()); }
 	constexpr Vec GetEdgeDirection(int dirInd) const { return _edgeDirections[dirInd]; }
 	constexpr int GetNumEdges() const { return static_cast<int>(_edges.size()); }
-	constexpr LineV GetEdge(int edgeInd) const { return _edges[edgeInd].LineFromEndpoints(); }
+	constexpr LineV GetEdge(int edgeInd) const { return _edges[edgeInd].LineFromEndPoints(); }
+
+	bool Contains(Vec const &p) const
+	{
+		for (PlaneV const &side : _sides) {
+			// negative side is considered "inside"
+			if (side.Eval(p) > 0)
+				return false;
+		}
+		return true;
+	}
 
 	template <typename Shape>
 	bool Intersects(Shape const &shape) const
