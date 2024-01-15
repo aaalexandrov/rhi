@@ -45,4 +45,16 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
     return frustum;
 }
 
+bool RenderingCmp::UpdateObjParams(RenderObjectsData &renderData)
+{
+    int32_t transformsParam = _objParams->GetSetDescription()->GetParamIndex("objTransforms");
+    if (transformsParam >= 0) {
+        rhi::ResourceSetDescription::Param const &param = _objParams->GetSetDescription()->_params[transformsParam];
+        ASSERT(param._kind == rhi::ShaderParam::UniformBuffer);
+
+        // TO DO: implement
+    }
+    return true;
+}
+
 }

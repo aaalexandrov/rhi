@@ -17,11 +17,9 @@ struct World : utl::Any {
 
 	void Update(Object *obj, utl::BoxF const &curBox, utl::BoxF const &newBox);
 
-	using ObjEnumFn = std::function<utl::Enum(std::shared_ptr<Object> const &obj)>;
+	using ObjEnumFn = std::function<utl::Enum(std::shared_ptr<Object> &obj)>;
 	template <typename Shape>
 	utl::Enum EnumObjects(Shape const &volume, ObjEnumFn objEnumFn);
-
-	utl::Enum EnumVisibleObjects(std::shared_ptr<CameraCmp> const &camera, glm::vec2 viewportSize, ObjEnumFn objEnumFn);
 
 	using ObjectTree = utl::BoxTree<glm::vec3, std::unordered_set<std::shared_ptr<Object>>>;
 	
@@ -38,7 +36,7 @@ inline utl::Enum World::EnumObjects(Shape const &volume, ObjEnumFn objEnumFn)
 			utl::GeomPrimitive3F objBound = obj->GetBound();
 			if (!objBound.Intersects(volume)) 
 				continue;
-			utl::Enum res = objEnumFn(obj);
+			utl::Enum res = objEnumFn(const_cast<std::shared_ptr<Object>&>(obj));
 			if (res != utl::Enum::Continue)
 				return res;
 		}

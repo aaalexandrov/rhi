@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "world.h"
+#include "render/renderer.h"
 #include "rhi/vk/rhi_vk.h"
 
 namespace eng {
@@ -39,6 +40,9 @@ bool Sys::InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex)
         if (!win->InitRendering())
             return false;
     }
+
+    ASSERT(!_renderer);
+    _renderer = std::make_unique<Renderer>();
 
     return true;
 }

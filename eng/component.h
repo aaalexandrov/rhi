@@ -1,7 +1,7 @@
 #pragma once
 
 #include "object.h"
-#include "rendering.h"
+#include "render/rendering.h"
 #include "utl/polytope.h"
 
 
@@ -19,11 +19,14 @@ struct CameraCmp : public Component {
 	float _near = 0.1f, _far = 1000.0f;
 };
 
+struct RenderObjectsData;
 struct RenderingCmp : public Component {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RenderingCmp>(); }
 
 	std::vector<Model> _models;
 	std::shared_ptr<rhi::ResourceSet> _objParams;
+
+	bool UpdateObjParams(RenderObjectsData &renderData);
 };
 
 }

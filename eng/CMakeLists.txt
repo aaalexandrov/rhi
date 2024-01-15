@@ -5,9 +5,6 @@ set(dir_SOURCES
 	object.h
 	object.cpp
 
-	rendering.h
-	rendering.cpp
-
 	sys.h
 	sys.cpp
 
@@ -17,4 +14,5 @@ set(dir_SOURCES
 
 target_sources(${BINARY} PRIVATE ${dir_SOURCES} CMakeLists.txt)
 
+add_subdirectory(render)
 add_subdirectory(ui)

@@ -2,6 +2,7 @@
 
 #include "rhi/resource.h"
 #include "rhi/pipeline.h"
+#include "rhi/pass.h"
 #include "utl/geom_primitive.h"
 
 namespace eng {
@@ -11,8 +12,11 @@ using utl::TypeInfo;
 struct Mesh : std::enable_shared_from_this<Mesh>, utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Mesh>(); }
 
+	bool SetGeometryData(rhi::GraphicsPass::DrawData &drawData, std::vector<rhi::GraphicsPass::BufferStream> &vertexStreams);
+
 	std::shared_ptr<rhi::Buffer> _vertices;
 	std::vector<rhi::VertexInputData> _vertexInputs;
+	uint32_t _numVertices;
 	std::shared_ptr<rhi::Buffer> _indices;
 	utl::IntervalU _indexRange;
 	rhi::PrimitiveKind _primitiveKind = rhi::PrimitiveKind::TriangleList;

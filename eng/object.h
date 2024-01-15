@@ -27,9 +27,12 @@ struct Object : std::enable_shared_from_this<Object>, utl::Any {
 	T *AddComponent() { return (T*)AddComponent(TypeInfo::Get<T>()); }
 
 	void *GetComponent(TypeInfo const *cmpType);
+	void const *GetComponent(TypeInfo const *cmpType) const { return const_cast<Object *>(this)->GetComponent(cmpType); }
 	template <typename T>
 		requires std::is_base_of_v<Component, T>
 	T *GetComponent() { return (T *)GetComponent(TypeInfo::Get<T>()); }
+	template <typename T>
+	T const *GetComponent() const { return const_cast<Object*>(this)->GetComponent<T>(); }
 
 	void RemoveComponent(Component *component);
 

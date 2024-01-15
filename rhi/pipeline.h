@@ -60,6 +60,7 @@ struct ResourceSetDescription {
 	};
 
 	uint32_t GetNumEntries() const;
+	int32_t GetParamIndex(std::string name, ShaderParam::Kind kind = ShaderParam::Invalid) const;
 
 	std::vector<Param> _params;
 };

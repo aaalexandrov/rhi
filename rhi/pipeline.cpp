@@ -62,6 +62,16 @@ uint32_t ResourceSetDescription::GetNumEntries() const
 	return numEntries;
 }
 
+int32_t ResourceSetDescription::GetParamIndex(std::string name, ShaderParam::Kind kind) const
+{
+	for (int32_t i = 0; i < _params.size(); ++i) {
+		auto &param = _params[i];
+		if (param._name == name && kind == ShaderParam::Invalid || param._kind == kind)
+			return i;
+	}
+	return -1;
+}
+
 bool ResourceSetDescription::Param::IsImage() const
 {
 	return _kind == ShaderParam::Texture || _kind == ShaderParam::UAVTexture;

@@ -33,10 +33,4 @@ void World::Update(Object *obj, utl::BoxF const &curBox, utl::BoxF const &newBox
         newNode->_data.insert(std::move(objPtr));
 }
 
-utl::Enum World::EnumVisibleObjects(std::shared_ptr<CameraCmp> const &camera, glm::vec2 viewportSize, ObjEnumFn objEnumFn)
-{
-    utl::Polytope3F frustum = camera->GetFrustum(viewportSize);
-    return EnumObjects(frustum, objEnumFn);
-}
-
 }
