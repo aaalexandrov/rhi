@@ -1,7 +1,7 @@
 #include "pipeline.h"
 #include "pass.h"
 #include "resource.h"
-
+#include <bit>
 
 namespace rhi {
 
@@ -43,6 +43,15 @@ ShaderParam const *Shader::GetParam(ShaderParam::Kind kind, uint32_t index) cons
 		if (!index)
 			return &param;
 		--index;
+	}
+	return nullptr;
+}
+
+ShaderParam const *Shader::GetParam(std::string name) const
+{
+	for (auto &param : _params) {
+		if (param._name == name)
+			return &param;
 	}
 	return nullptr;
 }
@@ -170,6 +179,21 @@ bool Pipeline::Init(PipelineData const &pipelineData, GraphicsPass *renderPass)
 	}
 
 	return true;
+}
+
+ShaderParam const *Pipeline::GetShaderParam(uint32_t setIndex, uint32_t bindingIndex)
+{
+	ASSERT(setIndex < _resourceSetDescriptions.size());
+	ASSERT(bindingIndex < _resourceSetDescriptions[setIndex]._params.size());
+	auto &setParam = _resourceSetDescriptions[setIndex]._params[bindingIndex];
+	ShaderKind shaderKind = (ShaderKind)std::bit_width(setParam._shaderKindsMask);
+	ASSERT((1u << (int)shaderKind) & setParam._shaderKindsMask);
+	Shader *shader = _pipelineData.GetShader(shaderKind);
+	ASSERT(shader);
+	ShaderParam const *param = shader->GetParam(setParam._name);
+	ASSERT(param && param->_name == setParam._name && param->_set == setIndex && param->_binding == bindingIndex);
+
+	return param;
 }
 
 }

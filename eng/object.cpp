@@ -72,6 +72,7 @@ void Object::SetTransform(utl::Transform3F const &transform)
 {
     UpdateWorldRegistration([&] {
         _transform = transform;
+        _transformDirty = true;
     });
 }
 

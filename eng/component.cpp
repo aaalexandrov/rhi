@@ -1,4 +1,7 @@
 #include "component.h"
+#include "render/renderer.h"
+#include "rhi/pipeline.h"
+#include "rhi/rhi.h"
 
 namespace eng {
 
@@ -47,13 +50,35 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
 
 bool RenderingCmp::UpdateObjParams(RenderObjectsData &renderData)
 {
+    if (!_parent->IsTransformDirty())
+        return true;
+
     int32_t transformsParam = _objParams->GetSetDescription()->GetParamIndex("objTransforms");
     if (transformsParam >= 0) {
         rhi::ResourceSetDescription::Param const &param = _objParams->GetSetDescription()->_params[transformsParam];
         ASSERT(param._kind == rhi::ShaderParam::UniformBuffer);
+        rhi::ShaderParam const *shaderParam = _objParams->_pipeline->GetShaderParam(0, transformsParam);
 
-        // TO DO: implement
+        rhi::Rhi *rhi = _objParams->_pipeline->_rhi;
+
+        rhi::ResourceDescriptor bufDesc{
+            ._usage{.copySrc = 1, .cpuAccess = 1, },
+            ._dimensions{ (int32_t)shaderParam->_type->_size },
+        };
+        auto uploadBuf = rhi->New<rhi::Buffer>("Update" + shaderParam->_name, bufDesc);
+        auto uploadData = uploadBuf->Map();
+
+        utl::AnyRef transforms{ shaderParam->_type, uploadData.data() };
+        *transforms.GetMember("world").Get<glm::mat4>() = _parent->GetTransform().GetMatrix();
+
+        uploadBuf->Unmap();
+        auto uploadPass = rhi->Create<rhi::CopyPass>("Upload" + shaderParam->_name);
+        uploadPass->Copy(rhi::CopyPass::CopyData{._src{uploadBuf}, ._dst{_objParams->_resourceRefs[transformsParam]._bindable}});
+        renderData._updatePasses.push_back(std::move(uploadPass));
+
+        _parent->SetTransformDirty(false);
     }
+
     return true;
 }
 

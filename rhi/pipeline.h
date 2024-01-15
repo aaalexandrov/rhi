@@ -37,6 +37,7 @@ struct Shader : public RhiOwned {
 
 	uint32_t GetNumParams(ShaderParam::Kind kind) const;
 	ShaderParam const *GetParam(ShaderParam::Kind kind, uint32_t index = 0) const;
+	ShaderParam const *GetParam(std::string name) const;
 
 	ShaderData GetShaderData() const;
 
@@ -94,6 +95,8 @@ struct Pipeline : public RhiOwned {
 	virtual bool Init(PipelineData const &pipelineData, GraphicsPass *renderPass = nullptr);
 
 	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
+
+	ShaderParam const *GetShaderParam(uint32_t setIndex, uint32_t bindingIndex);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
 

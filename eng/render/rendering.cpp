@@ -17,10 +17,10 @@ bool Mesh::SetGeometryData(rhi::GraphicsPass::DrawData &drawData, std::vector<rh
     ASSERT(drawData._pipeline);
 
     ASSERT(vertexStreams.empty());
+    ASSERT(_vertexInputs.size() == drawData._pipeline->_pipelineData._vertexInputs.size());
     uint32_t streamOffs = 0;
     for (uint32_t s = 0; s < _vertexInputs.size(); ++s) {
         vertexStreams.push_back({_vertices, streamOffs});
-        // TO DO: support instancing
         ASSERT(!_vertexInputs[s]._perInstance);
         streamOffs += _vertexInputs[s]._layout->_size * _numVertices;
     }

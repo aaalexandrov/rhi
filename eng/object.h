@@ -43,6 +43,9 @@ struct Object : std::enable_shared_from_this<Object>, utl::Any {
 	utl::Transform3F const &GetTransform() const { return _transform; }
 	void SetTransform(utl::Transform3F const &transform);
 
+	bool IsTransformDirty() const { return _transformDirty; }
+	void SetTransformDirty(bool dirty) { _transformDirty = dirty; }
+
 	utl::GeomPrimitive3F const &GetLocalBound() const { return _localBound; }
 	void SetLocalBound(utl::GeomPrimitive3F localBound);
 
@@ -55,6 +58,7 @@ private:
 
 	World *_world = nullptr;
 	utl::Transform3F _transform;
+	bool _transformDirty = true;
 	utl::GeomPrimitive3F _localBound{glm::vec3(0)};
 	std::vector<std::unique_ptr<Component>> _components;
 };
