@@ -196,4 +196,13 @@ ShaderParam const *Pipeline::GetShaderParam(uint32_t setIndex, uint32_t bindingI
 	return param;
 }
 
+ShaderParam const *Pipeline::GetShaderParam(uint32_t setIndex, std::string name, ShaderParam::Kind paramKind)
+{
+	ASSERT(setIndex < _resourceSetDescriptions.size());
+	int32_t paramIndex = _resourceSetDescriptions[setIndex].GetParamIndex(name, paramKind);
+	if (paramIndex < 0)
+		return nullptr;
+	return GetShaderParam(setIndex, paramIndex);
+}
+
 }

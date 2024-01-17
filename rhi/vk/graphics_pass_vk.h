@@ -9,7 +9,7 @@ struct GraphicsPassVk final : GraphicsPass {
 	~GraphicsPassVk() override;
 
 	bool InitRhi(Rhi *rhi, std::string name) override;
-	bool Init(std::span<TargetData> rts, utl::BoxF const &viewport = utl::BoxF::GetMaximum()) override;
+	bool Init(std::span<RenderTargetData> rts, utl::BoxF const &viewport = utl::BoxF::GetMaximum()) override;
 
 	bool Draw(DrawData const &draw) override;
 

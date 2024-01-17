@@ -97,6 +97,7 @@ struct Pipeline : public RhiOwned {
 	virtual std::shared_ptr<ResourceSet> AllocResourceSet(uint32_t setIndex) = 0;
 
 	ShaderParam const *GetShaderParam(uint32_t setIndex, uint32_t bindingIndex);
+	ShaderParam const *GetShaderParam(uint32_t setIndex, std::string name, ShaderParam::Kind paramKind = ShaderParam::Kind::Invalid);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pipeline>(); }
 

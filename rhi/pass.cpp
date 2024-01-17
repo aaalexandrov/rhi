@@ -20,7 +20,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("pass", [] {
 });
 
 
-bool GraphicsPass::Init(std::span<TargetData> rts, utl::BoxF const &viewport)
+bool GraphicsPass::Init(std::span<RenderTargetData> rts, utl::BoxF const &viewport)
 {
 	_renderTargets.insert(_renderTargets.end(), rts.begin(), rts.end());
 	glm::ivec2 rtSize = _renderTargets[0]._texture->_descriptor._dimensions;

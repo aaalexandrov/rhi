@@ -33,7 +33,7 @@ bool GraphicsPassVk::InitRhi(Rhi *rhi, std::string name)
 	return true;
 }
 
-bool GraphicsPassVk::Init(std::span<TargetData> rts, utl::BoxF const &viewport)
+bool GraphicsPassVk::Init(std::span<RenderTargetData> rts, utl::BoxF const &viewport)
 {
 	if (!GraphicsPass::Init(rts, viewport))
 		return false;

@@ -11,7 +11,7 @@ struct Object;
 struct CameraCmp;
 struct World : utl::Any {
 
-	void Init(utl::BoxF const &worldBox, glm::vec3 minWorldNodeSize);
+	void Init(std::string name, utl::BoxF const &worldBox, glm::vec3 minWorldNodeSize);
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<World>(); }
 
@@ -21,8 +21,11 @@ struct World : utl::Any {
 	template <typename Shape>
 	utl::Enum EnumObjects(Shape const &volume, ObjEnumFn objEnumFn);
 
+	utl::Enum EnumObjects(ObjEnumFn objEnumFn);
+
 	using ObjectTree = utl::BoxTree<glm::vec3, std::unordered_set<std::shared_ptr<Object>>>;
 	
+	std::string _name = "World";
 	ObjectTree _objTree;
 };
 

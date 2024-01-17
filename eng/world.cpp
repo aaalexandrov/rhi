@@ -9,8 +9,9 @@ static auto s_regTypes = TypeInfo::AddInitializer("world", [] {
         .Base<utl::Any>();
 });
 
-void World::Init(utl::BoxF const &worldBox, glm::vec3 minWorldNodeSize)
+void World::Init(std::string name, utl::BoxF const &worldBox, glm::vec3 minWorldNodeSize)
 {
+    _name = name;
     _objTree.Init(worldBox, minWorldNodeSize);
 }
 
@@ -31,6 +32,18 @@ void World::Update(Object *obj, utl::BoxF const &curBox, utl::BoxF const &newBox
     }
     if (newNode)
         newNode->_data.insert(std::move(objPtr));
+}
+
+utl::Enum World::EnumObjects(ObjEnumFn objEnumFn)
+{
+    return _objTree.EnumNodes([&](ObjectTree::Node *node, uint32_t nodeIdx, utl::BoxF const &nodeBox) {
+        for (auto &obj : node->_data) {
+            utl::Enum res = objEnumFn(const_cast<std::shared_ptr<Object>&>(obj));
+            if (res != utl::Enum::Continue)
+                return res;
+        }
+        return utl::Enum::Continue;
+    });
 }
 
 }

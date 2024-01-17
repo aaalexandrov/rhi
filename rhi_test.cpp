@@ -38,7 +38,7 @@ int main()
 	auto solidVert = device->GetShader("data/solid.vert", rhi::ShaderKind::Vertex);
 	auto solidFrag = device->GetShader("data/solid.frag", rhi::ShaderKind::Fragment);
 
-	std::array<rhi::GraphicsPass::TargetData, 1> solidRts{{	window->_swapchain->_images[0] }};
+	std::array<rhi::RenderTargetData, 1> solidRts{{	window->_swapchain->_images[0] }};
 	auto solidPass = device->New<rhi::GraphicsPass>("solidPass", std::span(solidRts));
 
 	rhi::PipelineData solidData{
@@ -201,7 +201,7 @@ int main()
 		});
 
 
-		std::array<rhi::GraphicsPass::TargetData, 1> renderTargets{
+		std::array<rhi::RenderTargetData, 1> renderTargets{
 			{
 				swapchainTexture,
 				glm::vec4(0, 0, 1 ,1),

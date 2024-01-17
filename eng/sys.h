@@ -9,6 +9,7 @@ namespace eng {
 
 struct World;
 struct Renderer;
+struct Scene;
 struct Ui;
 
 struct Sys {
@@ -19,10 +20,11 @@ struct Sys {
 	bool InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex = 0);
 
 
+
 	std::shared_ptr<rhi::Rhi> _rhi;
 	std::unique_ptr<Ui> _ui;
-	std::unique_ptr<Renderer> _renderer;
 	std::unique_ptr<World> _world;
+	std::unique_ptr<Scene> _scene;
 
 
 	static Sys *Get() { return s_instance.get(); }

@@ -80,7 +80,7 @@ bool ImguiCtx::Init(Window *window)
 
     auto *rhiVk = Cast<rhi::RhiVk>(Sys::Get()->_rhi.get());
     // dummy render pass to initialize the imgui internal pipeline
-    std::array<rhi::GraphicsPass::TargetData, 1> passRts{ {	window->_swapchain->_images[0] } };
+    std::array<rhi::RenderTargetData, 1> passRts{ {	window->_swapchain->_images[0] } };
     auto passVk = rhiVk->New<rhi::GraphicsPassVk>("solidPass", std::span(passRts));
 
 

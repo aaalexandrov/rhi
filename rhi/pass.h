@@ -21,11 +21,12 @@ struct Pass : public RhiOwned {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Pass>(); }
 };
 
+struct RenderTargetData {
+	std::shared_ptr<Texture> _texture;
+	glm::vec4 _clearValue{ -1 };
+};
+
 struct GraphicsPass : public Pass {
-	struct TargetData {
-		std::shared_ptr<Texture> _texture;
-		glm::vec4 _clearValue{ -1 };
-	};
 
 	struct BufferStream {
 		std::shared_ptr<Buffer> _buffer;
@@ -42,7 +43,7 @@ struct GraphicsPass : public Pass {
 		uint32_t _vertexOffset = 0;
 	};
 
-	virtual bool Init(std::span<TargetData> rts, utl::BoxF const &viewport = utl::BoxF::GetMaximum());
+	virtual bool Init(std::span<RenderTargetData> rts, utl::BoxF const &viewport = utl::BoxF::GetMaximum());
 
 	virtual bool Draw(DrawData const &draw);
 
@@ -50,7 +51,7 @@ struct GraphicsPass : public Pass {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<GraphicsPass>(); }
 
-	std::vector<TargetData> _renderTargets;
+	std::vector<RenderTargetData> _renderTargets;
 	utl::BoxF _viewport;
 	std::unordered_set<std::shared_ptr<Pipeline>> _pipelines;
 	std::unordered_set<std::shared_ptr<ResourceSet>> _resourceSets;
