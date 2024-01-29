@@ -2,6 +2,10 @@
 #include <filesystem>
 
 #include "eng/sys.h"
+#include "eng/world.h"
+#include "eng/object.h"
+#include "eng/component.h"
+#include "eng/render/scene.h"
 
 #include "rhi/pass.h"
 #include "rhi/pipeline.h"
@@ -9,6 +13,63 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 #include "imgui.h"
+
+eng::Model InitTriModel()
+{
+	eng::Model model;
+
+	return model;
+}
+
+bool InitWorld()
+{
+	eng::Sys::Get()->_world = std::make_unique<eng::World>();
+	eng::World *world = eng::Sys::Get()->_world.get();
+	world->Init("TestWorld", utl::BoxF(glm::vec3(-1024), glm::vec3(1024)), glm::vec3(4));
+
+	{
+		auto tri = std::make_shared<eng::Object>();
+		tri->_name = "Triangle";
+		auto triRender = tri->AddComponent<eng::RenderingCmp>();
+		auto triModel = InitTriModel();
+		triRender->_models.push_back(triModel);
+		tri->SetWorld(world);
+	}
+
+	{
+		auto camera = std::make_shared<eng::Object>();
+		camera->_name = "Camera";
+		camera->AddComponent<eng::CameraCmp>();
+		camera->SetTransform(utl::Transform3F(glm::vec3(0, 0, 10), glm::angleAxis(glm::pi<float>(), glm::vec3(0, 1, 0)), 1.0f));
+		camera->SetWorld(world);
+	}
+
+	return true;
+}
+
+bool InitScene(rhi::Swapchain *swapchain)
+{
+	eng::World *world = eng::Sys::Get()->_world.get();
+	eng::CameraCmp *camera = nullptr;
+	world->EnumObjects([&](std::shared_ptr<eng::Object> &obj) {
+		camera = obj->GetComponent<eng::CameraCmp>();
+		return camera ? utl::Enum::Stop : utl::Enum::Continue;
+	});
+	if (!camera)
+		return false;
+
+	std::array<rhi::RenderTargetData, 1> renderTargets{
+		{
+			std::shared_ptr<rhi::Texture>(),
+			glm::vec4(0, 0, 1 ,1),
+		},
+	};
+
+	eng::Sys::Get()->_scene = std::make_unique<eng::Scene>(world, camera, renderTargets);
+	eng::Scene *scene = eng::Sys::Get()->_scene.get();
+
+	return true;
+}
 
 int main()
 {

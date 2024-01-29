@@ -52,6 +52,7 @@ struct Object : std::enable_shared_from_this<Object>, utl::Any {
 	utl::BoxF GetBox() const { return GetBound().GetBoundingBox(); }
 	utl::GeomPrimitive3F GetBound() const { return _localBound.GetTransformed(_transform); }
 
+	std::string _name;
 private:
 	template <typename Fn>
 	void UpdateWorldRegistration(Fn fnUpdate);
