@@ -14,6 +14,7 @@
 #include "glm/gtx/quaternion.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_projection.hpp"
+#include "glm/gtx/component_wise.hpp"
 
 namespace utl {
 

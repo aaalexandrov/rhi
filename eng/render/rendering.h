@@ -12,8 +12,11 @@ using utl::TypeInfo;
 struct Mesh : std::enable_shared_from_this<Mesh>, utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Mesh>(); }
 
+	utl::GeomPrimitive3F GetVertexBound(std::string positionAttrName, float eps = utl::NumericTraits<float>::Eps);
+
 	bool SetGeometryData(rhi::GraphicsPass::DrawData &drawData, std::vector<rhi::GraphicsPass::BufferStream> &vertexStreams);
 
+	std::string _name;
 	std::shared_ptr<rhi::Buffer> _vertices;
 	std::vector<rhi::VertexInputData> _vertexInputs;
 	uint32_t _numVertices;
@@ -26,6 +29,7 @@ struct Mesh : std::enable_shared_from_this<Mesh>, utl::Any {
 struct Material : std::enable_shared_from_this<Material>, utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Material>(); }
 
+	std::string _name;
 	std::vector<std::shared_ptr<rhi::Shader>> _shaders;
 	rhi::RenderState _renderState;
 	std::unordered_map<std::string, std::shared_ptr<rhi::Bindable>> _params;

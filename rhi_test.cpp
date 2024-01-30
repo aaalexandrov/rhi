@@ -14,14 +14,86 @@
 #include "SDL2/SDL.h"
 #include "imgui.h"
 
-eng::Model InitTriModel()
+eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 {
+	auto rhi = eng::Sys::Get()->_rhi.get();
+
+	auto solidVert = rhi->GetShader("data/solid.vert", rhi::ShaderKind::Vertex);
+	auto solidFrag = rhi->GetShader("data/solid.frag", rhi::ShaderKind::Fragment);
+
+	auto solidPass = rhi->New<rhi::GraphicsPass>("solidPass", renderTargets);
+
+	rhi::PipelineData solidData{
+		._shaders = {{ solidVert, solidFrag }},
+		._vertexInputs = { rhi::VertexInputData{._layout = solidVert->GetParam(rhi::ShaderParam::Kind::VertexLayout, 0)->_ownTypes[0] }},
+	};
+	auto solidPipe = rhi->GetPipeline(solidData, solidPass.get());
+
+	auto *vertLayout = solidPipe->_pipelineData.GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::VertexLayout);
+	auto triBuf = rhi->New<rhi::Buffer>("triangle", rhi::ResourceDescriptor{
+		._usage = rhi::ResourceUsage{.vb = 1, .cpuAccess = 1},
+		._dimensions = glm::ivec4(vertLayout->_type->_size * 3),
+		});
+
+	{
+		auto triMapped = triBuf->Map();
+		utl::AnyRef vert{ vertLayout->_type, triMapped.data() };
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.25, 0.25, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(0.0, 0.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(1, 0, 0, 1);
+
+		vert._instance = triMapped.data() + vert._type->_size * 1;
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.25, 0.75, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(0.0, 1.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(0, 1, 0, 1);
+
+		vert._instance = triMapped.data() + vert._type->_size * 2;
+		*vert.GetMember("pos").Get<glm::vec3>() = glm::vec3(0.75, 0.75, 0);
+		*vert.GetMember("tc").Get<glm::vec2>() = glm::vec2(1.0, 1.0);
+		*vert.GetMember("color").Get<glm::vec4>() = glm::vec4(0, 0, 1, 1);
+		triBuf->Unmap();
+	}
+
+	auto *solidUniformLayout = solidPipe->_pipelineData.GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
+	auto solidUniform = rhi->New<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
+		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
+		._dimensions = glm::ivec4(solidUniformLayout->_type->_size),
+		});
+
+	{
+		auto solidMapped = solidUniform->Map();
+		utl::AnyRef uni{ solidUniformLayout->_type, solidMapped.data() };
+		glm::mat4 mat{ glm::vec4(2, 0, 0, 0), glm::vec4(0, 2, 0, 0), glm::vec4(0, 0, 1, 0), glm::vec4(-1, -1, 0, 1) };
+		*uni.GetMember("view_proj").Get<glm::mat4>() = mat;
+		solidUniform->Unmap();
+	}
+
+	auto sampler = rhi->New<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
+
+	auto solidResSet = solidPipe->AllocResourceSet(0);
+
+	auto mesh = std::make_shared<eng::Mesh>();
+	mesh->_name = "Triangle";
+	mesh->_vertices = triBuf;
+	mesh->_vertexInputs = solidPipe->_pipelineData._vertexInputs;
+	mesh->_numVertices = triBuf->_descriptor._dimensions[0] / vertLayout->_type->_size;
+	mesh->_indexRange = utl::IntervalU(0, 2);
+	mesh->_bound = mesh->GetVertexBound("pos");
+
+	auto mat = std::make_shared<eng::Material>();
+	mat->_name = "Solid";
+
+
+
 	eng::Model model;
+	model._mesh = mesh;
+
+	model._pipeline = solidPipe;
 
 	return model;
 }
 
-bool InitWorld()
+bool InitWorld(rhi::Swapchain *swapchain)
 {
 	eng::Sys::Get()->_world = std::make_unique<eng::World>();
 	eng::World *world = eng::Sys::Get()->_world.get();
@@ -31,7 +103,8 @@ bool InitWorld()
 		auto tri = std::make_shared<eng::Object>();
 		tri->_name = "Triangle";
 		auto triRender = tri->AddComponent<eng::RenderingCmp>();
-		auto triModel = InitTriModel();
+		rhi::RenderTargetData rt{ swapchain->_images[0] };
+		auto triModel = InitTriModel(std::span(&rt, 1));
 		triRender->_models.push_back(triModel);
 		tri->SetWorld(world);
 	}

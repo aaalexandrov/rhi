@@ -26,6 +26,8 @@ struct AnyRef {
 	AnyRef GetArrayElement(size_t index);
 	AnyRef GetMember(std::string name);
 
+	AnyRef &operator +=(ptrdiff_t offs) { _instance = (uint8_t *)_instance + offs; return *this; }
+
 	template <typename T>
 	static AnyRef From(T &val);
 };

@@ -260,6 +260,8 @@ struct Box {
 	constexpr bool IsEmpty() const { return !IsLessEqual(_min, _max); }
 	constexpr bool IsFinite() const { return utl::IsFinite(GetSize()); }
 
+	constexpr Num GetVolume() const { return std::max((Num)0, glm::compMul(GetSize())); }
+
 	constexpr bool GetClosestPoint(Vec const &v) const { return glm::clamp(v, _min, _max); }
 
 	constexpr bool Contains(Vec const &v) const { return glm::all(glm::lessThanEqual(_min, v) && glm::lessThanEqual(v, _max)); }
@@ -277,6 +279,9 @@ struct Box {
 			return *this;
 		return Box(glm::min(_min, other._min), glm::max(_max, other._max));
 	}
+
+	constexpr Box GetExtended(Vec const &v) const { return Box(_min - v, _max + v); }
+	constexpr Box GetExtended(Num n) const { return GetExtended(Vec(n)); }
 
 	constexpr bool operator ==(Box const &other) const { return _min == other._min && _max == other._max; }
 	constexpr bool operator !=(Box const &other) const { return !(*this == other); }
@@ -324,6 +329,10 @@ struct OrientedBox {
 	constexpr bool IsValid() const { return IsFinite(_center) && IsFinite(_orientation) && IsFinite(_halfSize) && !IsEmpty(); }
 
 	constexpr bool IsEmpty() const { return !glm::all(glm::lessThanEqual(Vec(0), _halfSize)); }
+
+	constexpr Vec GetSize() const { return _halfSize * (Num)2; }
+
+	constexpr Num GetVolume() const { return std::max((Num)0, glm::compMax(GetSize())); }
 
 	constexpr Vec GetBoxPointOffset(int pointInd) const
 	{
@@ -418,6 +427,8 @@ struct Sphere {
 	constexpr bool IsEmpty() const { return _radius < 0; }
 	constexpr bool IsFinite() const { return IsFinite(_center) && IsFinite(_radius); }
 
+	constexpr Num GetVolume() const { return (Num)4 / (Num)3 * glm::pi<Num>() * _radius * _radius * _radius; }
+
 	constexpr int GetNumPoints() const { return 1; }
 	constexpr Vec GetPoint(int pointInd) const { return _center; }
 	constexpr int GetNumSideDirections() const { return 0; }
@@ -451,7 +462,7 @@ struct Sphere {
 			return *this;
 		Num dist = glm::sqrt(dist2);
 		Vec opposite = _center - centerV * _radius / dist;
-		Sphere result((opposite + v) / 2, (dist + _radius) / 2);
+		Sphere result((opposite + v) / (Num)2, (dist + _radius) / (Num)2);
 		ASSERT(IsEqual(glm::distance(result._center, v), result._radius));
 		ASSERT(IsEqual(glm::distance(result._center, opposite), result._radius));
 		return result;
