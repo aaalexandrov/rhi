@@ -320,7 +320,7 @@ uint32_t GetFormatSize(Format fmt)
 	return type ? sizeof(type) : 0;
 }
 
-uint8_t GetMaxMipLevels(glm::ivec3 dims)
+int8_t GetMaxMipLevels(glm::ivec3 dims)
 {
 	uint32_t maxDim = utl::VecMaxElem(dims);
 	auto numBits = std::bit_width(maxDim);

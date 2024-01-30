@@ -52,6 +52,10 @@ enum class Format : int32_t {
 	R16_u,
 	R32_u,
 
+	R8G8,
+
+	R8G8B8,
+
 	R8G8B8A8,
 	R8G8B8A8_srgb,
 	B8G8R8A8,
@@ -87,7 +91,7 @@ static inline std::unordered_map<Format, TypeInfo const *> s_format2TypeInfo{ {
 
 uint32_t GetFormatSize(Format fmt);
 
-uint8_t GetMaxMipLevels(glm::ivec3 dims);
+int8_t GetMaxMipLevels(glm::ivec3 dims);
 glm::ivec3 GetMipLevelSize(glm::ivec3 dims, int32_t mipLevel);
 
 struct ResourceDescriptor {

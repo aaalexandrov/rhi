@@ -13,6 +13,67 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 #include "imgui.h"
+#include "stb_image.h"
+
+std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips)
+{
+	auto rhi = eng::Sys::Get()->_rhi.get();
+	int x, y, ch;
+	uint8_t *img = stbi_load(path.c_str(), &x, &y, &ch, 0);
+
+	if (!img)
+		return nullptr;
+
+	rhi::Format fmt;
+	switch (ch) {
+		case 1:
+			fmt = rhi::Format::R8;
+			break;
+		case 2:
+			fmt = rhi::Format::R8G8;
+			break;
+		case 4:
+			fmt = rhi::Format::R8G8B8A8;
+			break;
+		default:
+			return nullptr;
+	}
+	glm::vec4 dims{ x, y, 0, 0 };
+	rhi::ResourceDescriptor texDesc{
+		._usage{.srv = 1, .copyDst = 1},
+		._format{fmt},
+		._dimensions{dims},
+		._mipLevels{rhi::GetMaxMipLevels(dims)},
+	};
+	std::shared_ptr<rhi::Texture> tex = rhi->New<rhi::Texture>(path, texDesc);
+
+	std::shared_ptr<rhi::Buffer> staging = rhi->New<rhi::Buffer>("Staging " + path, rhi::ResourceDescriptor{
+		._usage{.copySrc = 1, .cpuAccess = 1},
+		._dimensions{x * y * ch},
+		});
+	std::span<uint8_t> pixMem = staging->Map();
+	memcpy(pixMem.data(), img, pixMem.size());
+	staging->Unmap();
+
+	stbi_image_free(img);
+
+	std::vector<std::shared_ptr<rhi::Pass>> passes;
+	auto copyStaging = rhi->Create<rhi::CopyPass>();
+	copyStaging->Copy(rhi::CopyPass::CopyData{ ._src{staging}, ._dst{tex, rhi::ResourceView{._mipRange{0, 0}}} });
+	passes.push_back(copyStaging);
+
+	if (genMips) {
+		auto mipGen = rhi->Create<rhi::CopyPass>();
+		mipGen->CopyTopToLowerMips(tex);
+		passes.push_back(mipGen);
+	}
+
+	auto sub = rhi->Submit(std::move(passes), "Upload " + path);
+	sub->Prepare();
+	sub->Execute();
+
+	return tex;
+}
 
 eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 {
@@ -70,7 +131,11 @@ eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 
 	auto sampler = rhi->New<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
 
+	auto gridTex = LoadTexture("data/grid2.png", true);
+
 	auto solidResSet = solidPipe->AllocResourceSet(0);
+
+	solidResSet->Update({ {solidUniform}, {sampler}, {gridTex} });
 
 	auto mesh = std::make_shared<eng::Mesh>();
 	mesh->_name = "Triangle";
@@ -82,12 +147,14 @@ eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 
 	auto mat = std::make_shared<eng::Material>();
 	mat->_name = "Solid";
-
-
+	mat->_shaders = { solidVert, solidFrag };
+	mat->_params["UniformData"] = solidUniform;
+	mat->_params["samp"] = sampler;
+	mat->_params["tex"] = gridTex;
 
 	eng::Model model;
 	model._mesh = mesh;
-
+	model._material = mat;
 	model._pipeline = solidPipe;
 
 	return model;
