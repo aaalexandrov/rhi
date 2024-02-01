@@ -8,6 +8,8 @@ using utl::TypeInfo;
 
 struct Object;
 struct Component : utl::Any {
+	virtual ~Component() {}
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Component>(); }
 
 	Object *_parent = nullptr;

@@ -21,6 +21,7 @@ struct CameraCmp : public Component {
 
 struct RenderObjectsData;
 struct RenderingCmp : public Component {
+
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<RenderingCmp>(); }
 
 	std::vector<Model> _models;

@@ -126,14 +126,19 @@ struct GeomPrimitive {
 		switch (_kind) {
 			case Kind::Point:
 				prim.Set(transform.TransformPoint(GetPoint()));
+				break;
 			case Kind::Box:
 				prim.Set(transform.Transform(GetBox()));
+				break;
 			case Kind::OrientedBox:
 				prim.Set(transform.Transform(GetOrientedBox()));
+				break;
 			case Kind::Sphere:
 				prim.Set(transform.Transform(GetSphere()));
+				break;
 			default:
 				ASSERT(0);
+				break;
 		}
 		return prim;
 	}
