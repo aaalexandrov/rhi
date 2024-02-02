@@ -360,7 +360,9 @@ ShaderVk::~ShaderVk()
 ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resource const &res, ShaderParam::Kind kind)
 {
 	auto getName = [&](spirv_cross::ID id) {
-		std::string name = refl.get_name(id);
+		std::string name = res.name;
+		if (name.empty())
+			name = refl.get_name(id);
 		if (name.empty())
 			name = refl.get_fallback_name(id);
 		return name;

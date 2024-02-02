@@ -186,7 +186,7 @@ ShaderParam const *Pipeline::GetShaderParam(uint32_t setIndex, uint32_t bindingI
 	ASSERT(setIndex < _resourceSetDescriptions.size());
 	ASSERT(bindingIndex < _resourceSetDescriptions[setIndex]._params.size());
 	auto &setParam = _resourceSetDescriptions[setIndex]._params[bindingIndex];
-	ShaderKind shaderKind = (ShaderKind)std::bit_width(setParam._shaderKindsMask);
+	ShaderKind shaderKind = (ShaderKind)(std::bit_width(setParam._shaderKindsMask) - 1);
 	ASSERT((1u << (int)shaderKind) & setParam._shaderKindsMask);
 	Shader *shader = _pipelineData.GetShader(shaderKind);
 	ASSERT(shader);

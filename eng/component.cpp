@@ -29,17 +29,20 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
     glm::mat4 view = GetViewMatrix();
     glm::mat4 proj = GetProjMatrix(viewportSize);
     glm::mat4 viewProj = proj * view;
-    // because transformed plane p' = transpose(inverse(M)) * p, for M = inverse(viewProj)
-    glm::mat4 planePostTransformToWorld = transpose(viewProj);
+    glm::mat4 viewProjInv = inverse(viewProj);
 
     utl::Polytope3F frustum;
 
     using BoxSides = utl::BoxSides<utl::BoxF>;
     for (int s = 0; s < BoxSides::NumSides; ++s) {
         utl::PlaneF sidePostTransform = BoxSides::GetSide(postTransform, s);
-        glm::vec4 planePostTransform(sidePostTransform._normal, sidePostTransform._d);
-        glm::vec4 planeWorld = planePostTransformToWorld * planePostTransform;
-        utl::PlaneF sideWorld(glm::vec3(planeWorld), planeWorld.w);
+
+        glm::vec3 sidePoint = sidePostTransform.GetAnyPoint();
+        glm::vec3 worldPoint = utl::VecAffine(viewProjInv * glm::vec4(sidePoint, 1));
+        glm::vec3 worldPoint1 = utl::VecAffine(viewProjInv * glm::vec4(sidePoint + sidePostTransform._normal, 1));
+        glm::vec3 worldNormal = normalize(worldPoint1 - worldPoint);
+        utl::PlaneF sideWorld = utl::PlaneF(worldNormal, worldPoint);
+
         frustum.AddSide(sideWorld);
     }
 
@@ -54,10 +57,10 @@ bool RenderingCmp::UpdateObjParams(RenderObjectsData &renderData)
         return true;
 
     if (!_objParams) {
-        _objParams = Scene::CreateResourseSetWithBuffer(_models[0]._pipeline.get(), 0, "objParams");
+        _objParams = Scene::CreateResourseSetWithBuffer(_models[0]._pipeline.get(), 0, "ModelData");
     }
 
-    auto uploadPass = Scene::UpdateResourceSetBuffer(_objParams.get(), "objParams", [this](utl::AnyRef params) {
+    auto uploadPass = Scene::UpdateResourceSetBuffer(_objParams.get(), "ModelData", [this](utl::AnyRef params) {
         *params.GetMember("world").Get<glm::mat4>() = _parent->GetTransform().GetMatrix();
         return true;
     });

@@ -52,7 +52,8 @@ struct Polytope {
 		for (int s = 0; s < _sides.size(); ++s) {
 			Edge edge;
 			edge._line = _sides[s].GetIntersectionLine(side).Normalized();
-			ASSERT(edge._line.IsValid()); // otherwise we either have a repeating plane, or an empty polytope
+			if (!edge._line.IsValid())
+				continue;
 			edge._sideIndices = { s, (int)_sides.size() };
 			newEdges.push_back(edge);
 		}
@@ -64,6 +65,7 @@ struct Polytope {
 		}
 
 		_edges.insert(_edges.end(), newEdges.begin(), newEdges.end());
+		_sides.push_back(side);
 	}
 
 	static void IntersectEdges(std::vector<Edge> &edges, PlaneV const &side)

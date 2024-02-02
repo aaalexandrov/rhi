@@ -77,14 +77,14 @@ bool Scene::UpdateSceneParams(RenderObjectsData &renderData)
 		_world->EnumObjects([&](std::shared_ptr<Object> &obj) {
 			auto *renderCmp = obj->GetComponent<RenderingCmp>();
 			if (renderCmp && renderCmp->_models.size()) {
-				_sceneParams = CreateResourseSetWithBuffer(renderCmp->_models[0]._pipeline.get(), 2, "sceneParams");
+				_sceneParams = CreateResourseSetWithBuffer(renderCmp->_models[0]._pipeline.get(), 2, "SceneData");
 				return utl::Enum::Stop;
 			}
 			return utl::Enum::Continue;
 		});
 	}
 
-	auto uploadPass = Scene::UpdateResourceSetBuffer(_sceneParams.get(), "sceneParams", [&](utl::AnyRef params) {
+	auto uploadPass = Scene::UpdateResourceSetBuffer(_sceneParams.get(), "SceneData", [&](utl::AnyRef params) {
 		*params.GetMember("view").Get<glm::mat4>() = _camera->GetViewMatrix();
 		*params.GetMember("proj").Get<glm::mat4>() = _camera->GetProjMatrix(renderData.GetRenderTargetSize());
 		return true;
@@ -101,7 +101,7 @@ std::shared_ptr<rhi::CopyPass> Scene::UpdateResourceSetBuffer(rhi::ResourceSet *
 	if (transformsParam >= 0) {
 		rhi::ResourceSetDescription::Param const &param = resSet->GetSetDescription()->_params[transformsParam];
 		ASSERT(param._kind == rhi::ShaderParam::UniformBuffer || param._kind == rhi::ShaderParam::UAVBuffer);
-		rhi::ShaderParam const *shaderParam = resSet->_pipeline->GetShaderParam(0, transformsParam);
+		rhi::ShaderParam const *shaderParam = resSet->_pipeline->GetShaderParam(resSet->_setIndex, transformsParam);
 
 		rhi::Rhi *rhi = resSet->_pipeline->_rhi;
 

@@ -238,6 +238,13 @@ Vec VecNormalize(Vec const &v)
 }
 
 template <typename Vec>
+Vec VecAffine(Vec const &v)
+{
+	typename VecTraits<Vec>::ElemType denom = v[VecTraits<Vec>::Length - 1];
+	return IsZero(denom) ? v : v / denom;
+}
+
+template <typename Vec>
 Vec VecCardinal(int dim, typename VecTraits<Vec>::ElemType e = 1)
 {
 	Vec v(0);

@@ -531,7 +531,7 @@ struct Plane {
 	constexpr Num Eval(Vec const &p) const { return glm::dot(p, _normal) + _d; }
 	constexpr Num Distance(Vec const &p) const { return Eval(p) / glm::length(_normal); }
 
-	constexpr Num GetAnyPoint() const
+	constexpr Vec GetAnyPoint() const
 	{
 		Vec p = -_d / glm::dot(_normal, _normal) * _normal;
 		ASSERT(IsZero(Eval(p)));

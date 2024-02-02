@@ -116,20 +116,6 @@ eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 		triBuf->Unmap();
 	}
 
-	auto *solidUniformLayout = solidPipe->_pipelineData.GetShader(rhi::ShaderKind::Vertex)->GetParam(rhi::ShaderParam::UniformBuffer);
-	auto solidUniform = rhi->New<rhi::Buffer>("solidUniform", rhi::ResourceDescriptor{
-		._usage = rhi::ResourceUsage{.srv = 1, .cpuAccess = 1},
-		._dimensions = glm::ivec4(solidUniformLayout->_type->_size),
-		});
-
-	{
-		auto solidMapped = solidUniform->Map();
-		utl::AnyRef uni{ solidUniformLayout->_type, solidMapped.data() };
-		glm::mat4 mat{ glm::vec4(2, 0, 0, 0), glm::vec4(0, 2, 0, 0), glm::vec4(0, 0, 1, 0), glm::vec4(-1, -1, 0, 1) };
-		*uni.GetMember("view_proj").Get<glm::mat4>() = mat;
-		solidUniform->Unmap();
-	}
-
 	auto sampler = rhi->New<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
 
 	auto gridTex = LoadTexture("data/grid2.png", true);
@@ -145,7 +131,6 @@ eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 	auto mat = std::make_shared<eng::Material>();
 	mat->_name = "Solid";
 	mat->_shaders = { solidVert, solidFrag };
-	mat->_params["UniformData"] = solidUniform;
 	mat->_params["samp"] = sampler;
 	mat->_params["tex"] = gridTex;
 
