@@ -14,6 +14,10 @@ void AssertFailed(char const *message, char const *file, unsigned line)
 	LogLine(std::cerr, msg.c_str());
 
 #if defined(_WIN32)
+	static bool s_enableAsserts = true;
+	if (!s_enableAsserts)
+		return;
+
 	int res = MessageBoxA(nullptr, msg.c_str(), "Assert failed", MB_ABORTRETRYIGNORE | MB_DEFBUTTON2 | MB_ICONEXCLAMATION | MB_TASKMODAL | MB_SETFOREGROUND);
 	switch (res) {
 		case IDABORT:
@@ -23,6 +27,7 @@ void AssertFailed(char const *message, char const *file, unsigned line)
 			DebugBreak();
 			break;
 		case IDIGNORE:
+			s_enableAsserts = false;
 			break;
 	}
 #endif

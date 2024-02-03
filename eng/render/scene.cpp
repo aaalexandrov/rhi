@@ -56,7 +56,10 @@ bool Scene::RenderObject(Object *obj, RenderObjectsData &renderData)
 		rhi::GraphicsPass::DrawData drawData;
 		drawData._pipeline = model._pipeline;
 
-		resourceSets.insert(resourceSets.end(), { renderCmp->_objParams, model._materialParams, renderData._scene->_sceneParams });
+		if (!model._material->UpdateMaterialParams(model._pipeline.get()))
+			return false;
+
+		resourceSets.insert(resourceSets.end(), { renderCmp->_objParams, model._material->_materialParams, renderData._scene->_sceneParams });
 		drawData._resourceSets = resourceSets;
 
 		res = model._mesh->SetGeometryData(drawData, vertexStreams) && res;
@@ -119,7 +122,8 @@ std::shared_ptr<rhi::CopyPass> Scene::UpdateResourceSetBuffer(rhi::ResourceSet *
 
 		if (res) {
 			uploadPass = rhi->Create<rhi::CopyPass>("Upload" + shaderParam->_name);
-			uploadPass->Copy(rhi::CopyPass::CopyData{ ._src{uploadBuf}, ._dst{resSet->_resourceRefs[transformsParam]._bindable} });
+			bool res = uploadPass->Copy(rhi::CopyPass::CopyData{ ._src{uploadBuf}, ._dst{resSet->_resourceRefs[transformsParam]._bindable} });
+			ASSERT(res);
 		}
 	}
 
@@ -132,7 +136,7 @@ std::shared_ptr<rhi::ResourceSet> Scene::CreateResourseSetWithBuffer(rhi::Pipeli
 	rhi::ShaderParam const *param = pipeline->GetShaderParam(setIndex, bufName);
 
 	rhi::ResourceDescriptor paramBufDesc{
-		._usage = rhi::ResourceUsage{.srv = 1, .uav = (param->_kind == rhi::ShaderParam::UAVBuffer), .cpuAccess = 1},
+		._usage = rhi::ResourceUsage{.srv = 1, .uav = (param->_kind == rhi::ShaderParam::UAVBuffer), .copyDst = 1},
 		._dimensions = glm::ivec4{(int32_t)param->_type->_size, 0, 0, 0},
 	};
 	auto paramBuf = pipeline->_rhi->New<rhi::Buffer>(param->_name, paramBufDesc);

@@ -317,7 +317,7 @@ bool ResourceRef::IsViewValid()
 uint32_t GetFormatSize(Format fmt)
 {
 	TypeInfo const *type = s_format2TypeInfo[fmt];
-	return type ? sizeof(type) : 0;
+	return type ? type->_size : 0;
 }
 
 int8_t GetMaxMipLevels(glm::ivec3 dims)

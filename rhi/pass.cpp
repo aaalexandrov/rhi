@@ -123,15 +123,16 @@ bool CopyPass::Copy(CopyData copy)
 		uint32_t rowSize = pixSize * refTex._view._region.GetSize()[0];
 		uint32_t sliceSize = rowSize * refTex._view._region.GetSize()[1];
 		// 3d images can't be arrays, so we take the size of either the 3rd dimension, or array slices, whichever is greater
-		uint32_t transferSize = sliceSize * std::max(refTex._view._region.GetSize()[2], refTex._view._region.GetSize()[3]);
+		glm::ivec4 texRgnSize = glm::max(refTex._view._region.GetSize(), glm::ivec4(1));
+		uint32_t transferSize = sliceSize * std::max(texRgnSize[2], texRgnSize[3]);
 		// not enough buffer space for all requested pixels?
 		if (refBuf._view._region.GetSize()[0] < transferSize)
 			return false;
 	}
 
-	if (copy._src._view._mipRange.GetSize() != 1)
+	if (cpType.srcTex && copy._src._view._mipRange.GetSize() != 1)
 		return false;
-	if (copy._dst._view._mipRange.GetSize() != 1)
+	if (cpType.dstTex && copy._dst._view._mipRange.GetSize() != 1)
 		return false;
 
 	if (!copy._src.IsViewValid() || !copy._dst.IsViewValid())

@@ -13,7 +13,7 @@ static auto s_regTypes = TypeInfo::AddInitializer("component", [] {
 });
 
 
-glm::mat3x4 CameraCmp::GetViewMatrix() const
+glm::mat4x3 CameraCmp::GetViewMatrix() const
 {
     return _parent->GetTransform().Inverse().GetMatrix();
 }
@@ -33,17 +33,25 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
 
     utl::Polytope3F frustum;
 
-    using BoxSides = utl::BoxSides<utl::BoxF>;
-    for (int s = 0; s < BoxSides::NumSides; ++s) {
-        utl::PlaneF sidePostTransform = BoxSides::GetSide(postTransform, s);
-
-        glm::vec3 sidePoint = sidePostTransform.GetAnyPoint();
-        glm::vec3 worldPoint = utl::VecAffine(viewProjInv * glm::vec4(sidePoint, 1));
-        glm::vec3 worldPoint1 = utl::VecAffine(viewProjInv * glm::vec4(sidePoint + sidePostTransform._normal, 1));
-        glm::vec3 worldNormal = normalize(worldPoint1 - worldPoint);
-        utl::PlaneF sideWorld = utl::PlaneF(worldNormal, worldPoint);
-
-        frustum.AddSide(sideWorld);
+    glm::vec3 centerWorld = utl::VecAffine(viewProjInv * glm::vec4(postTransform.GetCenter(), 1));
+    for (int d = 0; d < 3; ++d) {
+        for (int e = 0; e < 2; ++e) {
+            std::array<glm::vec3, 4> points;
+            glm::vec3 weight{ 0 };
+            weight[d] = e;
+            for (int e1 = 0; e1 < 2; ++e1) {
+                weight[(d + 1) % 3] = e1;
+                for (int e2 = 0; e2 < 2; ++e2) {
+                    weight[(d + 2) % 3] = e2;
+                    points[e1 * 2 + e2] = utl::VecAffine(viewProjInv * glm::vec4(postTransform.GetPoint(weight), 1));
+                }
+            }
+            utl::PlaneF sideWorld = utl::PlaneF::GetPlane(points).Normalized();
+            if (sideWorld.Eval(centerWorld) > 0)
+                sideWorld = sideWorld.Inverted();
+            ASSERT(sideWorld.Eval(centerWorld) < 0);
+            frustum.AddSide(sideWorld);
+        }
     }
 
     frustum.UpdateAfterAddingSides();

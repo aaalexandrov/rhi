@@ -82,7 +82,7 @@ bool GraphicsPassVk::Draw(DrawData const &draw)
 	std::vector<vk::DescriptorSet> descSets;
 	for (auto &set : _resourceSets) {
 		auto *setVk = static_cast<ResourceSetVk *>(set.get());
-		descSets.push_back(setVk->_descSet._set);
+		utl::GetFromVec(descSets, setVk->_setIndex) = setVk->_descSet._set;
 	}
 	std::array<uint32_t, 0> noDynamicOffsets;
 	cmds.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeVk->_layout, 0, descSets, noDynamicOffsets);

@@ -40,7 +40,7 @@ std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips)
 	}
 	glm::vec4 dims{ x, y, 0, 0 };
 	rhi::ResourceDescriptor texDesc{
-		._usage{.srv = 1, .copyDst = 1},
+		._usage{.srv = 1, .copySrc = genMips, .copyDst = 1},
 		._format{fmt},
 		._dimensions{dims},
 		._mipLevels{rhi::GetMaxMipLevels(dims)},
@@ -162,7 +162,7 @@ bool InitWorld(rhi::Swapchain *swapchain)
 		auto camera = std::make_shared<eng::Object>();
 		camera->_name = "Camera";
 		camera->AddComponent<eng::CameraCmp>();
-		camera->SetTransform(utl::Transform3F(glm::vec3(0, 0, 10), glm::angleAxis(glm::pi<float>(), glm::vec3(0, 1, 0)), 1.0f));
+		camera->SetTransform(utl::Transform3F(glm::vec3(0, 0, 2), glm::angleAxis(0*glm::pi<float>(), glm::vec3(0, 1, 0)), 1.0f));
 		camera->SetWorld(world);
 	}
 

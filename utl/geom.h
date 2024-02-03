@@ -292,6 +292,7 @@ struct Box {
 		ASSERT(0 <= pointInd && pointInd < GetNumPoints());
 		return glm::mix(_min, _max, VecFromMask<BVec>(pointInd));
 	}
+	constexpr Vec GetPoint(Vec const &w) const { return glm::mix(_min, _max, w); }
 
 	constexpr int GetNumEdges() const { return BoxTraits<Dim>::NumEdges; }
 	constexpr LineV GetEdge(int edgeInd) const
@@ -528,6 +529,8 @@ struct Plane {
 		return Plane(_normal / normLen, _d / normLen);
 	}
 
+	constexpr Plane Inverted() const { return Plane(-_normal, -_d); }
+
 	constexpr Num Eval(Vec const &p) const { return glm::dot(p, _normal) + _d; }
 	constexpr Num Distance(Vec const &p) const { return Eval(p) / glm::length(_normal); }
 
@@ -567,8 +570,8 @@ struct Plane {
 			glm::mat<3, 3, Num> m(_normal, other._normal, dir);
 			origin = b * glm::inverse(m);
 		}
-		ASSERT(IsZero(Eval(origin)));
-		ASSERT(IsZero(other.Eval(origin)));
+		ASSERT(IsZero(Eval(origin), 1e-3f));
+		ASSERT(IsZero(other.Eval(origin), 1e-3f));
 		return LineV(origin, dir);
 	}
 
@@ -675,7 +678,7 @@ struct Line {
 		}
 
 		Num t = (-plane._d - glm::dot(_origin, plane._normal)) / dotDirNorm;
-		ASSERT(IsZero(plane.Eval(GetPoint(t))));
+		ASSERT(IsZero(plane.Eval(GetPoint(t)), 1e-4f));
 		return t;
 	}
 

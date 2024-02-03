@@ -29,10 +29,14 @@ struct Mesh : std::enable_shared_from_this<Mesh>, utl::Any {
 struct Material : std::enable_shared_from_this<Material>, utl::Any {
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Material>(); }
 
+	bool UpdateMaterialParams(rhi::Pipeline *pipeline);
+
 	std::string _name;
 	std::vector<std::shared_ptr<rhi::Shader>> _shaders;
 	rhi::RenderState _renderState;
 	std::unordered_map<std::string, std::shared_ptr<rhi::Bindable>> _params;
+	std::shared_ptr<rhi::ResourceSet> _materialParams;
+	bool _paramsDirty = true;
 };
 
 struct Model : std::enable_shared_from_this<Model>, utl::Any {
@@ -41,7 +45,6 @@ struct Model : std::enable_shared_from_this<Model>, utl::Any {
 	std::shared_ptr<Mesh> _mesh;
 	std::shared_ptr<Material> _material;
 	std::shared_ptr<rhi::Pipeline> _pipeline;
-	std::shared_ptr<rhi::ResourceSet> _materialParams;
 };
 
 }

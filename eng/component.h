@@ -11,7 +11,7 @@ struct CameraCmp : public Component {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CameraCmp>(); }
 
-	glm::mat3x4 GetViewMatrix() const;
+	glm::mat4x3 GetViewMatrix() const;
 	glm::mat4   GetProjMatrix(glm::vec2 viewportSize) const;
 	utl::Polytope3F GetFrustum(glm::vec2 viewportSize) const;
 

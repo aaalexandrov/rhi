@@ -191,10 +191,9 @@ void CopyPassVk::CopyTexToBuf(CopyData &copy)
 void CopyPassVk::CopyBufToTex(CopyData &copy)
 {
 	ASSERT(copy._dst._view._mipRange.GetSize() == 1);
-	uint32_t pixSize = GetFormatSize(copy._dst._view._format);
 	vk::BufferImageCopy region{
 		(vk::DeviceSize)copy._src._view._region._min[0],
-		pixSize * copy._dst._view._region.GetSize()[0],
+		(uint32_t)copy._dst._view._region.GetSize()[0],
 		(uint32_t)copy._dst._view._region.GetSize()[1],
 		GetImageSubresourceLayers(copy._dst._view),
 		GetOffset3D(copy._dst._view._region._min),

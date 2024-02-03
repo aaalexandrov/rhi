@@ -66,10 +66,34 @@ bool Mesh::SetGeometryData(rhi::GraphicsPass::DrawData &drawData, std::vector<rh
     drawData._indexStream = { _indices };
     drawData._indices = _indexRange;
 
-    ASSERT(drawData._instances.IsEmpty());
+    ASSERT(drawData._instances.GetSize() == 1);
     ASSERT(drawData._vertexOffset == 0);
 
     return true;
+}
+
+bool Material::UpdateMaterialParams(rhi::Pipeline *pipeline)
+{
+    if (!_paramsDirty)
+        return true;
+
+    if (!_materialParams)
+        _materialParams = pipeline->AllocResourceSet(1);
+
+    bool missingParam = false;
+    rhi::ResourceSetDescription const *paramsDesc = _materialParams->GetSetDescription();
+    std::vector<rhi::ResourceRef> paramRefs;
+    for (auto &param : paramsDesc->_params) {
+        auto it = _params.find(param._name);
+        if (it == _params.end()) 
+            missingParam = true;
+        paramRefs.emplace_back(rhi::ResourceRef{ ._bindable = (it != _params.end() ? it->second : nullptr) });
+    }
+    if (!_materialParams->Update(std::span(paramRefs)))
+        missingParam = true;
+
+    _paramsDirty = false;
+    return !missingParam;
 }
 
 }
