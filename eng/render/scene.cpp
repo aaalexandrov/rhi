@@ -110,7 +110,7 @@ std::shared_ptr<rhi::CopyPass> Scene::UpdateResourceSetBuffer(rhi::ResourceSet *
 
 		rhi::ResourceDescriptor bufDesc{
 			._usage{.copySrc = 1, .cpuAccess = 1, },
-			._dimensions{ (int32_t)shaderParam->_type->_size },
+			._dimensions{ (int32_t)shaderParam->_type->_size, 0, 0, 0 },
 		};
 		auto uploadBuf = rhi->New<rhi::Buffer>("Update" + shaderParam->_name, bufDesc);
 		auto uploadData = uploadBuf->Map();

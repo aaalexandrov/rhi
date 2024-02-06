@@ -149,7 +149,7 @@ inline bool BoxTree<VecType, NodeDataType>::RemoveNode(uint32_t index)
 		Node *parent = GetNode(parentIndex);
 		uint32_t childIndex = index & ((1 << Dim) - 1);
 		ASSERT((parent->_childMask & (1 << childIndex)) != 0);
-		parent->_childMask |= ~(1 << childIndex);
+		parent->_childMask &= ~(1 << childIndex);
 	}
 	return true;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include "mathutl.h"
 
 namespace utl {
@@ -35,6 +36,11 @@ struct RigidTransform {
 	constexpr bool IsIdentity(Num eps = NumericTraits<Num>::Eps) const
 	{
 		return IsZero(_position, eps) && IsEqual(_orientation, Rot::Identity(), eps) && IsEqual(_scale, Num(1), eps);
+	}
+
+	constexpr RigidTransform operator*(RigidTransform const &other) const
+	{
+		return RigidTransform(TransformPoint(other._position), RotationV::Compose(_orientation, other._orientation), _scale * other._scale);
 	}
 
 	constexpr RigidTransform Inverse() const
@@ -686,9 +692,9 @@ struct Line {
 	constexpr Interval GetIntersection(PlaneV const &plane) const
 	{
 		Num t = GetIntersectionValue(plane);
-		if (isnan(t))
-			return Interval();
-		if (isinf(t))
+		if (std::isnan(t))
+			return plane.Eval(_origin) < 0 ? Interval::GetMaximum() : Interval();
+		if (std::isinf(t))
 			return Interval::GetMaximum();
 		if (glm::dot(_direction, plane._normal) < 0) {
 			return Interval(t, std::numeric_limits<Num>::infinity());

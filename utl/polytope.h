@@ -58,19 +58,21 @@ struct Polytope {
 			newEdges.push_back(edge);
 		}
 
-		IntersectEdges(_edges, side);
+		IntersectEdges(_edges, side, (int)_sides.size());
 
 		for (int s = 0; s < _sides.size(); ++s) {
-			IntersectEdges(newEdges, _sides[s]);
+			IntersectEdges(newEdges, _sides[s], s);
 		}
 
 		_edges.insert(_edges.end(), newEdges.begin(), newEdges.end());
 		_sides.push_back(side);
 	}
 
-	static void IntersectEdges(std::vector<Edge> &edges, PlaneV const &side)
+	static void IntersectEdges(std::vector<Edge> &edges, PlaneV const &side, int sideIndex)
 	{
 		for (int e = edges.size() - 1; e >= 0; --e) {
+			if (edges[e]._sideIndices[0] == sideIndex || edges[e]._sideIndices[1] == sideIndex)
+				continue;
 			Interval intersect = edges[e]._line.GetIntersection(side);
 			edges[e]._interval = edges[e]._interval.GetIntersection(intersect);
 			if (edges[e]._interval.IsEmpty())
@@ -78,22 +80,22 @@ struct Polytope {
 		}
 	}
 
-	void UpdateAfterAddingSides()
+	void UpdateAfterAddingSides(Num pointEps = NumericTraits<Num>::Eps, Num vecEps = NumericTraits<Num>::Eps)
 	{
 		_points.clear();
 		_sideDirections.clear();
 		_edgeDirections.clear();
 
 		for (auto &side : _sides) {
-			AddUniqueVec(_sideDirections, glm::normalize(side._normal), true);
+			AddUniqueVec(_sideDirections, glm::normalize(side._normal), true, vecEps);
 		}
 
 		for (auto &edge : _edges) {
 			Vec p0 = edge._line.GetPoint(edge._interval._min);
 			Vec p1 = edge._line.GetPoint(edge._interval._max);
-			AddUniqueVec(_points, p0, false);
-			AddUniqueVec(_points, p1, false);
-			AddUniqueVec(_edgeDirections, edge._line._direction, true);
+			AddUniqueVec(_points, p0, false, pointEps);
+			AddUniqueVec(_points, p1, false, pointEps);
+			AddUniqueVec(_edgeDirections, edge._line._direction, true, vecEps);
 		}
 	}
 

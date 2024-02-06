@@ -49,7 +49,7 @@ std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips)
 
 	std::shared_ptr<rhi::Buffer> staging = rhi->New<rhi::Buffer>("Staging " + path, rhi::ResourceDescriptor{
 		._usage{.copySrc = 1, .cpuAccess = 1},
-		._dimensions{x * y * ch},
+		._dimensions{x * y * ch, 0, 0, 0},
 		});
 	std::span<uint8_t> pixMem = staging->Map();
 	memcpy(pixMem.data(), img, pixMem.size());
@@ -193,6 +193,57 @@ bool InitScene(rhi::Swapchain *swapchain)
 	return true;
 }
 
+void UpdateFreeCamera(eng::Window *win, SDL_Event const &event)
+{
+	if (event.type != SDL_KEYDOWN)
+		return;
+
+	utl::Transform3F xform;
+	const float velocity = 0.1f;
+	const float angVelocity = glm::pi<float>() / 180;
+	switch (event.key.keysym.sym) {
+		case SDLK_w:
+			xform._position.z -= velocity;
+			break;
+		case SDLK_s:
+			xform._position.z += velocity;
+			break;
+		case SDLK_a:
+			xform._position.x -= velocity;
+			break;
+		case SDLK_d:
+			xform._position.x += velocity;
+			break;
+		case SDLK_r:
+			xform._position.y -= velocity;
+			break;
+		case SDLK_f:
+			xform._position.y += velocity;
+			break;
+		case SDLK_q:
+			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 1, 0));
+			break;
+		case SDLK_e:
+			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 1, 0));
+			break;
+		case SDLK_z:
+			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 0, 1));
+			break;
+		case SDLK_c:
+			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 0, 1));
+			break;
+		case SDLK_t:
+			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(1, 0, 0));
+			break;
+		case SDLK_g:
+			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(1, 0, 0));
+			break;
+	}
+
+	eng::Object *cam = eng::Sys::Get()->_scene->_camera->_parent;
+	cam->SetTransform(cam->GetTransform() * xform);
+}
+
 int main()
 {
 	std::cout << "Starting in " << std::filesystem::current_path() << std::endl;
@@ -237,6 +288,8 @@ int main()
 				win->_swapchain->Update(presentMode);
 			}
 		}
+
+		UpdateFreeCamera(win, event);
 	};
 
 	for (; running; ) {

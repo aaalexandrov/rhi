@@ -54,7 +54,7 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
         }
     }
 
-    frustum.UpdateAfterAddingSides();
+    frustum.UpdateAfterAddingSides(1e-3f);
 
     return frustum;
 }

@@ -2,12 +2,12 @@
 
 #include "utl/box_tree.h"
 #include "utl/geom_primitive.h"
+#include "object.h"
 
 namespace eng {
 
 using utl::TypeInfo;
 
-struct Object;
 struct CameraCmp;
 struct World : utl::Any {
 
