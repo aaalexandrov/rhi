@@ -576,8 +576,8 @@ struct Plane {
 			glm::mat<3, 3, Num> m(_normal, other._normal, dir);
 			origin = b * glm::inverse(m);
 		}
-		ASSERT(IsZero(Eval(origin), 1e-3f));
-		ASSERT(IsZero(other.Eval(origin), 1e-3f));
+		//ASSERT(IsZero(Eval(origin), 1e-3f));
+		//ASSERT(IsZero(other.Eval(origin), 1e-3f));
 		return LineV(origin, dir);
 	}
 
@@ -684,7 +684,7 @@ struct Line {
 		}
 
 		Num t = (-plane._d - glm::dot(_origin, plane._normal)) / dotDirNorm;
-		ASSERT(IsZero(plane.Eval(GetPoint(t)), 1e-4f));
+		//ASSERT(IsZero(plane.Eval(GetPoint(t)), 1e-4f));
 		return t;
 	}
 

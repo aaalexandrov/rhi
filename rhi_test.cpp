@@ -155,6 +155,7 @@ bool InitWorld(rhi::Swapchain *swapchain)
 		rhi::RenderTargetData rt{ swapchain->_images[0] };
 		auto triModel = InitTriModel(std::span(&rt, 1));
 		triRender->_models.push_back(std::move(triModel));
+		triRender->UpdateObjectBoundFromModels();
 		tri->SetWorld(world);
 	}
 
@@ -193,52 +194,39 @@ bool InitScene(rhi::Swapchain *swapchain)
 	return true;
 }
 
-void UpdateFreeCamera(eng::Window *win, SDL_Event const &event)
+void UpdateFreeCamera(double deltaTime)
 {
-	if (event.type != SDL_KEYDOWN)
-		return;
+	const uint8_t *keys = SDL_GetKeyboardState(nullptr);
+
+	const float velocity = 0.1f * deltaTime * 60;
+	const float angVelocity = glm::pi<float>() * 2 / 180 * deltaTime * 60;
 
 	utl::Transform3F xform;
-	const float velocity = 0.1f;
-	const float angVelocity = glm::pi<float>() / 180;
-	switch (event.key.keysym.sym) {
-		case SDLK_w:
-			xform._position.z -= velocity;
-			break;
-		case SDLK_s:
-			xform._position.z += velocity;
-			break;
-		case SDLK_a:
-			xform._position.x -= velocity;
-			break;
-		case SDLK_d:
-			xform._position.x += velocity;
-			break;
-		case SDLK_r:
-			xform._position.y -= velocity;
-			break;
-		case SDLK_f:
-			xform._position.y += velocity;
-			break;
-		case SDLK_q:
-			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 1, 0));
-			break;
-		case SDLK_e:
-			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 1, 0));
-			break;
-		case SDLK_z:
-			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 0, 1));
-			break;
-		case SDLK_c:
-			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 0, 1));
-			break;
-		case SDLK_t:
-			xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(1, 0, 0));
-			break;
-		case SDLK_g:
-			xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(1, 0, 0));
-			break;
-	}
+
+	if (keys[SDL_SCANCODE_W])
+		xform._position.z -= velocity;
+	if (keys[SDL_SCANCODE_S])
+		xform._position.z += velocity;
+	if (keys[SDL_SCANCODE_A])
+		xform._position.x -= velocity;
+	if (keys[SDL_SCANCODE_D])
+		xform._position.x += velocity;
+	if (keys[SDL_SCANCODE_R])
+		xform._position.y -= velocity;
+	if (keys[SDL_SCANCODE_F])
+		xform._position.y += velocity;
+	if (keys[SDL_SCANCODE_Q])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 1, 0));
+	if (keys[SDL_SCANCODE_E])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 1, 0));
+	if (keys[SDL_SCANCODE_Z])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 0, 1));
+	if (keys[SDL_SCANCODE_C])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 0, 1));
+	if (keys[SDL_SCANCODE_T])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(1, 0, 0));
+	if (keys[SDL_SCANCODE_G])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(1, 0, 0));
 
 	eng::Object *cam = eng::Sys::Get()->_scene->_camera->_parent;
 	cam->SetTransform(cam->GetTransform() * xform);
@@ -288,13 +276,18 @@ int main()
 				win->_swapchain->Update(presentMode);
 			}
 		}
-
-		UpdateFreeCamera(win, event);
 	};
 
+	std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
+	std::chrono::time_point nowTime = startTime;
+	uint64_t frame = 0;
 	for (; running; ) {
 		eng::Sys::Get()->_ui->HandleInput();
 		eng::Sys::Get()->_ui->UpdateWindows();
+		std::chrono::time_point curTime = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> deltaTime = curTime - nowTime;
+		nowTime = curTime;
+		UpdateFreeCamera(deltaTime.count());
 
 		glm::ivec2 swapchainSize = glm::ivec2(window->_swapchain->_descriptor._dimensions);
 		if (any(equal(swapchainSize, glm::ivec2(0))))
@@ -344,8 +337,12 @@ int main()
 		ASSERT(res);
 		res = submission->WaitUntilFinished();
 		ASSERT(res);
+
+		++frame;
 	}
 
+	double runtime = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - startTime).count();
+	std::cout << "Run time " << runtime << " seconds, " << frame << " frames, " << frame / runtime << " fps.\n";
 	std::cout << "Bye!\n"; 
 
 	return 0;

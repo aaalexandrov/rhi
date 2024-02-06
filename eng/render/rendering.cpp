@@ -27,7 +27,6 @@ utl::GeomPrimitive3F Mesh::GetVertexBound(std::string positionAttrName, float ep
         }
         posRef += vertInp._layout->_size * _numVertices;
     }
-    _vertices->Unmap();
     
     utl::BoxF box;
     utl::SphereF sphere;
@@ -35,7 +34,10 @@ utl::GeomPrimitive3F Mesh::GetVertexBound(std::string positionAttrName, float ep
         glm::vec3 *p = posRef.Get<glm::vec3>();
         box = box.GetUnion(*p);
         sphere = sphere.GetUnion(*p);
+        posRef += streamStride;
     }
+    _vertices->Unmap();
+
 
     if (box.IsEmpty())
         return utl::GeomPrimitive3F();

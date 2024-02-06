@@ -59,6 +59,17 @@ utl::Polytope3F CameraCmp::GetFrustum(glm::vec2 viewportSize) const
     return frustum;
 }
 
+void RenderingCmp::UpdateObjectBoundFromModels()
+{
+    utl::BoxF box;
+    for (auto &model : _models)
+        box = box.GetUnion(model._mesh->_bound.GetBoundingBox());
+    if (box.IsEmpty())
+        _parent->SetLocalBound(utl::GeomPrimitive3F(glm::vec3(0)));
+    else
+        _parent->SetLocalBound(utl::GeomPrimitive3F(box));
+}
+
 bool RenderingCmp::UpdateObjParams(RenderObjectsData &renderData)
 {
     if (!_parent->IsTransformDirty() || _models.empty())

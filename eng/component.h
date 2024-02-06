@@ -27,6 +27,7 @@ struct RenderingCmp : public Component {
 	std::vector<Model> _models;
 	std::shared_ptr<rhi::ResourceSet> _objParams;
 
+	void UpdateObjectBoundFromModels();
 	bool UpdateObjParams(RenderObjectsData &renderData);
 };
 
