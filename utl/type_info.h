@@ -383,6 +383,12 @@ inline auto TypeInfo::AddInitializer(char const *id, Initializer fnInitializer)
 	return s_registry.AddInitializer(id, fnInitializer);
 }
 
+inline TypeInfo *TypeInfo::Registry::Get(std::string typeName) 
+{
+	std::shared_lock lock(_rwTypes);
+	auto it = _typesByName.find(typeName);
+	return it != _typesByName.end() ? it->second : nullptr;
+}
 
 template<typename T>
 inline T *AnyRef::Get()

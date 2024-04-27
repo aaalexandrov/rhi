@@ -38,12 +38,12 @@ struct Polytope {
 	std::vector<Vec> _sideDirections;
 	std::vector<Vec> _edgeDirections;
 
-	void Init(const std::span<PlaneV> sides)
+	void Init(const std::span<PlaneV> sides, Num pointEps = NumericTraits<Num>::Eps, Num vecEps = NumericTraits<Num>::Eps)
 	{
 		for (PlaneV &plane : sides) {
 			AddSide(plane);
 		}
-		UpdateAfterAddingSides();
+		UpdateAfterAddingSides(pointEps, vecEps);
 	}
 
 	void AddSide(PlaneV const &side)

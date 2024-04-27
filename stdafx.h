@@ -17,6 +17,7 @@
 #include <limits>
 #include <numbers>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "utl/dbg.h"
 #include "utl/geom.h"

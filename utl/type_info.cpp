@@ -302,28 +302,21 @@ void TypeInfo::Done()
 	s_registry.ClearTypes();
 }
 
-inline TypeInfo *TypeInfo::Registry::Get(std::string typeName) 
-{
-	std::shared_lock lock(_rwTypes);
-	auto it = _typesByName.find(typeName);
-	return it != _typesByName.end() ? it->second : nullptr;
-}
-
-inline void TypeInfo::Registry::RegisterType(TypeInfo *type) 
+void TypeInfo::Registry::RegisterType(TypeInfo *type) 
 {
 	std::unique_lock lock(_rwTypes);
 	bool inserted = _typesByName.insert({ type->_name, type }).second;
 	ASSERT(inserted);
 }
 
-inline void TypeInfo::Registry::CallMsgInit() 
+void TypeInfo::Registry::CallMsgInit() 
 {
 	std::unique_lock lock(_mutMsg);
 	_msgInit.Call();
 	_msgInit.Clear();
 }
 
-inline void TypeInfo::Registry::ClearTypes() 
+void TypeInfo::Registry::ClearTypes() 
 {
 	std::unique_lock lock(_rwTypes);
 	// clear all AnyValues from all registered types so they won't crash on destruction when the types they reference have already been destroyed

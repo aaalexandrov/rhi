@@ -47,7 +47,12 @@ add_subdirectory(eng)
 
 set_property(TARGET ${BINARY} PROPERTY MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
 
-target_link_libraries(${BINARY} PRIVATE SDL2::SDL2-static)
+if(LINUX)
+	set(LIBS SDL2::SDL2 X11)
+else()
+	set(LIBS SDL2::SDL2-static)
+endif()
+target_link_libraries(${BINARY} PRIVATE ${LIBS})
 
 target_include_directories(${BINARY} PRIVATE . ${VK_SDK_PATH}/include ${VK_SDK_PATH}/include/vma)
 
