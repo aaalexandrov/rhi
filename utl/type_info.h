@@ -26,6 +26,9 @@ struct AnyRef {
 	AnyRef GetArrayElement(size_t index);
 	AnyRef GetMember(std::string name);
 
+	using MemberEnum = std::function<Enum(std::string_view name, AnyRef refMember)>;
+	Enum ForMembers(MemberEnum fn);
+
 	AnyRef &operator +=(ptrdiff_t offs) { _instance = (uint8_t *)_instance + offs; return *this; }
 
 	template <typename T>
@@ -133,6 +136,7 @@ struct TypeInfo {
 	using Destructor = std::function<void(void *)>;
 	using Initializer = std::function<void()>;
 	using TypesEnum = std::function<Enum(TypeInfo const *)>;
+	using MemberEnum = std::function<Enum(TypeInfo const *containingType, Member const &member, ptrdiff_t memberOffs)>;
 
 	size_t _size = 0, _align = 0;
 	std::string _name;
@@ -151,6 +155,7 @@ struct TypeInfo {
 			uint32_t _isArray : 1;
 			uint32_t _isTrivial : 1;
 			uint32_t _isAbstract : 1;
+			uint32_t _isClass : 1;
 		};
 		uint32_t _flags = 0;
 	};
@@ -206,6 +211,7 @@ struct TypeInfo {
 	}
 
 	Enum ForDerivedTypes(TypesEnum fn) const;
+	Enum ForMembers(MemberEnum fn) const;
 
 	static auto AddInitializer(char const *id, Initializer fnInitializer); 
 	static void Init();
@@ -242,6 +248,7 @@ private:
 			s_info._name = typeid(T).name();
 			s_info._isTrivial = std::is_trivial_v<T>;
 			s_info._isAbstract = std::is_abstract_v<T>;
+			s_info._isClass = std::is_class_v<T>;
 			if constexpr (std::is_constructible_v<T>) {
 				s_info._constructor = [](void *at) { return new(at) T(); };
 			}
@@ -342,8 +349,8 @@ struct TypeInitializer {
 	}
 	template <typename M>
 	TypeInitializer &Member(std::string name, M memberPtr) {
-		auto *ptr = &(((T *)nullptr)->*memberPtr);
-		return Member<decltype(*ptr)>(name, (size_t)ptr);
+		auto *ptr = &(((T *)1000)->*memberPtr);
+		return Member<decltype(*ptr)>(name, (size_t)ptr - 1000);
 	}
 	TypeInitializer &MemberMetadata(AnyValue &&val) {
 		ASSERT(0 <= _lastMember && _lastMember < _type->_members.size());

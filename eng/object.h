@@ -6,6 +6,13 @@ namespace eng {
 
 using utl::TypeInfo;
 
+union ObjectFlags {
+	struct {
+		uint32_t temporary : 1;
+	};
+	uint32_t _flags = 0;
+};
+
 struct Object;
 struct Component : utl::Any {
 	virtual ~Component() {}
@@ -42,6 +49,9 @@ struct Object : std::enable_shared_from_this<Object>, utl::Any {
 
 	World *GetWorld() const { return _world; }
 
+	ObjectFlags GetFlags() const { return _flags; }
+	void SetFlags(ObjectFlags flags) { _flags = flags; }
+
 	utl::Transform3F const &GetTransform() const { return _transform; }
 	void SetTransform(utl::Transform3F const &transform);
 
@@ -60,6 +70,7 @@ private:
 	void UpdateWorldRegistration(Fn fnUpdate);
 
 	World *_world = nullptr;
+	ObjectFlags _flags;
 	utl::Transform3F _transform;
 	bool _transformDirty = true;
 	utl::GeomPrimitive3F _localBound{glm::vec3(0)};

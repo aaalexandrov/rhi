@@ -135,6 +135,15 @@ AnyRef AnyRef::GetMember(std::string name)
 	};
 }
 
+Enum AnyRef::ForMembers(MemberEnum fn)
+{
+	if (!_type || !_instance)
+		return Enum::Continue;
+	return _type->ForMembers([&](TypeInfo const *containingType, TypeInfo::Member const &member, ptrdiff_t memberOffs) {
+		return fn(member._name, { member._var._type, (uint8_t *)_instance + memberOffs });
+	});
+}
+
 void AnyValue::Clear()
 {
 	if (!_type)
@@ -287,6 +296,23 @@ Enum TypeInfo::ForDerivedTypes(TypesEnum fn) const
 			continue;
 		if (res == Enum::Stop ||
 			derived->ForDerivedTypes(fn) == Enum::Stop)
+			return Enum::Stop;
+	}
+	return Enum::Continue;
+}
+
+Enum TypeInfo::ForMembers(MemberEnum fn) const
+{
+	for (auto &member : _members) {
+		if (Enum::Stop == fn(this, member, member._var._offset))
+			return Enum::Stop;
+	}
+	if (_isArray || _isPointer)
+		return Enum::Continue;
+	for (auto &base : _bases) {
+		if (Enum::Stop == base._type->ForMembers([&](TypeInfo const *containingType, Member const &member, ptrdiff_t memberOffs) {
+			return fn(containingType, member, memberOffs + base._offset);
+		}))
 			return Enum::Stop;
 	}
 	return Enum::Continue;

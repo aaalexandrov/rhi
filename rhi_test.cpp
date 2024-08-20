@@ -6,6 +6,7 @@
 #include "eng/object.h"
 #include "eng/component.h"
 #include "eng/render/scene.h"
+#include "eng/ui/properties.h"
 
 #include "rhi/pass.h"
 #include "rhi/pipeline.h"
@@ -14,6 +15,25 @@
 #include "SDL2/SDL.h"
 #include "imgui.h"
 #include "stb_image.h"
+
+struct PropTest {
+	float _flt = glm::pi<float>();
+	int32_t _i32 = 42;
+	std::string _name = "Prop Test name";
+	bool _check = false;
+	glm::vec3 _pos = glm::vec3(1, 2, 3);
+};
+
+static auto s_regTypes = utl::TypeInfo::AddInitializer("rhi_test", [] {
+	utl::TypeInfo::Register<PropTest>().Name("eng::PropTest")
+		.Member("_flt", &PropTest::_flt)
+		.Member("_i32", &PropTest::_i32)
+		.Member("_name", &PropTest::_name)
+		.Member("_check", &PropTest::_check)
+		.Member("_pos", &PropTest::_pos)
+		;
+});
+
 
 std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips)
 {
@@ -301,6 +321,9 @@ int main()
 			ImGui::SetWindowSize(ImVec2(100, 20), ImGuiCond_Once);
 			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 			ImGui::End();
+
+			static PropTest tst;
+			eng::DrawPropertiesWindow("Properties of Obj", utl::AnyRef::From(tst));
 
 			//ImGui::ShowDemoWindow();
 		});

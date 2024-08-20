@@ -2,6 +2,9 @@ set(dir_SOURCES
 	imgui_ctx.h
 	imgui_ctx.cpp
 
+	properties.h
+	properties.cpp
+
 	ui.h
 	ui.cpp
 
