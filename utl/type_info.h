@@ -21,6 +21,8 @@ struct AnyRef {
 	template <typename T>
 	void Set(T &val);
 
+	AnyRef GetPointsTo();
+
 	size_t GetArraySize() const;
 
 	AnyRef GetArrayElement(size_t index);
@@ -170,6 +172,8 @@ struct TypeInfo {
 	T const *GetMemberMetadata(std::string name) const;
 
 	size_t GetArraySize() const { return _arraySize; }
+
+	TypeInfo const *GetPointsTo() const;
 
 	AnyValue const *GetMetadata(std::string name) const;
 	void const *GetMetadata(std::string name, TypeInfo const *type) const {

@@ -22,6 +22,8 @@ struct PropTest {
 	std::string _name = "Prop Test name";
 	bool _check = false;
 	glm::vec3 _pos = glm::vec3(1, 2, 3);
+	uint16_t _vals[8];
+	PropTest *_next = nullptr;
 };
 
 static auto s_regTypes = utl::TypeInfo::AddInitializer("rhi_test", [] {
@@ -31,6 +33,8 @@ static auto s_regTypes = utl::TypeInfo::AddInitializer("rhi_test", [] {
 		.Member("_name", &PropTest::_name)
 		.Member("_check", &PropTest::_check)
 		.Member("_pos", &PropTest::_pos)
+		.Member("_vals", &PropTest::_vals)
+		.Member("_next", &PropTest::_next)
 		;
 });
 
@@ -214,12 +218,12 @@ bool InitScene(rhi::Swapchain *swapchain)
 	return true;
 }
 
-void UpdateFreeCamera(double deltaTime)
+utl::Transform3F TransformFromKeyboardInput(double deltaTime, float metersPerSec = 6, float degreesPerSec = 60)
 {
-	const uint8_t *keys = SDL_GetKeyboardState(nullptr);
+	uint8_t const *keys = SDL_GetKeyboardState(nullptr);
 
-	const float velocity = 0.1f * deltaTime * 60;
-	const float angVelocity = glm::pi<float>() * 2 / 180 * deltaTime * 60;
+	const float velocity = metersPerSec * deltaTime;
+	const float angVelocity = degreesPerSec * glm::pi<float>() * 2 / 180 * deltaTime;
 
 	utl::Transform3F xform;
 
@@ -248,8 +252,7 @@ void UpdateFreeCamera(double deltaTime)
 	if (keys[SDL_SCANCODE_G])
 		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(1, 0, 0));
 
-	eng::Object *cam = eng::Sys::Get()->_scene->_camera->_parent;
-	cam->SetTransform(cam->GetTransform() * xform);
+	return xform;
 }
 
 int main()
@@ -300,6 +303,7 @@ int main()
 
 	std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point nowTime = startTime;
+	bool focusStolen = false;
 	uint64_t frame = 0;
 	for (; running; ) {
 		eng::Sys::Get()->_ui->HandleInput();
@@ -307,7 +311,11 @@ int main()
 		std::chrono::time_point curTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> deltaTime = curTime - nowTime;
 		nowTime = curTime;
-		UpdateFreeCamera(deltaTime.count());
+		if (!focusStolen) {
+			utl::Transform3F xform = TransformFromKeyboardInput(deltaTime.count());
+			eng::Object *cam = eng::Sys::Get()->_scene->_camera->_parent;
+			cam->SetTransform(cam->GetTransform() * xform);
+		}
 
 		glm::ivec2 swapchainSize = glm::ivec2(window->_swapchain->_descriptor._dimensions);
 		if (any(equal(swapchainSize, glm::ivec2(0))))
@@ -315,15 +323,17 @@ int main()
 
 		auto swapchainTexture = window->_swapchain->AcquireNextImage();
 			
-		window->_imguiCtx->LayoutUi([] {
+		window->_imguiCtx->LayoutUi([&focusStolen] {
 			ImGui::Begin("Fps", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground /* | ImGuiWindowFlags_AlwaysAutoResize */);
 			ImGui::SetWindowPos(ImVec2(10, 10), ImGuiCond_Once);
 			ImGui::SetWindowSize(ImVec2(100, 20), ImGuiCond_Once);
 			ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
 			ImGui::End();
 
-			static PropTest tst;
-			eng::DrawPropertiesWindow("Properties of Obj", utl::AnyRef::From(tst));
+			static PropTest tst, tst1;
+			tst._next = &tst1;
+			tst1._next = &tst;
+			focusStolen = eng::DrawPropertiesWindow("Properties of Obj", utl::AnyRef::From(tst));
 
 			//ImGui::ShowDemoWindow();
 		});

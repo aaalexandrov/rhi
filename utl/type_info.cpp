@@ -101,6 +101,13 @@ void *AnyRef::Get(TypeInfo const *type)
 	return (uint8_t *)_instance + typeOffs;
 }
 
+AnyRef AnyRef::GetPointsTo()
+{
+	if (!_type || !_instance)
+		return AnyRef();
+	return AnyRef{_type->GetPointsTo(), *(void**)_instance};
+}
+
 size_t AnyRef::GetArraySize() const
 {
 	if (!_type || !_instance)
@@ -240,6 +247,11 @@ AnyValue const *TypeInfo::GetMemberMetadata(std::string name, TypeInfo const *me
 			return &val;
 	}
 	return nullptr;
+}
+
+TypeInfo const *TypeInfo::GetPointsTo() const
+{
+	return _isPointer ? _bases[0]._type : nullptr;
 }
 
 AnyValue const *TypeInfo::GetMetadata(std::string name) const

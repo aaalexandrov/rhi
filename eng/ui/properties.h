@@ -3,6 +3,6 @@
 
 namespace eng {
 
-void DrawPropertiesWindow(std::string_view name, utl::AnyRef obj);
+bool DrawPropertiesWindow(std::string_view name, utl::AnyRef obj);
 
 }
