@@ -208,7 +208,7 @@ bool InitScene(rhi::Swapchain *swapchain)
 	std::array<rhi::RenderTargetData, 1> renderTargets{
 		{
 			std::shared_ptr<rhi::Texture>(),
-			glm::vec4(0, 0, 1 ,1),
+			glm::vec4(0, 0, 1, 1),
 		},
 	};
 
@@ -218,12 +218,12 @@ bool InitScene(rhi::Swapchain *swapchain)
 	return true;
 }
 
-utl::Transform3F TransformFromKeyboardInput(double deltaTime, float metersPerSec = 6, float degreesPerSec = 60)
+utl::Transform3F TransformFromKeyboardInput(double deltaTime, float metersPerSec = 6, float degreesPerSec = 120)
 {
 	uint8_t const *keys = SDL_GetKeyboardState(nullptr);
 
 	const float velocity = metersPerSec * deltaTime;
-	const float angVelocity = degreesPerSec * glm::pi<float>() * 2 / 180 * deltaTime;
+	const float angVelocity = degreesPerSec * glm::pi<float>() / 180 * deltaTime;
 
 	utl::Transform3F xform;
 

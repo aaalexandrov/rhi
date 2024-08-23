@@ -29,10 +29,10 @@ set(SOURCES
 	stdafx.h
 	stdafx.cpp
 
-	rhi_test.cpp
+	engine.cpp
 )
 
-set(BINARY rhi_test)
+set(BINARY engine)
 
 
 add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)

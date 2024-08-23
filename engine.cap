@@ -5,7 +5,7 @@
         "commandLine": "",
         "environment": [
         ],
-        "executable": "out/build/x64-Debug/rhi_test.exe",
+        "executable": "out/build/x64-Debug/engine.exe",
         "inject": false,
         "numQueuedFrames": 0,
         "options": {
