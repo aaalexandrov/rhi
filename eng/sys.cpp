@@ -14,6 +14,8 @@ bool Sys::Init()
     if (!_ui->Init())
         return false;
 
+    _lastUpdateTime = std::chrono::high_resolution_clock::now();
+
     return true;
 }
 
@@ -42,6 +44,20 @@ bool Sys::InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex)
     }
 
     return true;
+}
+
+void Sys::UpdateTime()
+{
+    std::chrono::steady_clock::time_point now = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<utl::UpdateQueue::Time> deltaSec = now - _lastUpdateTime;
+
+    double delta = deltaSec.count() * _timeScale;
+    _updateQueue.UpdateToTime(delta);
+
+    if (_world)
+        _world->UpdateTime(delta);
+
+    _lastUpdateTime = now;
 }
 
 

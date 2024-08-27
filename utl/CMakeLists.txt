@@ -35,6 +35,9 @@ set(dir_SOURCES
 	type_info.h
 	type_info.cpp
 
+	update_queue.h
+	update_queue.cpp
+
 	utl.h
 	utl.cpp
 )

@@ -23,6 +23,9 @@ struct Ui {
 	void UnregisterWindow(Window *window);
 
 	std::vector<Window *> _windows;
+	bool _keyboardFocusInUI = false;
 };
+
+utl::Transform3F TransformFromKeyboardInput(double deltaTime, float metersPerSec = 6, float degreesPerSec = 120);
 
 }

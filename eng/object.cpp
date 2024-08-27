@@ -1,5 +1,6 @@
 #include "object.h"
 #include "world.h"
+#include "sys.h"
 
 namespace eng {
 
@@ -11,10 +12,34 @@ static auto s_regTypes = TypeInfo::AddInitializer("object", [] {
 });
 
 
+Component::~Component()
+{
+    if (_parent)
+        SetScheduled(false);
+}
+
 void Component::Init(Object *parent)
 {
     ASSERT(!_parent);
+    ASSERT(parent);
     _parent = parent;
+}
+
+void Component::SetScheduled(bool schedule)
+{
+    ASSERT(_parent);
+    utl::UpdateQueue::Time time = schedule ? 0 : utl::UpdateQueue::TimeNever;
+    if (Sys *sys = eng::Sys::Get()) {
+        sys->_updateQueue.Schedule(this, time, 0);
+        if (World *world = _parent->GetWorld()) {
+            world->_updateQueue.Schedule(this, time, 1);
+        }
+    }
+}
+
+utl::UpdateQueue::Time Component::Update(utl::UpdateQueue::Time time, uintptr_t userData)
+{
+    return utl::UpdateQueue::TimeNever;
 }
 
 
@@ -42,18 +67,27 @@ void Object::RemoveComponent(Component *component)
     _components.erase(it);
 }
 
+void Object::SetScheduled(bool schedule)
+{
+    for (auto &cmp : _components) {
+        cmp->SetScheduled(schedule);
+    }
+}
+
 void Object::SetWorld(World *world)
 {
     ASSERT(bool(world) == !_world);
 
     if (_world) {
         _world->Update(this, GetBox(), utl::BoxF());
+        SetScheduled((bool)world);
     }
 
     _world = world;
 
     if (_world) {
         _world->Update(this, utl::BoxF(), GetBox());
+        SetScheduled((bool)world);
     }
 }
 

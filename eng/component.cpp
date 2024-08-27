@@ -2,6 +2,8 @@
 #include "render/scene.h"
 #include "rhi/pipeline.h"
 #include "rhi/rhi.h"
+#include "sys.h"
+#include "ui/ui.h"
 
 namespace eng {
 
@@ -12,6 +14,20 @@ static auto s_regTypes = TypeInfo::AddInitializer("component", [] {
         .Base<Component>();
 });
 
+
+utl::UpdateQueue::Time CameraCmp::Update(utl::UpdateQueue::Time time, uintptr_t userData)
+{
+    if (userData)
+        return utl::UpdateQueue::TimeNever;
+
+    if (!Sys::Get()->_ui->_keyboardFocusInUI && this == Sys::Get()->_scene->_camera) {
+        utl::UpdateQueue::Time deltaTime = time - Sys::Get()->_updateQueue._lastUpdateTime;
+        utl::Transform3F xform = eng::TransformFromKeyboardInput(deltaTime);
+        _parent->SetTransform(_parent->GetTransform() * xform);
+    }
+
+    return 0;
+}
 
 glm::mat4x3 CameraCmp::GetViewMatrix() const
 {

@@ -2,6 +2,7 @@
 
 #include "utl/box_tree.h"
 #include "utl/geom_primitive.h"
+#include "utl/update_queue.h"
 #include "object.h"
 
 namespace eng {
@@ -23,10 +24,14 @@ struct World : utl::Any {
 
 	utl::Enum EnumObjects(ObjEnumFn objEnumFn);
 
+	void UpdateTime(utl::UpdateQueue::Time deltaTime);
+
 	using ObjectTree = utl::BoxTree<glm::vec3, std::unordered_set<std::shared_ptr<Object>>>;
 	
 	std::string _name = "World";
 	ObjectTree _objTree;
+	utl::UpdateQueue _updateQueue;
+	utl::UpdateQueue::Time _timeScale = 1.0;
 };
 
 template<typename Shape>

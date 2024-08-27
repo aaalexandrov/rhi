@@ -7,6 +7,43 @@
 
 namespace eng {
 
+utl::Transform3F TransformFromKeyboardInput(double deltaTime, float metersPerSec, float degreesPerSec)
+{
+	uint8_t const *keys = SDL_GetKeyboardState(nullptr);
+
+	const float velocity = metersPerSec * deltaTime;
+	const float angVelocity = degreesPerSec * glm::pi<float>() / 180 * deltaTime;
+
+	utl::Transform3F xform;
+
+	if (keys[SDL_SCANCODE_W])
+		xform._position.z -= velocity;
+	if (keys[SDL_SCANCODE_S])
+		xform._position.z += velocity;
+	if (keys[SDL_SCANCODE_A])
+		xform._position.x -= velocity;
+	if (keys[SDL_SCANCODE_D])
+		xform._position.x += velocity;
+	if (keys[SDL_SCANCODE_R])
+		xform._position.y -= velocity;
+	if (keys[SDL_SCANCODE_F])
+		xform._position.y += velocity;
+	if (keys[SDL_SCANCODE_Q])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 1, 0));
+	if (keys[SDL_SCANCODE_E])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 1, 0));
+	if (keys[SDL_SCANCODE_Z])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(0, 0, 1));
+	if (keys[SDL_SCANCODE_C])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(0, 0, 1));
+	if (keys[SDL_SCANCODE_T])
+		xform._orientation *= glm::angleAxis(-angVelocity, glm::vec3(1, 0, 0));
+	if (keys[SDL_SCANCODE_G])
+		xform._orientation *= glm::angleAxis(+angVelocity, glm::vec3(1, 0, 0));
+
+	return xform;
+}
+
 Ui::~Ui()
 {
 	SDL_Quit();

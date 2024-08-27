@@ -46,4 +46,9 @@ utl::Enum World::EnumObjects(ObjEnumFn objEnumFn)
     });
 }
 
+void World::UpdateTime(utl::UpdateQueue::Time deltaTime)
+{
+    _updateQueue.UpdateToTime(deltaTime * _timeScale);
+}
+
 }

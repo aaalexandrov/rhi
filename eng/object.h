@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utl/geom_primitive.h"
+#include "utl/update_queue.h"
 
 namespace eng {
 
@@ -14,14 +15,18 @@ union ObjectFlags {
 };
 
 struct Object;
-struct Component : utl::Any {
-	virtual ~Component() {}
+struct Component : utl::UpdateQueue::Updatable, utl::Any {
+	virtual ~Component();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<Component>(); }
 
 	Object *_parent = nullptr;
 
 	virtual void Init(Object *parent);
+
+	void SetScheduled(bool schedule);
+
+	virtual utl::UpdateQueue::Time Update(utl::UpdateQueue::Time time, uintptr_t userData);
 };
 
 struct World;
@@ -44,6 +49,8 @@ struct Object : std::enable_shared_from_this<Object>, utl::Any {
 	T const *GetComponent() const { return const_cast<Object*>(this)->GetComponent<T>(); }
 
 	void RemoveComponent(Component *component);
+
+	void SetScheduled(bool schedule);
 
 	void SetWorld(World *world);
 
