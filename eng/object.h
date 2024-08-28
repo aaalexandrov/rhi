@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utl/geom_primitive.h"
-#include "utl/update_queue.h"
+#include "sys.h"
 
 namespace eng {
 
@@ -26,7 +26,9 @@ struct Component : utl::UpdateQueue::Updatable, utl::Any {
 
 	void SetScheduled(bool schedule);
 
-	virtual utl::UpdateQueue::Time Update(utl::UpdateQueue::Time time, uintptr_t userData);
+	virtual UpdateType GetUpdateType() const { return UpdateType::None; }
+	utl::UpdateQueue *GetUpdateQueue() const;
+	utl::UpdateQueue::Time Update(utl::UpdateQueue *queue, utl::UpdateQueue::Time time) override { return utl::UpdateQueue::TimeNever; }
 };
 
 struct World;

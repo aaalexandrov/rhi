@@ -14,7 +14,6 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 #include "imgui.h"
-#include "stb_image.h"
 
 struct PropTest {
 	float _flt = glm::pi<float>();
@@ -38,67 +37,6 @@ static auto s_regTypes = utl::TypeInfo::AddInitializer("rhi_test", [] {
 		;
 });
 
-
-std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips)
-{
-	auto rhi = eng::Sys::Get()->_rhi.get();
-	int x, y, ch;
-	uint8_t *img = stbi_load(path.c_str(), &x, &y, &ch, 0);
-
-	if (!img)
-		return nullptr;
-
-	rhi::Format fmt;
-	switch (ch) {
-		case 1:
-			fmt = rhi::Format::R8;
-			break;
-		case 2:
-			fmt = rhi::Format::R8G8;
-			break;
-		case 4:
-			fmt = rhi::Format::R8G8B8A8;
-			break;
-		default:
-			return nullptr;
-	}
-	glm::vec4 dims{ x, y, 0, 0 };
-	rhi::ResourceDescriptor texDesc{
-		._usage{.srv = 1, .copySrc = genMips, .copyDst = 1},
-		._format{fmt},
-		._dimensions{dims},
-		._mipLevels{rhi::GetMaxMipLevels(dims)},
-	};
-	std::shared_ptr<rhi::Texture> tex = rhi->New<rhi::Texture>(path, texDesc);
-
-	std::shared_ptr<rhi::Buffer> staging = rhi->New<rhi::Buffer>("Staging " + path, rhi::ResourceDescriptor{
-		._usage{.copySrc = 1, .cpuAccess = 1},
-		._dimensions{x * y * ch, 0, 0, 0},
-		});
-	std::span<uint8_t> pixMem = staging->Map();
-	memcpy(pixMem.data(), img, pixMem.size());
-	staging->Unmap();
-
-	stbi_image_free(img);
-
-	std::vector<std::shared_ptr<rhi::Pass>> passes;
-	auto copyStaging = rhi->Create<rhi::CopyPass>();
-	copyStaging->Copy(rhi::CopyPass::CopyData{ ._src{staging}, ._dst{tex, rhi::ResourceView{._mipRange{0, 0}}} });
-	passes.push_back(copyStaging);
-
-	if (genMips) {
-		auto mipGen = rhi->Create<rhi::CopyPass>();
-		mipGen->CopyTopToLowerMips(tex);
-		passes.push_back(mipGen);
-	}
-
-	auto sub = rhi->Submit(std::move(passes), "Upload " + path);
-	sub->Prepare();
-	sub->Execute();
-	sub->WaitUntilFinished();
-
-	return tex;
-}
 
 eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 {
@@ -142,7 +80,7 @@ eng::Model InitTriModel(std::span<rhi::RenderTargetData> renderTargets)
 
 	auto sampler = rhi->New<rhi::Sampler>("samp", rhi::SamplerDescriptor{});
 
-	auto gridTex = LoadTexture("data/grid2.png", true);
+	auto gridTex = eng::Sys::Get()->LoadTexture("data/grid2.png", true);
 
 	auto mesh = std::make_shared<eng::Mesh>();
 	mesh->_name = "Triangle";
@@ -171,6 +109,7 @@ bool InitWorld(rhi::Swapchain *swapchain)
 	eng::Sys::Get()->_world = std::make_unique<eng::World>();
 	eng::World *world = eng::Sys::Get()->_world.get();
 	world->Init("TestWorld", utl::BoxF(glm::vec3(-1024), glm::vec3(1024)), glm::vec3(4));
+	world->CreateCamera();
 
 	{
 		auto tri = std::make_shared<eng::Object>();
@@ -182,38 +121,6 @@ bool InitWorld(rhi::Swapchain *swapchain)
 		triRender->UpdateObjectBoundFromModels();
 		tri->SetWorld(world);
 	}
-
-	{
-		auto camera = std::make_shared<eng::Object>();
-		camera->_name = "Camera";
-		camera->AddComponent<eng::CameraCmp>();
-		camera->SetTransform(utl::Transform3F(glm::vec3(0, 0, 2), glm::angleAxis(0*glm::pi<float>(), glm::vec3(0, 1, 0)), 1.0f));
-		camera->SetWorld(world);
-	}
-
-	return true;
-}
-
-bool InitScene(rhi::Swapchain *swapchain)
-{
-	eng::World *world = eng::Sys::Get()->_world.get();
-	eng::CameraCmp *camera = nullptr;
-	world->EnumObjects([&](std::shared_ptr<eng::Object> &obj) {
-		camera = obj->GetComponent<eng::CameraCmp>();
-		return camera ? utl::Enum::Stop : utl::Enum::Continue;
-	});
-	if (!camera)
-		return false;
-
-	std::array<rhi::RenderTargetData, 1> renderTargets{
-		{
-			std::shared_ptr<rhi::Texture>(),
-			glm::vec4(0, 0, 1, 1),
-		},
-	};
-
-	eng::Sys::Get()->_scene = std::make_unique<eng::Scene>(world, camera, renderTargets);
-	eng::Scene *scene = eng::Sys::Get()->_scene.get();
 
 	return true;
 }
@@ -240,7 +147,8 @@ int main()
 	eng::Sys::Get()->InitRhi(window);
 
 	InitWorld(window->_swapchain.get());
-	InitScene(window->_swapchain.get());
+	eng::Sys::Get()->_scene = eng::Sys::Get()->_world->CreateScene();
+	ASSERT(eng::Sys::Get()->_scene->_camera);
 
 	rhi::Rhi *rhi = eng::Sys::Get()->_rhi.get();
 

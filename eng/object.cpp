@@ -28,20 +28,32 @@ void Component::Init(Object *parent)
 void Component::SetScheduled(bool schedule)
 {
     ASSERT(_parent);
-    utl::UpdateQueue::Time time = schedule ? 0 : utl::UpdateQueue::TimeNever;
-    if (Sys *sys = eng::Sys::Get()) {
-        sys->_updateQueue.Schedule(this, time, 0);
-        if (World *world = _parent->GetWorld()) {
-            world->_updateQueue.Schedule(this, time, 1);
-        }
+    utl::UpdateQueue *queue = GetUpdateQueue();
+    if (queue) {
+        utl::UpdateQueue::Time time = schedule ? 0 : utl::UpdateQueue::TimeNever;
+        queue->Schedule(this, time);
     }
 }
 
-utl::UpdateQueue::Time Component::Update(utl::UpdateQueue::Time time, uintptr_t userData)
+utl::UpdateQueue *Component::GetUpdateQueue() const
 {
-    return utl::UpdateQueue::TimeNever;
+    UpdateType updateType = GetUpdateType();
+    switch (updateType) {
+        case UpdateType::None:
+            return nullptr;
+        case UpdateType::Sys: {
+            Sys *sys = Sys::Get();
+            return sys ? &sys->_updateQueue : nullptr;
+        }
+        case UpdateType::World: {
+            World *world = _parent ? _parent->GetWorld() : nullptr;
+            return world ? &world->_updateQueue : nullptr;
+        }
+        default:
+            ASSERT(0);
+            return nullptr;
+    }
 }
-
 
 void *Object::AddComponent(TypeInfo const *cmpType)
 {

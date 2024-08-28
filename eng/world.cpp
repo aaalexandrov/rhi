@@ -1,6 +1,7 @@
 #include "world.h"
 #include "object.h"
 #include "component.h"
+#include "render/scene.h"
 
 namespace eng {
 
@@ -13,6 +14,34 @@ void World::Init(std::string name, utl::BoxF const &worldBox, glm::vec3 minWorld
 {
     _name = name;
     _objTree.Init(worldBox, minWorldNodeSize);
+}
+
+std::shared_ptr<Object> World::CreateCamera(std::string_view name)
+{
+    auto camera = std::make_shared<eng::Object>();
+    camera->_name = name;
+    camera->AddComponent<eng::CameraCmp>();
+    camera->SetTransform(utl::Transform3F(glm::vec3(0, 0, 2), glm::angleAxis(0 * glm::pi<float>(), glm::vec3(0, 1, 0)), 1.0f));
+    camera->SetWorld(this);
+    return camera;
+}
+
+std::unique_ptr<Scene> World::CreateScene()
+{
+    CameraCmp *camera = nullptr;
+    EnumObjects([&](std::shared_ptr<eng::Object> &obj) {
+        camera = obj->GetComponent<eng::CameraCmp>();
+        return camera ? utl::Enum::Stop : utl::Enum::Continue;
+    });
+
+    std::array<rhi::RenderTargetData, 1> renderTargets{
+        {
+            std::shared_ptr<rhi::Texture>(),
+            glm::vec4(0, 0, 1, 1),
+        },
+    };
+
+    return std::make_unique<eng::Scene>(this, camera, renderTargets);
 }
 
 void World::Update(Object *obj, utl::BoxF const &curBox, utl::BoxF const &newBox)

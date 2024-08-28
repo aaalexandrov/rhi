@@ -11,7 +11,8 @@ struct CameraCmp : public Component {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<CameraCmp>(); }
 
-	utl::UpdateQueue::Time Update(utl::UpdateQueue::Time time, uintptr_t userData) override;
+	UpdateType GetUpdateType() const override { return UpdateType::Sys; }
+	utl::UpdateQueue::Time Update(utl::UpdateQueue *queue, utl::UpdateQueue::Time time) override;
 
 	glm::mat4x3 GetViewMatrix() const;
 	glm::mat4   GetProjMatrix(glm::vec2 viewportSize) const;

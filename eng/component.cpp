@@ -15,13 +15,10 @@ static auto s_regTypes = TypeInfo::AddInitializer("component", [] {
 });
 
 
-utl::UpdateQueue::Time CameraCmp::Update(utl::UpdateQueue::Time time, uintptr_t userData)
+utl::UpdateQueue::Time CameraCmp::Update(utl::UpdateQueue *queue, utl::UpdateQueue::Time time)
 {
-    if (userData)
-        return utl::UpdateQueue::TimeNever;
-
     if (!Sys::Get()->_ui->_keyboardFocusInUI && this == Sys::Get()->_scene->_camera) {
-        utl::UpdateQueue::Time deltaTime = time - Sys::Get()->_updateQueue._lastUpdateTime;
+        utl::UpdateQueue::Time deltaTime = time - queue->_lastUpdateTime;
         utl::Transform3F xform = eng::TransformFromKeyboardInput(deltaTime);
         _parent->SetTransform(_parent->GetTransform() * xform);
     }

@@ -10,9 +10,13 @@ namespace eng {
 using utl::TypeInfo;
 
 struct CameraCmp;
+struct Object;
 struct World : utl::Any {
 
 	void Init(std::string name, utl::BoxF const &worldBox, glm::vec3 minWorldNodeSize);
+
+	std::shared_ptr<Object> CreateCamera(std::string_view name = "Camera");
+	std::unique_ptr<Scene> CreateScene();
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<World>(); }
 

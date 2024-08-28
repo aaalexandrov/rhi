@@ -9,6 +9,12 @@
 
 namespace eng {
 
+enum class UpdateType {
+	None,
+	Sys,
+	World,
+};
+
 struct World;
 struct Renderer;
 struct Scene;
@@ -20,6 +26,8 @@ struct Sys {
 
 	bool Init();
 	bool InitRhi(std::shared_ptr<Window> const &window, int32_t deviceIndex = 0);
+
+	std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips);
 
 	void UpdateTime();
 
