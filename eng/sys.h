@@ -29,10 +29,9 @@ struct Sys {
 
 	std::shared_ptr<rhi::Texture> LoadTexture(std::string path, bool genMips);
 
-	void UpdateTime();
+	void UpdateTime(utl::UpdateQueue::Time deltaSec);
 
 	utl::UpdateQueue::Time _timeScale = 1.0;
-	std::chrono::steady_clock::time_point _lastUpdateTime;
 	std::shared_ptr<rhi::Rhi> _rhi;
 	std::unique_ptr<Ui> _ui;
 	std::unique_ptr<World> _world;

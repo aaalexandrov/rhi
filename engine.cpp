@@ -173,13 +173,16 @@ int main()
 	};
 
 	std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
-	std::chrono::time_point nowTime = startTime;
+	std::chrono::time_point now = startTime;
 	uint64_t frame = 0;
 	for (; running; ) {
 		eng::Sys::Get()->_ui->HandleInput();
 		eng::Sys::Get()->_ui->UpdateWindows();
 
-		eng::Sys::Get()->UpdateTime();
+		std::chrono::time_point newTime = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<utl::UpdateQueue::Time> deltaSec = newTime - now;
+		eng::Sys::Get()->UpdateTime(deltaSec.count());
+		now = newTime;
 
 		glm::ivec2 swapchainSize = glm::ivec2(window->_swapchain->_descriptor._dimensions);
 		if (any(equal(swapchainSize, glm::ivec2(0))))

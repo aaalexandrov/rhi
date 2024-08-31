@@ -66,6 +66,8 @@ struct ResourceSetDescription {
 	std::vector<Param> _params;
 };
 
+
+
 struct Pipeline;
 struct ResourceSet : public utl::Any {
 	virtual ~ResourceSet() {}
@@ -74,11 +76,11 @@ struct ResourceSet : public utl::Any {
 
 	virtual bool Update();
 
-	bool Update(std::initializer_list<ResourceRef> resRefs) { return Update<std::initializer_list>(resRefs); }
-	bool Update(std::span<ResourceRef> resRefs) { return Update<std::span>(resRefs); }
+	bool Update(std::initializer_list<ResourceRef> resRefs) { return Update(resRefs.begin(), resRefs.end()); }
+	bool Update(std::span<ResourceRef> resRefs) { return Update(resRefs.begin(), resRefs.end()); }
 
-	template <template<typename> typename Container>
-	bool Update(Container<ResourceRef> resRefs);
+	template <typename It>
+	bool Update(It resRefsBegin, It resRefsEnd);
 
 	ResourceSetDescription const *GetSetDescription() const;
 
@@ -109,15 +111,15 @@ inline ResourceSetDescription const *ResourceSet::GetSetDescription() const {
 	return &_pipeline->_resourceSetDescriptions[_setIndex];
 }
 
-template<template<typename> typename Container>
-inline bool ResourceSet::Update(Container<ResourceRef> resRefs)
+template<typename It>
+inline bool ResourceSet::Update(It resRefsBegin, It resRefsEnd)
 {
-	if (resRefs.size() != _resourceRefs.size()) {
+	if (std::distance(resRefsBegin, resRefsEnd) != _resourceRefs.size()) {
 		ASSERT(0);
 		return false;
 	}
 
-	std::copy(resRefs.begin(), resRefs.end(), _resourceRefs.begin());
+	std::copy(resRefsBegin, resRefsEnd, _resourceRefs.begin());
 
 	return Update();
 }

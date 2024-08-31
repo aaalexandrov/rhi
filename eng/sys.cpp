@@ -16,8 +16,6 @@ bool Sys::Init()
     if (!_ui->Init())
         return false;
 
-    _lastUpdateTime = std::chrono::high_resolution_clock::now();
-
     return true;
 }
 
@@ -110,18 +108,13 @@ std::shared_ptr<rhi::Texture> Sys::LoadTexture(std::string path, bool genMips)
 }
 
 
-void Sys::UpdateTime()
+void Sys::UpdateTime(utl::UpdateQueue::Time deltaSec)
 {
-    std::chrono::steady_clock::time_point now = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<utl::UpdateQueue::Time> deltaSec = now - _lastUpdateTime;
-
-    double delta = deltaSec.count() * _timeScale;
+	utl::UpdateQueue::Time delta = deltaSec * _timeScale;
     _updateQueue.UpdateToTime(delta);
 
     if (_world)
         _world->UpdateTime(delta);
-
-    _lastUpdateTime = now;
 }
 
 
