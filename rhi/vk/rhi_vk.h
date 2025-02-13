@@ -85,7 +85,7 @@ struct RhiVk final : public Rhi {
 	};
 
 	vk::Instance _instance;
-	vk::DispatchLoaderDynamic _dynamicDispatch;
+	vk::detail::DispatchLoaderDynamic _dynamicDispatch;
 	vk::PhysicalDevice _physDevice;
 	vk::Device _device;
 	QueueData _universalQueue;
