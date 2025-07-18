@@ -51,6 +51,10 @@ Ui::~Ui()
 
 bool Ui::Init()
 {
+#if defined(__linux__)	
+	setenv("SDL_VIDEODRIVER", "x11", 1);
+#endif	
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		return false;
 
