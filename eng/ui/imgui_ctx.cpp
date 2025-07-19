@@ -87,6 +87,7 @@ bool ImguiCtx::Init(Window *window)
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForVulkan(window->_window);
     ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.ApiVersion = VK_API_VERSION_1_2;
     init_info.Instance = rhiVk->_instance;
     init_info.PhysicalDevice = rhiVk->_physDevice;
     init_info.Device = rhiVk->_device;
@@ -94,13 +95,14 @@ bool ImguiCtx::Init(Window *window)
     init_info.Queue = rhiVk->_universalQueue._queue;
     init_info.PipelineCache = rhiVk->_pipelineCache;
     init_info.DescriptorPool = _rhiData->_descriptorPool;
+    init_info.RenderPass = passVk->_renderPass;
     init_info.Subpass = 0;
     init_info.MinImageCount = 2;
     init_info.ImageCount = 2;
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator = (VkAllocationCallbacks *)rhiVk->AllocCallbacks();
     init_info.CheckVkResultFn = [](VkResult err) { ASSERT(err == VK_SUCCESS); };
-    ImGui_ImplVulkan_Init(&init_info, passVk->_renderPass);
+    ImGui_ImplVulkan_Init(&init_info);
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
