@@ -72,9 +72,9 @@ std::shared_ptr<rhi::Texture> Sys::LoadTexture(std::string path, bool genMips)
 	glm::vec4 dims{ x, y, 0, 0 };
 	rhi::ResourceDescriptor texDesc{
 		._usage{.srv = 1, .copySrc = genMips, .copyDst = 1},
-		._format{fmt},
-		._dimensions{dims},
-		._mipLevels{rhi::GetMaxMipLevels(dims)},
+		._format = fmt,
+		._dimensions = dims,
+		._mipLevels = rhi::GetMaxMipLevels(dims),
 	};
 	std::shared_ptr<rhi::Texture> tex = rhi->New<rhi::Texture>(path, texDesc);
 

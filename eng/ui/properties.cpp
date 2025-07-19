@@ -113,7 +113,7 @@ void DrawProperty(std::string_view name, utl::AnyRef obj, int depth)
 			ImGui::TreePop();
 		}
 	} else if (obj._type->_isArray) {
-		if (ImGui::TreeNodeEx(obj._instance, (depth < 8 && obj.GetArraySize() <= 16) ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None, "%s: %s", name.data(), obj._type->_name.c_str(), ImGuiWindowFlags_None)) {
+		if (ImGui::TreeNodeEx(obj._instance, (depth < 8 && obj.GetArraySize() <= 16) ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None, "%s: %s", name.data(), obj._type->_name.c_str())) {
 			for (size_t i = 0; i < obj.GetArraySize(); ++i) {
 				std::string indName = utl::strPrintf("%s[%zu]", name.data(), i);
 				DrawProperty(indName, obj.GetArrayElement(i), depth + 1);

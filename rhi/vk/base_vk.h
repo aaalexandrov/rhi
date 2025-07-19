@@ -98,6 +98,7 @@ struct ResourceTransitionVk {
 };
 
 struct ResourceVk {
+	virtual ~ResourceVk() {}
 	virtual ResourceTransitionVk GetTransitionData(ResourceUsage prevUsage, ResourceUsage usage) = 0;
 };
 

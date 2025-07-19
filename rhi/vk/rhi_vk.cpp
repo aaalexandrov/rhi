@@ -25,7 +25,7 @@ static bool IsAligned(void *mem, size_t alignment)
     return !(reinterpret_cast<size_t>(mem) & (alignment - 1));
 }
 
-VKAPI_ATTR void *VKAPI_CALL HostAllocationTrackerVk::Allocate(void *pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+VKAPI_ATTR void *VKAPI_CALL HostAllocationTrackerVk::Allocate(void *pUserData, size_t size, size_t alignment, vk::SystemAllocationScope allocationScope)
 {
     HostAllocationTrackerVk *tracker = static_cast<HostAllocationTrackerVk *>(pUserData);
 
@@ -39,7 +39,7 @@ VKAPI_ATTR void *VKAPI_CALL HostAllocationTrackerVk::Allocate(void *pUserData, s
     return mem;
 }
 
-VKAPI_ATTR void *VKAPI_CALL HostAllocationTrackerVk::Reallocate(void *pUserData, void *pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+VKAPI_ATTR void *VKAPI_CALL HostAllocationTrackerVk::Reallocate(void *pUserData, void *pOriginal, size_t size, size_t alignment, vk::SystemAllocationScope allocationScope)
 {
     HostAllocationTrackerVk *tracker = static_cast<HostAllocationTrackerVk *>(pUserData);
 
@@ -64,7 +64,7 @@ VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::Free(void *pUserData, void *
     utl::AlignedFree(pMemory);
 }
 
-VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalAllocationNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalAllocationNotify(void *pUserData, size_t size, vk::InternalAllocationType allocationType, vk::SystemAllocationScope allocationScope)
 {
     HostAllocationTrackerVk *tracker = static_cast<HostAllocationTrackerVk *>(pUserData);
 
@@ -72,7 +72,7 @@ VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalAllocationNotify(voi
     tracker->_sizeAllocatedInternal += size;
 }
 
-VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalFreeNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalFreeNotify(void *pUserData, size_t size, vk::InternalAllocationType allocationType, vk::SystemAllocationScope allocationScope)
 {
     HostAllocationTrackerVk *tracker = static_cast<HostAllocationTrackerVk *>(pUserData);
 
@@ -81,31 +81,31 @@ VKAPI_ATTR void VKAPI_CALL HostAllocationTrackerVk::InternalFreeNotify(void *pUs
 }
 
 VKAPI_ATTR VkBool32 DebugUtilsMessengerFunc(
-    VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
-    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+    vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    vk::DebugUtilsMessageTypeFlagsEXT messageTypes,
+    const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData,
     void *pUserData)
 {
     char const *severity, *type;
-    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    if (messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
         severity = "error";
-    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    else if (messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
         severity = "warning";
-    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+    else if (messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
         severity = "info";
     else {
-        ASSERT(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT);
+        ASSERT(messageSeverity & vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose);
         severity = "verbose";
     }
 
-    if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+    if (messageTypes & vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral)
         type = "general";
-    else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
+    else if (messageTypes & vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
         type = "validation";
-    else if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+    else if (messageTypes & vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
         type = "performance";
     else {
-        ASSERT(messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT);
+        ASSERT(messageTypes & vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding);
         type = "device address binding";
     }
 

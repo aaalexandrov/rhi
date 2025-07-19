@@ -49,11 +49,11 @@ struct HostAllocationTrackerVk {
 	size_t _sizeAllocated = 0;
 	size_t _sizeAllocatedInternal = 0;
 
-	static VKAPI_ATTR void *VKAPI_CALL Allocate(void *pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
-	static VKAPI_ATTR void *VKAPI_CALL Reallocate(void *pUserData, void *pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope);
+	static VKAPI_ATTR void *VKAPI_CALL Allocate(void *pUserData, size_t size, size_t alignment, vk::SystemAllocationScope allocationScope);
+	static VKAPI_ATTR void *VKAPI_CALL Reallocate(void *pUserData, void *pOriginal, size_t size, size_t alignment, vk::SystemAllocationScope allocationScope);
 	static VKAPI_ATTR void VKAPI_CALL Free(void *pUserData, void *pMemory);
-	static VKAPI_ATTR void VKAPI_CALL InternalAllocationNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
-	static VKAPI_ATTR void VKAPI_CALL InternalFreeNotify(void *pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
+	static VKAPI_ATTR void VKAPI_CALL InternalAllocationNotify(void *pUserData, size_t size, vk::InternalAllocationType allocationType, vk::SystemAllocationScope allocationScope);
+	static VKAPI_ATTR void VKAPI_CALL InternalFreeNotify(void *pUserData, size_t size, vk::InternalAllocationType allocationType, vk::SystemAllocationScope allocationScope);
 };
 
 struct RhiVk final : public Rhi {

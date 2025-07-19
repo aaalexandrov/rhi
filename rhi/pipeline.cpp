@@ -106,8 +106,9 @@ ResourceUsage ResourceSetDescription::Param::GetUsage() const
 		case ShaderParam::UAVTexture:
 			return ResourceUsage{ .uav = 1, .write = 1 };
 			return ResourceUsage{ .srv = 1, .read = 1 };
+		default:
+			return ResourceUsage();
 	}
-	return ResourceUsage();
 }
 
 bool ResourceSet::Init(Pipeline *pipeline, uint32_t setIndex)

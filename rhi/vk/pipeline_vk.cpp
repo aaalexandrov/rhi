@@ -224,9 +224,10 @@ vk::DescriptorType GetDescriptorType(ShaderParam::Kind kind)
 			return vk::DescriptorType::eStorageImage;
 		case ShaderParam::Sampler:
 			return vk::DescriptorType::eSampler;
+		default:
+			ASSERT(0);
+			return vk::DescriptorType();
 	}
-	ASSERT(0);
-	return vk::DescriptorType();
 }
 
 void DescriptorSetAllocatorVk::Set::Delete()
@@ -475,6 +476,9 @@ ShaderParam GetShaderParam(spirv_cross::Compiler const &refl, spirv_cross::Resou
 				typeInfo = types[{type.columns, type.vecsize}];
 				break;
 			}
+			default:
+				ASSERT(0);
+				break;
 		}
 		ASSERT(typeInfo);
 
