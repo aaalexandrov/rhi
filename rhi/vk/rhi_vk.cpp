@@ -136,14 +136,19 @@ struct DeviceCreateData {
 
 DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDev, Rhi::Settings const &settings)
 {
-    auto queueFamilyCanPresent = [&](vk::PhysicalDevice const &physDev, int32_t queueFamily) {
+    auto queueFamilyCanPresent = [&](vk::PhysicalDevice const &physDev, int32_t queueFamily)->bool {
 #if defined(_WIN32)
         return physDev.getWin32PresentationSupportKHR(queueFamily);
 #elif defined(__linux__)
-        auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get());
-        ASSERT(winDataXlib);
-        return winDataXlib && physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
+        if (auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get())) 
+            return physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
+        
+        if (auto *winDataWayland = Cast<WindowDataWayland>(settings._window.get()))
+            return physDev.getWaylandPresentationSupportKHR(queueFamily, winDataWayland->_display);
+
 #endif
+        ASSERT(0);
+        return false;
     };
 
     DeviceCreateData devCreateData;
@@ -239,6 +244,7 @@ bool RhiVk::InitInstance()
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif defined(__linux__)
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
+        VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
 #endif
     };
 

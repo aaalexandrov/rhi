@@ -81,18 +81,27 @@ std::shared_ptr<rhi::WindowData> Window::GetWindowData()
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(_window, &wmInfo);
 
-    std::shared_ptr<rhi::WindowData> windowData = 
+    std::shared_ptr<rhi::WindowData> windowData;
 #if defined(_WIN32)
-    std::shared_ptr<rhi::WindowData>(
+    windowData = std::shared_ptr<rhi::WindowData>(
         new rhi::WindowDataWin32{ wmInfo.info.win.hinstance, wmInfo.info.win.window }
     );
 #elif defined(__linux__)	
-    std::shared_ptr<rhi::WindowData>(
-        new rhi::WindowDataXlib{ wmInfo.info.x11.display,  wmInfo.info.x11.window }
-    );
+    char const *videoDriver = SDL_GetCurrentVideoDriver();
+    if (strcmp(videoDriver, "x11") == 0) {
+        windowData = std::shared_ptr<rhi::WindowData>(
+            new rhi::WindowDataXlib{ wmInfo.info.x11.display,  wmInfo.info.x11.window }
+        );
+    } else if (strcmp(videoDriver, "wayland") == 0) {
+        windowData = std::shared_ptr<rhi::WindowData>(
+            new rhi::WindowDataWayland{ wmInfo.info.wl.display, wmInfo.info.wl.surface }
+        );
+    }
 #else
 #	error Unsupported platform!
 #endif
+
+    ASSERT(windowData);
 
     return windowData;
 }

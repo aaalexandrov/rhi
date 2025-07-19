@@ -27,6 +27,14 @@ struct WindowDataXlib : public WindowData {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataXlib>(); }
 };
+
+struct WindowDataWayland : public WindowData {
+	struct wl_display *_display = nullptr;
+	struct wl_surface *_surface = nullptr;
+	WindowDataWayland(struct wl_display *display, struct wl_surface *surface) : _display(display), _surface(surface) {}
+
+	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataWayland>(); }
+};
 #endif
 
 struct HostAllocationTrackerVk {

@@ -40,16 +40,25 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 	if (rhi->_instance.createWin32SurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
 		return false;
 #elif defined(__linux__)
-	WindowDataXlib *winData = Cast<WindowDataXlib>(_descriptor._window.get());
-	if (!winData)
+	if (auto *winData = Cast<WindowDataXlib>(_descriptor._window.get())) {
+		vk::XlibSurfaceCreateInfoKHR surfInfo{
+			vk::XlibSurfaceCreateFlagsKHR(),
+			winData->_display,
+			winData->_window 
+		};
+		if (rhi->_instance.createXlibSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
+			return false;
+	} else if (auto *winData = Cast<WindowDataWayland>(_descriptor._window.get())) {
+		vk::WaylandSurfaceCreateInfoKHR surfInfo{
+			vk::WaylandSurfaceCreateFlagsKHR(),
+			winData->_display,
+			winData->_surface
+		};
+		if (rhi->_instance.createWaylandSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess) 
+			return false;
+	} else {
 		return false;
-	vk::XlibSurfaceCreateInfoKHR surfInfo{
-		vk::XlibSurfaceCreateFlagsKHR(),
-		winData->_display,
-		winData->_window 
-	};
-	if (rhi->_instance.createXlibSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
-		return false;
+	}
 #endif
 	{
 		auto supported = rhi->_physDevice.getSurfaceSupportKHR(rhi->_universalQueue._family, _surface);
