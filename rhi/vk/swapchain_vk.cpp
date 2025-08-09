@@ -80,7 +80,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 	}
 	ASSERT(surfModes & (1 << (uint32_t)_descriptor._presentMode));
 
-	return Update();
+	return Update(glm::ivec2(_descriptor._dimensions));
 }
 
 std::vector<Format> SwapchainVk::GetSupportedSurfaceFormats() const
@@ -108,14 +108,17 @@ uint32_t SwapchainVk::GetSupportedPresentModeMask() const
 	return modeMask;
 }
 
-bool SwapchainVk::Update(PresentMode presentMode, Format surfaceFormat)
+bool SwapchainVk::Update(glm::ivec2 surfaceSize, PresentMode presentMode, Format surfaceFormat)
 {
 	auto rhi = static_cast<RhiVk*>(_rhi);
 	vk::SurfaceCapabilitiesKHR surfCaps;
 	if ((vk::Result)rhi->_physDevice.getSurfaceCapabilitiesKHR(_surface, &surfCaps) != vk::Result::eSuccess)
 		return false;
 	vk::Extent2D swapchainSize = surfCaps.currentExtent;
-	ASSERT(surfCaps.currentExtent.width != ~0u && surfCaps.currentExtent.height != ~0u);
+	if (surfCaps.currentExtent.width == ~0u || surfCaps.currentExtent.height == ~0u) {
+		swapchainSize.width = surfaceSize.x;
+		swapchainSize.height = surfaceSize.y;
+	}
 	swapchainSize.width = utl::Clamp(surfCaps.minImageExtent.width, surfCaps.maxImageExtent.width, swapchainSize.width);
 	swapchainSize.height = utl::Clamp(surfCaps.minImageExtent.height, surfCaps.maxImageExtent.height, swapchainSize.height);
 	uint32_t imgCount = utl::Clamp(surfCaps.minImageCount, surfCaps.maxImageCount, (uint32_t)_descriptor._dimensions[2]);

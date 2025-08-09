@@ -75,6 +75,13 @@ void Window::DoneRendering()
     _swapchain = nullptr;
 }
 
+glm::ivec2 Window::GetSize()
+{
+    glm::ivec2 size(0);
+    SDL_GetWindowSize(_window, &size.x, &size.y);
+    return size;
+}
+
 std::shared_ptr<rhi::WindowData> Window::GetWindowData()
 {
     SDL_SysWMinfo wmInfo;

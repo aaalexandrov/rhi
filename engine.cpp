@@ -167,7 +167,7 @@ int main()
 				if (!nextModes)
 					nextModes = supportedModes;
 				auto presentMode = (rhi::PresentMode)std::countr_zero(nextModes);
-				win->_swapchain->Update(presentMode);
+				win->_swapchain->Update(win->GetSize(), presentMode);
 			}
 		}
 	};

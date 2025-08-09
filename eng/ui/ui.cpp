@@ -51,10 +51,6 @@ Ui::~Ui()
 
 bool Ui::Init()
 {
-#if defined(__linux__)	
-	setenv("SDL_VIDEODRIVER", "x11", 1);
-#endif	
-
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		return false;
 
@@ -146,7 +142,7 @@ void Ui::HandleInput()
 void Ui::UpdateWindows()
 {
 	for (Window *win : _windows) {
-		win->_swapchain->Update();
+		win->_swapchain->Update(win->GetSize());
 	}
 }
 

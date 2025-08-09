@@ -34,6 +34,8 @@ struct Window : std::enable_shared_from_this<Window>, utl::Any {
 	void Done();
 	void DoneRendering();
 
+	glm::ivec2 GetSize();
+
 	std::shared_ptr<rhi::WindowData> GetWindowData();
 
 	WindowDescriptor _desc;

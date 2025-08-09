@@ -69,7 +69,7 @@ struct Swapchain : public RhiOwned {
 	virtual std::vector<Format> GetSupportedSurfaceFormats() const = 0;
 	virtual uint32_t GetSupportedPresentModeMask() const = 0;
 
-	virtual bool Update(PresentMode presentMode = PresentMode::Invalid, Format surfaceFormat = Format::Invalid) = 0;
+	virtual bool Update(glm::ivec2 surfaceSize, PresentMode presentMode = PresentMode::Invalid, Format surfaceFormat = Format::Invalid) = 0;
 
 	virtual std::shared_ptr<Texture> AcquireNextImage() = 0;
 	int32_t GetTextureIndex(Texture *tex) const;

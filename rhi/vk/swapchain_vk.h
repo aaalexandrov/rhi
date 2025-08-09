@@ -13,7 +13,7 @@ struct SwapchainVk final : Swapchain {
 	std::vector<Format> GetSupportedSurfaceFormats() const override;
 	uint32_t GetSupportedPresentModeMask() const override;
 
-	bool Update(PresentMode presentMode = PresentMode::Invalid, Format surfaceFormat = Format::Invalid) override;
+	bool Update(glm::ivec2 surfaceSize, PresentMode presentMode = PresentMode::Invalid, Format surfaceFormat = Format::Invalid) override;
 	bool CreateSemaphores(uint32_t num);
 	void DestroySemaphores();
 

@@ -25,24 +25,25 @@ union ResourceUsage {
 		uint32_t read : 1;
 		uint32_t write : 1;
 		uint32_t create : 1;
+		uint32_t _padding : 19;
 	};
 	uint32_t _flags = 0;
 
 	friend inline ResourceUsage operator&(ResourceUsage u0, ResourceUsage u1) { return ResourceUsage{ ._flags = u0._flags & u1._flags }; }
 	friend inline ResourceUsage operator|(ResourceUsage u0, ResourceUsage u1) { return ResourceUsage{ ._flags = u0._flags | u1._flags }; }
-	ResourceUsage operator~() { return ResourceUsage{ ._flags = ~_flags }; }
+	ResourceUsage operator~() const { return ResourceUsage{ ._flags = ~_flags }; }
 	ResourceUsage &operator|=(ResourceUsage u) { _flags |= u._flags; return *this; }
 	ResourceUsage &operator&=(ResourceUsage u) { _flags &= u._flags; return *this; }
 	bool operator==(ResourceUsage u) const { return _flags == u._flags; }
 	bool operator!=(ResourceUsage u) const { return _flags != u._flags; }
 
-	operator bool() { return _flags; }
-	bool operator!() { return !_flags; }
+	operator bool() const { return _flags; }
+	bool operator!() const { return !_flags; }
 
 	static inline constexpr ResourceUsage Operations() { return ResourceUsage{ .vb = 1, .ib = 1, .srv = 1, .uav = 1, .rt = 1, .ds = 1, .present = 1, .copySrc = 1, .copyDst = 1, .cpuAccess = 1 }; }
 	static inline constexpr ResourceUsage Access() { return ResourceUsage{ .read = 1, .write = 1, .create = 1 }; }
 };
-
+static_assert(sizeof(ResourceUsage) == sizeof(ResourceUsage::_flags));
 
 enum class Format : int32_t {
 	Invalid = -1,

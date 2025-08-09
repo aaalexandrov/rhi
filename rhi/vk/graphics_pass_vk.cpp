@@ -121,6 +121,7 @@ bool GraphicsPassVk::InitRenderPass()
 		vk::AttachmentLoadOp loadOp = rt._clearValue[0] >= 0 ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad;
 		vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eStore;
 		ResourceUsage rtUsage = rt._texture->_descriptor._usage;
+		ASSERT(rtUsage._padding == 0);
 		vk::ImageLayout layout = GetImageLayout(rtUsage & ResourceUsage{ .rt = 1, .ds = 1 } | ResourceUsage{ .write = 1 });
 		vk::AttachmentDescription attachDesc{
 			vk::AttachmentDescriptionFlags(),
