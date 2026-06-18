@@ -1,6 +1,9 @@
 #include "rhi_vk.h"
 #include "utl/mathutl.h"
 #include "utl/mem.h"
+#include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_core.h"
+#include "vulkan/vulkan_metal.h"
 
 namespace rhi {
 
@@ -10,6 +13,12 @@ static auto s_regTypes = TypeInfo::AddInitializer("rhi_vk", [] {
         .Base<WindowData>();
 #elif defined(__linux__)
     TypeInfo::Register<WindowDataXlib>().Name("WindowDataXlib")
+        .Base<WindowData>();
+
+    TypeInfo::Register<WindowDataWayland>().Name("WindowDataWayland")
+        .Base<WindowData>();
+#elif defined(__APPLE__)
+    TypeInfo::Register<WindowDataMetal>().Name("WindowDataMetal")
         .Base<WindowData>();
 #endif
 
@@ -140,12 +149,14 @@ DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDe
 #if defined(_WIN32)
         return physDev.getWin32PresentationSupportKHR(queueFamily);
 #elif defined(__linux__)
-        if (auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get())) 
+        if (auto *winDataXlib = Cast<WindowDataXlib>(settings._window.get()))
             return physDev.getXlibPresentationSupportKHR(queueFamily, winDataXlib->_display, winDataXlib->GetVisualId());
-        
+
         if (auto *winDataWayland = Cast<WindowDataWayland>(settings._window.get()))
             return physDev.getWaylandPresentationSupportKHR(queueFamily, winDataWayland->_display);
-
+#elif defined(__APPLE__)
+        // create a surface, then call vkPhysicalDeviceCheckSurfaceSupportKHR() ?
+        return true;
 #endif
         ASSERT(0);
         return false;
@@ -154,6 +165,9 @@ DeviceCreateData CheckPhysicalDeviceSuitability(vk::PhysicalDevice const &physDe
     DeviceCreateData devCreateData;
 
     std::vector<char const *> extNames = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    #if defined(__APPLE__)
+        extNames.push_back("VK_KHR_portability_subset");
+    #endif
     auto devExts = physDev.enumerateDeviceExtensionProperties();
     if (devExts.result != vk::Result::eSuccess)
         return devCreateData;
@@ -245,6 +259,9 @@ bool RhiVk::InitInstance()
 #elif defined(__linux__)
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
         VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
+#elif defined(__APPLE__)
+        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+        VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 #endif
     };
 
@@ -260,8 +277,12 @@ bool RhiVk::InitInstance()
         instLayerNames.push_back("VK_LAYER_KHRONOS_validation");
         instExtNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+    vk::InstanceCreateFlags instFlags{};
+    #if defined(__APPLE__)
+        instFlags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+    #endif
     vk::InstanceCreateInfo inst{
-        vk::InstanceCreateFlags(),
+        instFlags,
         &appInfo,
         instLayerNames,
         instExtNames,
@@ -292,7 +313,7 @@ bool RhiVk::InitDevice(int32_t deviceIndex)
         _physDevice = devCreateData._physDevice;
 
         std::array<float, 1> queuePriorities{ 1.0f };
-        std::array<vk::DeviceQueueCreateInfo, 1> queueCreateInfo{ 
+        std::array<vk::DeviceQueueCreateInfo, 1> queueCreateInfo{
             vk::DeviceQueueCreateInfo {
                 vk::DeviceQueueCreateFlags(),
                 (uint32_t)devCreateData._universalQueueFamily,

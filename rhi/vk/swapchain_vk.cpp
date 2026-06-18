@@ -44,7 +44,7 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 		vk::XlibSurfaceCreateInfoKHR surfInfo{
 			vk::XlibSurfaceCreateFlagsKHR(),
 			winData->_display,
-			winData->_window 
+			winData->_window
 		};
 		if (rhi->_instance.createXlibSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
 			return false;
@@ -54,11 +54,24 @@ bool SwapchainVk::Init(SwapchainDescriptor const &desc)
 			winData->_display,
 			winData->_surface
 		};
-		if (rhi->_instance.createWaylandSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess) 
+		if (rhi->_instance.createWaylandSurfaceKHR(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
 			return false;
 	} else {
 		return false;
 	}
+#elif defined(__APPLE__)
+    if (auto *winData = Cast<WindowDataMetal>(_descriptor._window.get())) {
+        vk::MetalSurfaceCreateInfoEXT surfInfo{
+            vk::MetalSurfaceCreateFlagsEXT(),
+            (CAMetalLayer const *)winData->_metalLayer
+        };
+        if (rhi->_instance.createMetalSurfaceEXT(&surfInfo, rhi->AllocCallbacks(), &_surface) != vk::Result::eSuccess)
+            return false;
+    } else {
+        return false;
+    }
+#else
+	#error "Unsupported platform!"
 #endif
 	{
 		auto supported = rhi->_physDevice.getSurfaceSupportKHR(rhi->_universalQueue._family, _surface);
@@ -139,7 +152,7 @@ bool SwapchainVk::Update(glm::ivec2 surfaceSize, PresentMode presentMode, Format
 	imgUsage &= rhi->GetFormatImageUsage(surfaceFormat, ResourceUsage{.present=1}) & _descriptor._usage;
 	imgUsage.present = 1;
 
-	auto swapchain = [&] { 
+	auto swapchain = [&] {
 		if (swapchainSize.width == 0 || swapchainSize.height == 0)
 			return vk::ResultValue<vk::SwapchainKHR>{ vk::Result::eErrorNotPermittedKHR, vk::SwapchainKHR() };
 
@@ -166,7 +179,7 @@ bool SwapchainVk::Update(glm::ivec2 surfaceSize, PresentMode presentMode, Format
 			nullptr
 		};
 
-		return rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks()); 
+		return rhi->_device.createSwapchainKHR(chainInfo, rhi->AllocCallbacks());
 	}();
 	rhi->_device.destroySwapchainKHR(_swapchain, rhi->AllocCallbacks());
 	_swapchain = swapchain.value;
@@ -200,7 +213,7 @@ bool SwapchainVk::Update(glm::ivec2 surfaceSize, PresentMode presentMode, Format
 
 	// we create one more semaphore than the number of images because when acquiring an image
 	// we need to supply a non-signalled semaphore before knowhing which image we'll get
-	// so at the end of the array we keep an extra semaphore that'll be guaranteed unused 
+	// so at the end of the array we keep an extra semaphore that'll be guaranteed unused
 	if (!CreateSemaphores(_images.size() + 1))
 		return false;
 

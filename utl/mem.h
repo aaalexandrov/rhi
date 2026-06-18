@@ -1,7 +1,11 @@
 #pragma once
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <functional>
+
+#if defined(__APPLE__)
+    #include <malloc/malloc.h>
+#endif
 
 namespace utl {
 
@@ -18,6 +22,8 @@ inline size_t MemSize(void *mem)
     size_t size;
 #if defined(_MSC_VER)
     size = _msize(mem);
+#elif defined(__APPLE__)
+    size = malloc_size(mem);
 #else
     size = malloc_usable_size(mem);
 #endif

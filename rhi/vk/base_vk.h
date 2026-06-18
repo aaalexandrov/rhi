@@ -11,6 +11,8 @@
 #elif defined(__linux__)
 #define VK_USE_PLATFORM_XLIB_KHR
 #define VK_USE_PLATFORM_WAYLAND_KHR
+#elif defined(__APPLE__)
+#define VK_USE_PLATFORM_METAL_EXT
 #endif
 
 #include "vulkan/vulkan.hpp"
@@ -91,8 +93,8 @@ struct ResourceStateVk {
 struct ResourceTransitionVk {
 	ResourceStateVk _srcState, _dstState;
 	bool HasLayouts() const {
-		return 
-			_srcState._layout != vk::ImageLayout::eUndefined || 
+		return
+			_srcState._layout != vk::ImageLayout::eUndefined ||
 			_dstState._layout != vk::ImageLayout::eUndefined;
 	}
 };
@@ -108,17 +110,17 @@ vk::ImageSubresourceLayers GetImageSubresourceLayers(ResourceView const &view, u
 vk::ImageTiling GetImageTiling(ResourceUsage usage);
 
 
-static inline constexpr vk::AccessFlags s_accessReadFlags = 
-	vk::AccessFlagBits::eIndirectCommandRead | 
-	vk::AccessFlagBits::eIndexRead | 
-	vk::AccessFlagBits::eVertexAttributeRead | 
-	vk::AccessFlagBits::eUniformRead | 
-	vk::AccessFlagBits::eInputAttachmentRead | 
-	vk::AccessFlagBits::eShaderRead | 
-	vk::AccessFlagBits::eColorAttachmentRead | 
-	vk::AccessFlagBits::eDepthStencilAttachmentRead | 
-	vk::AccessFlagBits::eTransferRead | 
-	vk::AccessFlagBits::eHostRead | 
+static inline constexpr vk::AccessFlags s_accessReadFlags =
+	vk::AccessFlagBits::eIndirectCommandRead |
+	vk::AccessFlagBits::eIndexRead |
+	vk::AccessFlagBits::eVertexAttributeRead |
+	vk::AccessFlagBits::eUniformRead |
+	vk::AccessFlagBits::eInputAttachmentRead |
+	vk::AccessFlagBits::eShaderRead |
+	vk::AccessFlagBits::eColorAttachmentRead |
+	vk::AccessFlagBits::eDepthStencilAttachmentRead |
+	vk::AccessFlagBits::eTransferRead |
+	vk::AccessFlagBits::eHostRead |
 	vk::AccessFlagBits::eMemoryRead;
 
 static inline constexpr vk::AccessFlags s_accessWriteFlags =
@@ -130,11 +132,11 @@ static inline constexpr vk::AccessFlags s_accessWriteFlags =
 	vk::AccessFlagBits::eMemoryWrite;
 
 vk::AccessFlags GetAllAccess(ResourceUsage usage);
-inline vk::AccessFlags GetReadAccess(ResourceUsage usage) { 
-	return GetAllAccess(usage) & s_accessReadFlags; 
+inline vk::AccessFlags GetReadAccess(ResourceUsage usage) {
+	return GetAllAccess(usage) & s_accessReadFlags;
 }
-inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) { 
-	return GetAllAccess(usage) & s_accessWriteFlags; 
+inline vk::AccessFlags GetWriteAccess(ResourceUsage usage) {
+	return GetAllAccess(usage) & s_accessWriteFlags;
 }
 inline vk::AccessFlags GetAccess(ResourceUsage usage) {
 	ASSERT(usage.read || usage.write || usage.create);
@@ -142,7 +144,7 @@ inline vk::AccessFlags GetAccess(ResourceUsage usage) {
 	if (usage.read) {
 		if (usage.write)
 			access = GetAllAccess(usage);
-		else 
+		else
 			access = GetReadAccess(usage);
 	} else if (usage.write)
 		access = GetWriteAccess(usage);

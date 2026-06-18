@@ -1,6 +1,9 @@
 #include "window.h"
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_syswm.h"
+#if defined(__APPLE__)
+    #include "SDL2/SDL_metal.h"
+#endif
 
 #include "rhi/vk/rhi_vk.h"
 #include "eng/sys.h"
@@ -49,7 +52,7 @@ bool Window::InitRendering()
     ASSERT(!_swapchain);
     ASSERT(!_imguiCtx);
     _swapchain = Sys::Get()->_rhi->New<rhi::Swapchain>(_desc._name, _desc._swapchainDesc);
-    if (!_swapchain) 
+    if (!_swapchain)
         return false;
 
     _imguiCtx = std::make_unique<ImguiCtx>();
@@ -84,16 +87,20 @@ glm::ivec2 Window::GetSize()
 
 std::shared_ptr<rhi::WindowData> Window::GetWindowData()
 {
+    std::shared_ptr<rhi::WindowData> windowData;
+#if defined(_WIN32)
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(_window, &wmInfo);
 
-    std::shared_ptr<rhi::WindowData> windowData;
-#if defined(_WIN32)
     windowData = std::shared_ptr<rhi::WindowData>(
         new rhi::WindowDataWin32{ wmInfo.info.win.hinstance, wmInfo.info.win.window }
     );
-#elif defined(__linux__)	
+#elif defined(__linux__)
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    SDL_GetWindowWMInfo(_window, &wmInfo);
+
     char const *videoDriver = SDL_GetCurrentVideoDriver();
     if (strcmp(videoDriver, "x11") == 0) {
         windowData = std::shared_ptr<rhi::WindowData>(
@@ -104,6 +111,17 @@ std::shared_ptr<rhi::WindowData> Window::GetWindowData()
             new rhi::WindowDataWayland{ wmInfo.info.wl.display, wmInfo.info.wl.surface }
         );
     }
+#elif defined(__APPLE__)
+    const char viewName[] = "#MetalView";
+    SDL_MetalView metalView = (SDL_MetalView)SDL_GetWindowData(_window, viewName);
+    if (!metalView) {
+        metalView = SDL_Metal_CreateView(_window);
+        ASSERT(metalView);
+        SDL_SetWindowData(_window, viewName, metalView);
+    }
+    windowData = std::shared_ptr<rhi::WindowData>(
+        new rhi::WindowDataMetal{ SDL_Metal_GetLayer(metalView) }
+    );
 #else
 #	error Unsupported platform!
 #endif

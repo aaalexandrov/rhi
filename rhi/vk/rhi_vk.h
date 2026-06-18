@@ -35,6 +35,13 @@ struct WindowDataWayland : public WindowData {
 
 	TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataWayland>(); }
 };
+#elif defined(__APPLE__)
+struct WindowDataMetal: public WindowData {
+    void *_metalLayer = nullptr;
+    WindowDataMetal(void *metalLayer): _metalLayer(metalLayer) {}
+
+    TypeInfo const *GetTypeInfo() const override { return TypeInfo::Get<WindowDataMetal>(); }
+};
 #endif
 
 struct HostAllocationTrackerVk {
