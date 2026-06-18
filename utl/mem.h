@@ -1,11 +1,14 @@
 #pragma once
 
-#include <stdlib.h>
+#if defined(__APPLE__)
+    #include <stdlib.h>
+    #include <malloc/malloc.h>
+#else
+    #include <malloc.h>    
+#endif
+
 #include <functional>
 
-#if defined(__APPLE__)
-    #include <malloc/malloc.h>
-#endif
 
 namespace utl {
 
